@@ -417,7 +417,7 @@ static int copyFilename(const char *file)
 
 static FILE *fileOpen(const char *file)
 {
-    FILE *fp = fopen(file, "r");
+    FILE *fp = Xp_fopen(file, "r");
 
     if (fp) {
 	if (!copyFilename(file)) {
@@ -528,14 +528,14 @@ static FILE *openCompressedFile(const char *filename)
 
     usePclose = false;
     if (!isCompressed(filename)) {
-	if (access(filename, 4) == 0)
+	if (Xp_access(filename, 4) == 0)
 	    return fileOpen(filename);
 	newname = fileAddExtension(filename, Conf_zcat_ext());
 	if (!newname)
 	    return NULL;
 	filename = newname;
     }
-    if (access(filename, 4) == 0) {
+    if (Xp_access(filename, 4) == 0) {
 	cmdline = XMALLOC(char,
 			  strlen(CONF_ZCAT_FORMAT) + strlen(filename) + 1);
 	if (cmdline) {

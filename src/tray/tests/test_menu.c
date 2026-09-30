@@ -34,5 +34,21 @@ int main(void)
 #ifndef _WIN32
     assert(strstr(tray_menu_find(&menu, TRAY_STATUS)->label, "denied or canceled"));
 #endif
+    char *names[] = {"first.xp2", "second.xp2"};
+    map_catalog maps = {names, 2};
+    assert(tray_menu_set_maps(&menu, &maps, "second.xp2", true, true));
+    assert(menu.map_count == 2 && menu.maps[1].checked && !menu.maps[0].checked);
+    assert(strstr(tray_menu_find(&menu, TRAY_MAP_MENU)->label, "restarts"));
+    int first_id = menu.maps[0].id, second_id = menu.maps[1].id;
+    assert(tray_menu_find(&menu, second_id)->enabled);
+    maps.names++; maps.count--;
+    assert(tray_menu_set_maps(&menu, &maps, NULL, false, false));
+    assert(menu.maps[0].id == second_id && !menu.maps[0].checked);
+    assert(!tray_menu_find(&menu, second_id)->enabled);
+    assert(!tray_menu_find(&menu, first_id));
+    maps.names--; maps.count++;
+    assert(tray_menu_set_maps(&menu, &maps, "first.xp2", true, false));
+    assert(menu.maps[0].id != first_id);
+    tray_menu_clear(&menu);
     return 0;
 }

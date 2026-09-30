@@ -111,9 +111,9 @@ libxpcommon_a_AR = $(AR) $(ARFLAGS)
 libxpcommon_a_LIBADD =
 am__dirstamp = $(am__leading_dot)dirstamp
 am_libxpcommon_a_OBJECTS = arraylist.$(OBJEXT) checknames.$(OBJEXT) \
-	config.$(OBJEXT) error.$(OBJEXT) game_transport.$(OBJEXT) \
-	list.$(OBJEXT) math.$(OBJEXT) net.$(OBJEXT) \
-	record_drain.$(OBJEXT) recording_input.$(OBJEXT) \
+	config.$(OBJEXT) utf8_files.$(OBJEXT) error.$(OBJEXT) \
+	game_transport.$(OBJEXT) list.$(OBJEXT) math.$(OBJEXT) \
+	net.$(OBJEXT) record_drain.$(OBJEXT) recording_input.$(OBJEXT) \
 	record_session.$(OBJEXT) record_transport.$(OBJEXT) \
 	portability.$(OBJEXT) randommt.$(OBJEXT) \
 	$(top_builddir)/vendor/mtwister/mtwister.$(OBJEXT) \
@@ -160,7 +160,8 @@ am__depfiles_remade =  \
 	./$(DEPDIR)/session_token.Po ./$(DEPDIR)/shipshape.Po \
 	./$(DEPDIR)/socklib.Po ./$(DEPDIR)/strcasecmp.Po \
 	./$(DEPDIR)/strdup.Po ./$(DEPDIR)/strlcpy.Po \
-	./$(DEPDIR)/utf8_names.Po ./$(DEPDIR)/websocket_http.Po \
+	./$(DEPDIR)/utf8_files.Po ./$(DEPDIR)/utf8_names.Po \
+	./$(DEPDIR)/websocket_http.Po \
 	./$(DEPDIR)/websocket_transport.Po ./$(DEPDIR)/xpmemory.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
@@ -366,6 +367,7 @@ libxpcommon_a_SOURCES = \
 	arraylist.c arraylist.h astershape.h audio.h \
 	bit.h \
 	checknames.c checknames.h click.h commonproto.h config.c const.h \
+	utf8_files.c utf8_files.h \
 	error.c error.h \
 	game_transport.c game_transport.h \
 	item.h \
@@ -512,6 +514,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/strcasecmp.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/strdup.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/strlcpy.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/utf8_files.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/utf8_names.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/websocket_http.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/websocket_transport.Po@am__quote@ # am--include-marker
@@ -698,6 +701,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/strcasecmp.Po
 	-rm -f ./$(DEPDIR)/strdup.Po
 	-rm -f ./$(DEPDIR)/strlcpy.Po
+	-rm -f ./$(DEPDIR)/utf8_files.Po
 	-rm -f ./$(DEPDIR)/utf8_names.Po
 	-rm -f ./$(DEPDIR)/websocket_http.Po
 	-rm -f ./$(DEPDIR)/websocket_transport.Po
@@ -774,6 +778,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/strcasecmp.Po
 	-rm -f ./$(DEPDIR)/strdup.Po
 	-rm -f ./$(DEPDIR)/strlcpy.Po
+	-rm -f ./$(DEPDIR)/utf8_files.Po
 	-rm -f ./$(DEPDIR)/utf8_names.Po
 	-rm -f ./$(DEPDIR)/websocket_http.Po
 	-rm -f ./$(DEPDIR)/websocket_transport.Po

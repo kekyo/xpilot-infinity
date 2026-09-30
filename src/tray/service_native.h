@@ -23,6 +23,13 @@ service_control service_native_control(service_native *native);
  * @param timeout_ms Maximum wait in milliseconds; zero only drains ready events.
  */
 void service_native_dispatch(service_native *native, unsigned timeout_ms);
+#ifdef _WIN32
+/** Add one borrowed handle to the Windows alertable event wait.
+ * @param native Live backend.
+ * @param handle A waitable handle, or NULL to detach. The caller owns its lifetime.
+ */
+void service_native_set_wait_handle(service_native *native, void *handle);
+#endif
 /** Release subscriptions without stopping the service.
  * @param native Owned backend; NULL is permitted.
  */

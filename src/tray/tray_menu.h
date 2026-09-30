@@ -1,6 +1,7 @@
 #ifndef XPILOT_TRAY_MENU_H
 #define XPILOT_TRAY_MENU_H
 #include "tray_controller.h"
+#include "map_catalog.h"
 #include <stddef.h>
 
 /** Stable IDs for service management actions. */
@@ -11,7 +12,8 @@ typedef enum {
     TRAY_START, /**< Start the fixed product service. */
     TRAY_STOP, /**< Normally stop the fixed product service. */
     TRAY_DETAILS, /**< Display errors and the log location. */
-    TRAY_QUIT /**< Exit the tray, leaving the service running. */
+    TRAY_QUIT, /**< Exit the tray, leaving the service running. */
+    TRAY_MAP_MENU /**< Single-selection map submenu. */
 } tray_action;
 
 /** Menu row, owned by the menu instance. */
@@ -19,11 +21,16 @@ typedef struct {
     int id; /**< Stable command identifier. */
     bool enabled; /**< Whether user activation is currently permitted. */
     char label[1024]; /**< UTF-8 plain text without mnemonic escaping. */
+    bool radio; /**< Selectable map entry. */
+    bool checked; /**< Currently configured map, not proof of game readiness. */
 } tray_menu_item;
 
 /** Shared menu representation used by both native frontends. */
 typedef struct {
-    tray_menu_item items[7]; /**< Ordered top-level items. */
+    tray_menu_item items[8]; /**< Ordered top-level items. */
+    tray_menu_item *maps; /**< Owned submenu entries with stable IDs. */
+    size_t map_count; /**< Number of map entries. */
+    int next_map_id; /**< Never reuses an ID removed during this menu lifetime. */
     unsigned revision; /**< Changes only when displayed content changes. */
 } tray_menu;
 
@@ -40,4 +47,18 @@ void tray_menu_update(tray_menu *menu, const tray_status *status,
  * @return Borrowed row, or NULL for an unknown identifier.
  */
 const tray_menu_item *tray_menu_find(const tray_menu *menu, int id);
+/** Synchronize the map submenu and single selection.
+ * @param menu Live menu.
+ * @param catalog Current installed maps.
+ * @param selected Selected catalog filename, or NULL for a custom/unknown map.
+ * @param enabled Whether shared configuration can be updated now.
+ * @param running Whether selecting another map will restart the service.
+ * @return true on success; false on allocation failure or identifier exhaustion.
+ */
+bool tray_menu_set_maps(tray_menu *menu, const map_catalog *catalog, const char *selected,
+                        bool enabled, bool running);
+/** Release menu-owned storage without taking any service action.
+ * @param menu Live or zero-initialized menu.
+ */
+void tray_menu_clear(tray_menu *menu);
 #endif

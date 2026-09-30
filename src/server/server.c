@@ -240,14 +240,32 @@ static int Server_run(int argc, char **argv)
     abort();
 }
 
+#ifdef _WINDOWS
+int wmain(int argc, wchar_t **wide_argv)
+{
+    char **argv = calloc((size_t)argc + 1, sizeof(char *));
+    if (!argv) return 1;
+    int converted = 0;
+    for (; converted < argc; converted++) {
+        argv[converted] = Xp_utf8(wide_argv[converted]);
+        if (!argv[converted]) break;
+    }
+    int result = 1;
+    if (converted == argc) {
+        Conf_use_utf8_paths();
+        result = Windows_service_requested(argc, argv)
+            ? Windows_service_dispatch(argc, argv, Server_run) : Server_run(argc, argv);
+    }
+    for (int i = 0; i < converted; i++) free(argv[i]);
+    free(argv);
+    return result;
+}
+#else
 int main(int argc, char **argv)
 {
-#ifdef _WINDOWS
-    if (Windows_service_requested(argc, argv))
-	return Windows_service_dispatch(argc, argv, Server_run);
-#endif
     return Server_run(argc, argv);
 }
+#endif
 
 void Main_loop(void)
 {
@@ -638,7 +656,7 @@ void Log_game(const char *heading)
 	     "%-50.50s\t%10.10s@%-15.15s\tWorld: %-25.25s\t%10.10s\n",
 	     timenow, Server.owner, Server.host, world->name, heading);
 
-    if ((fp = fopen(Conf_logfile(), "a")) == NULL) {
+    if ((fp = Xp_fopen(Conf_logfile(), "a")) == NULL) {
 	error("Couldn't open log file, contact %s", Conf_localguru());
 	return;
     }
@@ -778,11 +796,11 @@ void Server_log_admin_message(player_t *pl, const char *str)
     if ((logfilename != NULL) &&
 	(logfilename[0] != '\0') &&
 	(logfile_size_limit > 0) &&
-	(access(logfilename, 2) == 0) &&
+	(Xp_access(logfilename, 2) == 0) &&
 	(stat(logfilename, &st) == 0) &&
 	(st.st_size + 80 < logfile_size_limit) &&
 	((size_t)(logfile_size_limit - st.st_size - 80) > strlen(str)) &&
-	((fp = fopen(logfilename, "a")) != NULL))
+	((fp = Xp_fopen(logfilename, "a")) != NULL))
     {
 	fprintf(fp,
 		"%s[%s]{%s@%s(%s)|%s}:\n"

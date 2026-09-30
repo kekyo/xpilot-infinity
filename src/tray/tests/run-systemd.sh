@@ -41,6 +41,15 @@ if test -n "${XPILOT_TRAY_BINARY:-}"; then
     podman cp "$XPILOT_TEST_SOURCE_DIR/images/icon-1254.png" "$container:/xpilot-test-icon.png"
 fi
 podman cp "$XPILOT_TEST_SOURCE_DIR/lib" "$container:/xpilot-test-data"
+podman cp "$XPILOT_TEST_SOURCE_DIR/src/tray/tests/test-strict-map.sh" "$container:/test-strict-map.sh"
+if test -n "${XPILOT_SETTINGS_HELPER:-}"; then
+    : "${XPILOT_AUTH_CANCEL_TEST:?Set the authentication-cancel test path}"
+    podman cp "$XPILOT_AUTH_CANCEL_TEST" "$container:/test-auth-cancel"
+    podman cp "$XPILOT_SETTINGS_HELPER" "$container:/xpilot-settings-helper"
+    podman cp "$XPILOT_TEST_SOURCE_DIR/src/tray/data/org.xpilot.infinity.policy" "$container:/usr/share/polkit-1/actions/org.xpilot.infinity.policy"
+    podman cp "$XPILOT_TEST_SOURCE_DIR/src/tray/data/org.xpilot.Infinity.ServerSettings1.conf" "$container:/etc/dbus-1/system.d/org.xpilot.Infinity.ServerSettings1.conf"
+    podman cp "$XPILOT_TEST_SOURCE_DIR/src/tray/tests/test-settings-helper.sh" "$container:/test-settings-helper.sh"
+fi
 podman cp "$XPILOT_TEST_SOURCE_DIR/debian/xpilot-infinity-server.service" \
     "$container:/xpilot-test-server.service"
 podman cp "$XPILOT_TEST_SOURCE_DIR/debian/xpilot-infinity-server.default" \

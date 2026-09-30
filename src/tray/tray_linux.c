@@ -1,6 +1,7 @@
 #include "tray_platform.h"
 #include "service_native.h"
 #include "service_config.h"
+#include "settings_protocol.h"
 #include "tray_sni.h"
 #include <gtk/gtk.h>
 #include <stdlib.h>
@@ -14,25 +15,42 @@ typedef struct {
     tray_sni *sni;
     GApplication *application;
     GtkWidget *window;
-    GtkWidget *rows[7];
+    GtkWidget *rows[8];
     GFileMonitor *config_monitor;
+    GFileMonitor *maps_monitor;
+    GDBusConnection *settings_bus;
+    GCancellable *settings_cancel;
+    unsigned settings_pending;
+    bool settings_available;
+    bool settings_busy;
+    bool maps_changed;
+    map_catalog catalog;
+    char *generation;
+    char *settings_detail;
+    char *last_saved_detail;
+    bool map_supported;
     bool config_changed;
     bool host_available;
     bool done;
     char *configured_map;
 } linux_tray;
 
+static void inspect_settings(linux_tray *tray);
+static void update(linux_tray *tray);
+
 static void show_details(linux_tray *tray)
 {
     const tray_status *status = tray_controller_status(tray->controller);
     char *detail = g_strdup_printf(
-        "%s\n%s\n\nService: xpilot-infinity-server.service\n"
+        "%s\n%s\n%s\n%s\n\nService: xpilot-infinity-server.service\n"
         "Configuration: " CONFIG_FILE "\n"
         "Logs: journalctl -u xpilot-infinity-server.service\n\n"
         "Install the XPilot Infinity server service if it is not registered.\n"
         "Start and stop may require administrator authentication.\n"
         "Quitting this tray leaves the server running.",
-        status->service.detail, status->operation_detail);
+        status->service.detail, status->operation_detail,
+        tray->settings_detail ? tray->settings_detail : "",
+        tray->last_saved_detail ? tray->last_saved_detail : "");
     GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(tray->window),
         GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, "%s", detail);
     g_free(detail);
@@ -40,9 +58,81 @@ static void show_details(linux_tray *tray)
     gtk_widget_show(dialog);
 }
 
+static void settings_applied(GObject *object, GAsyncResult *result, void *context)
+{
+    linux_tray *tray = context;
+    GError *error = NULL;
+    GVariant *reply = g_dbus_connection_call_finish(G_DBUS_CONNECTION(object), result, &error);
+    tray->settings_pending--;
+    tray->settings_busy = false;
+    if (!tray->done) {
+        g_free(tray->settings_detail);
+        bool success = false;
+        if (reply) {
+            gboolean saved, applied;
+            const char *generation, *detail;
+            g_variant_get(reply, "(bb&s&s)", &saved, &applied, &generation, &detail);
+            tray->settings_detail = g_strdup(detail);
+            success = applied;
+        } else tray->settings_detail = g_strdup(error->message);
+        tray->config_changed = true;
+        if (!success) show_details(tray);
+    }
+    g_clear_pointer(&reply, g_variant_unref);
+    g_clear_error(&error);
+}
+
+static void select_map(linux_tray *tray, const tray_menu_item *item)
+{
+    if (!tray->settings_bus || !tray->generation || tray->settings_busy || item->checked) return;
+    tray->settings_busy = true;
+    tray->settings_pending++;
+    g_dbus_connection_call(tray->settings_bus, XP_SETTINGS_BUS, XP_SETTINGS_PATH,
+        XP_SETTINGS_BUS, "SelectMap", g_variant_new("(ss)", tray->generation, item->label),
+        G_VARIANT_TYPE("(bbss)"), G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION,
+        G_MAXINT, tray->settings_cancel, settings_applied, tray);
+}
+
+static void popup_clicked(GtkMenuItem *widget, void *context)
+{
+    linux_tray *tray = context;
+    int id = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget), "tray-action"));
+    const tray_menu_item *item = tray_menu_find(&tray->menu, id);
+    if (item && item->enabled) select_map(tray, item);
+    update(tray);
+}
+
+static void popup_maps(linux_tray *tray)
+{
+    tray->maps_changed = tray->config_changed = true;
+    update(tray);
+    GtkWidget *menu = gtk_menu_new();
+    g_object_ref_sink(menu);
+    for (size_t i = 0; i < tray->menu.map_count; i++) {
+        const tray_menu_item *item = &tray->menu.maps[i];
+        GtkWidget *widget = gtk_check_menu_item_new_with_label(item->label);
+        gtk_check_menu_item_set_draw_as_radio(GTK_CHECK_MENU_ITEM(widget), TRUE);
+        gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(widget), item->checked);
+        gtk_widget_set_sensitive(widget, item->enabled);
+        g_object_set_data(G_OBJECT(widget), "tray-action", GINT_TO_POINTER(item->id));
+        g_signal_connect(widget, "activate", G_CALLBACK(popup_clicked), tray);
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), widget);
+    }
+    g_signal_connect_swapped(menu, "selection-done", G_CALLBACK(gtk_widget_destroy), menu);
+    g_signal_connect_swapped(menu, "destroy", G_CALLBACK(g_object_unref), menu);
+    gtk_widget_show_all(menu);
+    gtk_menu_popup_at_widget(GTK_MENU(menu), tray->rows[5], GDK_GRAVITY_SOUTH_WEST,
+                             GDK_GRAVITY_NORTH_WEST, NULL);
+}
+
 static void activate(void *context, int id)
 {
     linux_tray *tray = context;
+    if (id == -1) {
+        tray->config_changed = tray->maps_changed = true;
+        inspect_settings(tray);
+        return;
+    }
     if (!id) {
         gtk_window_present(GTK_WINDOW(tray->window));
         return;
@@ -50,9 +140,11 @@ static void activate(void *context, int id)
     const tray_menu_item *item = tray_menu_find(&tray->menu, id);
     if (!item || !item->enabled)
         return;
+    if (item->radio) { select_map(tray, item); return; }
     switch (id) {
     case TRAY_START: tray_controller_request(tray->controller, XP_SERVICE_START); break;
     case TRAY_STOP: tray_controller_request(tray->controller, XP_SERVICE_STOP); break;
+    case TRAY_MAP_MENU: popup_maps(tray); break;
     case TRAY_DETAILS: show_details(tray); break;
     case TRAY_QUIT: tray->done = true; break;
     default: break;
@@ -96,9 +188,58 @@ static void application_activated(GApplication *application, void *context)
 static void config_changed(GFileMonitor *monitor, GFile *file, GFile *other,
                             GFileMonitorEvent event, void *context)
 {
+    (void)monitor; (void)other; (void)event;
+    linux_tray *tray = context;
+    char *name = g_file_get_basename(file);
+    if (!strcmp(name, "xpilot-infinity-server") || !strcmp(name, ".xpilot-infinity-settings-result")) tray->config_changed = true;
+    g_free(name);
+}
+
+static void maps_changed(GFileMonitor *monitor, GFile *file, GFile *other,
+                          GFileMonitorEvent event, void *context)
+{
     (void)monitor; (void)file; (void)other; (void)event;
     linux_tray *tray = context;
-    tray->config_changed = true;
+    tray->maps_changed = true;
+}
+
+static void settings_inspected(GObject *object, GAsyncResult *result, void *context)
+{
+    linux_tray *tray = context;
+    GError *error = NULL;
+    GVariant *reply = g_dbus_connection_call_finish(G_DBUS_CONNECTION(object), result, &error);
+    tray->settings_pending--;
+    if (!tray->done) {
+        gboolean supported = FALSE;
+        const char *detail = error ? error->message : "";
+        if (reply) g_variant_get(reply, "(b&s)", &supported, &detail);
+        tray->settings_available = supported;
+        if (!supported) { g_free(tray->settings_detail); tray->settings_detail = g_strdup(detail); }
+    }
+    g_clear_pointer(&reply, g_variant_unref); g_clear_error(&error);
+}
+
+static void inspect_settings(linux_tray *tray)
+{
+    if (!tray->settings_bus || tray->settings_pending || tray->done) return;
+    tray->settings_pending++;
+    g_dbus_connection_call(tray->settings_bus, XP_SETTINGS_BUS, XP_SETTINGS_PATH,
+        XP_SETTINGS_BUS, "Inspect", NULL, G_VARIANT_TYPE("(bs)"), G_DBUS_CALL_FLAGS_NONE,
+        10000, tray->settings_cancel, settings_inspected, tray);
+}
+
+static void settings_bus_ready(GObject *object, GAsyncResult *result, void *context)
+{
+    (void)object;
+    linux_tray *tray = context;
+    GError *error = NULL;
+    tray->settings_bus = g_bus_get_finish(result, &error);
+    tray->settings_pending--;
+    if (!tray->done) {
+        if (error) tray->settings_detail = g_strdup(error->message);
+        else inspect_settings(tray);
+    }
+    g_clear_error(&error);
 }
 
 static void update(linux_tray *tray)
@@ -106,16 +247,58 @@ static void update(linux_tray *tray)
     if (tray->config_changed) {
         tray->config_changed = false;
         char *text = NULL;
+        tray->map_supported = false;
+        g_clear_pointer(&tray->last_saved_detail, g_free);
+        g_free(tray->generation); tray->generation = NULL;
         free(tray->configured_map);
         tray->configured_map = NULL;
-        if (g_file_get_contents(CONFIG_FILE, &text, NULL, NULL))
+        GError *error = NULL;
+        gsize length;
+        if (g_file_get_contents(CONFIG_FILE, &text, &length, &error)
+            && service_config_valid(text, length)) {
             tray->configured_map = service_config_map(text, true);
+            tray->generation = g_compute_checksum_for_string(G_CHECKSUM_SHA256, text, -1);
+            char *check = service_config_select_map(text, XPILOT_MAP_DIRECTORY "/ndh.xp2", true);
+            tray->map_supported = check != NULL;
+            free(check);
+        } else if (g_error_matches(error, G_FILE_ERROR, G_FILE_ERROR_NOENT)) {
+            tray->generation = g_strdup("absent");
+            tray->map_supported = true;
+        }
+        char *record = NULL;
+        gsize record_size = 0;
+        if (tray->generation && g_file_get_contents(XP_SETTINGS_RESULT, &record, &record_size, NULL)
+            && record_size < 2048 && service_config_valid(record, record_size)) {
+            char *line = strchr(record, '\n');
+            if (line) {
+                *line++ = 0;
+                if (!strcmp(record, tray->generation)) {
+                    tray->last_saved_detail = g_strdup(line);
+                }
+            }
+        }
+        g_free(record);
         g_free(text);
+        g_clear_error(&error);
+    }
+    if (tray->maps_changed) {
+        tray->maps_changed = false;
+        map_catalog_clear(&tray->catalog);
+        map_catalog_read(XPILOT_MAP_DIRECTORY, &tray->catalog);
     }
     unsigned revision = tray->menu.revision;
-    const tray_status *status = tray_controller_status(tray->controller);
-    tray_menu_update(&tray->menu, status,
+    tray_status status = *tray_controller_status(tray->controller);
+    if (tray->settings_busy) { status.busy = true; status.can_start = status.can_stop = false; }
+    tray_menu_update(&tray->menu, &status,
         tray->configured_map ? tray->configured_map : "Unavailable or managed by other service settings");
+    const char *selected = tray->configured_map;
+    size_t prefix = strlen(XPILOT_MAP_DIRECTORY);
+    if (selected && !strncmp(selected, XPILOT_MAP_DIRECTORY "/", prefix + 1)) selected += prefix + 1;
+    bool stable = status.service.state == XP_SERVICE_STOPPED || status.service.state == XP_SERVICE_RUNNING
+        || status.service.state == XP_SERVICE_FAILED;
+    tray_menu_set_maps(&tray->menu, &tray->catalog, selected,
+        stable && !status.busy && tray->generation && tray->settings_available && tray->map_supported,
+        status.service.state == XP_SERVICE_RUNNING);
     if (revision != tray->menu.revision) {
         for (size_t i = 0; i < G_N_ELEMENTS(tray->menu.items); i++) {
             const tray_menu_item *item = &tray->menu.items[i];
@@ -195,6 +378,14 @@ int tray_platform_run(int argc, char **argv)
     if (tray.config_monitor)
         g_signal_connect(tray.config_monitor, "changed", G_CALLBACK(config_changed), &tray);
     tray.config_changed = true;
+    directory = g_file_new_for_path(XPILOT_MAP_DIRECTORY);
+    tray.maps_monitor = g_file_monitor_directory(directory, G_FILE_MONITOR_NONE, NULL, NULL);
+    g_object_unref(directory);
+    if (tray.maps_monitor) g_signal_connect(tray.maps_monitor, "changed", G_CALLBACK(maps_changed), &tray);
+    tray.maps_changed = true;
+    tray.settings_cancel = g_cancellable_new();
+    tray.settings_pending++;
+    g_bus_get(G_BUS_TYPE_SYSTEM, tray.settings_cancel, settings_bus_ready, &tray);
     update(&tray);
     GDBusConnection *bus = g_application_get_dbus_connection(tray.application);
     if (bus)
@@ -210,10 +401,17 @@ int tray_platform_run(int argc, char **argv)
         update(&tray);
     }
     tray_sni_destroy(tray.sni);
+    g_cancellable_cancel(tray.settings_cancel);
+    while (tray.settings_pending) g_main_context_iteration(NULL, TRUE);
+    g_clear_object(&tray.settings_cancel);
+    g_clear_object(&tray.settings_bus);
     g_clear_object(&tray.config_monitor);
+    g_clear_object(&tray.maps_monitor);
     tray_controller_destroy(tray.controller);
     service_native_destroy(tray.native);
     free(tray.configured_map);
+    g_free(tray.generation); g_free(tray.settings_detail); g_free(tray.last_saved_detail);
+    map_catalog_clear(&tray.catalog); tray_menu_clear(&tray.menu);
     gtk_widget_destroy(tray.window);
     if (bus)
         g_dbus_connection_flush_sync(bus, NULL, NULL);

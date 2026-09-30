@@ -52,6 +52,9 @@ int main(void)
     status.can_start = true;
     tray_menu menu = {0};
     tray_menu_update(&menu, &status, "ndh.xp2");
+    char *names[] = {"ndh.xp2", "second_map.xp2"};
+    map_catalog catalog = {names, 2};
+    assert(tray_menu_set_maps(&menu, &catalog, "ndh.xp2", true, false));
     tray_sni *sni = tray_sni_create(bus, &menu, XPILOT_TEST_ICON,
         activate, available, NULL, &error);
     assert(sni != NULL && error == NULL);
@@ -61,7 +64,23 @@ int main(void)
     GVariant *layout;
     g_variant_get(layout_reply, "(u@(ia{sv}av))", &revision, &layout);
     GVariant *children = g_variant_get_child_value(layout, 2);
-    assert(g_variant_n_children(children) == 7);
+    assert(g_variant_n_children(children) == 8);
+    GVariant *wrapped = g_variant_get_child_value(children, 5);
+    GVariant *submenu = g_variant_get_variant(wrapped);
+    GVariant *maps = g_variant_get_child_value(submenu, 2);
+    assert(g_variant_n_children(maps) == 2);
+    for (size_t i = 0; i < 2; i++) {
+        GVariant *map_wrapper = g_variant_get_child_value(maps, i);
+        GVariant *map = g_variant_get_variant(map_wrapper);
+        GVariant *properties = g_variant_get_child_value(map, 1);
+        gint32 checked = -1;
+        const char *type = NULL;
+        assert(g_variant_lookup(properties, "toggle-state", "i", &checked));
+        assert(checked == (i == 0));
+        assert(g_variant_lookup(properties, "toggle-type", "&s", &type) && !strcmp(type, "radio"));
+        g_variant_unref(properties); g_variant_unref(map); g_variant_unref(map_wrapper);
+    }
+    g_variant_unref(maps); g_variant_unref(submenu); g_variant_unref(wrapped);
     g_variant_unref(children);
     g_variant_unref(layout);
     g_variant_unref(layout_reply);
@@ -78,6 +97,7 @@ int main(void)
     assert(activations == 1);
     assert(!host_available);
     tray_sni_destroy(sni);
+    tray_menu_clear(&menu);
     /* Drain pending watcher callbacks after destruction. */
     while (g_main_context_iteration(NULL, FALSE)) {}
     g_dbus_connection_close_sync(bus, NULL, NULL);

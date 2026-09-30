@@ -173,6 +173,12 @@ static GVariant *row_properties(const tray_menu_item *item)
         g_variant_builder_add(&properties, "{sv}", "visible", g_variant_new_boolean(TRUE));
         if (item->id == TRAY_SEPARATOR)
             g_variant_builder_add(&properties, "{sv}", "type", g_variant_new_string("separator"));
+        if (item->id == TRAY_MAP_MENU)
+            g_variant_builder_add(&properties, "{sv}", "children-display", g_variant_new_string("submenu"));
+        if (item->radio) {
+            g_variant_builder_add(&properties, "{sv}", "toggle-type", g_variant_new_string("radio"));
+            g_variant_builder_add(&properties, "{sv}", "toggle-state", g_variant_new_int32(item->checked ? 1 : 0));
+        }
     }
     return g_variant_builder_end(&properties);
 }
@@ -204,7 +210,11 @@ static GVariant *layout(tray_sni *sni, int id, int depth, GVariant *names)
     g_variant_builder_init(&children, G_VARIANT_TYPE("av"));
     if (id == 0 && depth != 0) {
         for (size_t i = 0; i < G_N_ELEMENTS(sni->menu->items); i++)
-            g_variant_builder_add(&children, "v", layout(sni, sni->menu->items[i].id, 0, names));
+            g_variant_builder_add(&children, "v", layout(sni, sni->menu->items[i].id,
+                depth < 0 ? -1 : depth - 1, names));
+    } else if (id == TRAY_MAP_MENU && depth != 0) {
+        for (size_t i = 0; i < sni->menu->map_count; i++)
+            g_variant_builder_add(&children, "v", layout(sni, sni->menu->maps[i].id, 0, names));
     }
     return g_variant_new("(i@a{sv}av)", id,
         filtered_properties(tray_menu_find(sni->menu, id), names), &children);
@@ -309,8 +319,10 @@ static void method_called(GDBusConnection *bus, const char *sender, const char *
         g_variant_get(parameters, "(i)", &id);
         if (id != 0 && !tray_menu_find(sni->menu, id))
             invalid(invocation);
-        else
+        else {
+            sni->activate(sni->context, -1);
             g_dbus_method_invocation_return_value(invocation, g_variant_new("(b)", FALSE));
+        }
     } else if (strcmp(method, "AboutToShowGroup") == 0) {
         GVariant *ids;
         g_variant_get(parameters, "(@ai)", &ids);
@@ -324,6 +336,7 @@ static void method_called(GDBusConnection *bus, const char *sender, const char *
             if (id && !tray_menu_find(sni->menu, id))
                 g_variant_builder_add(&errors, "i", id);
         g_variant_unref(ids);
+        sni->activate(sni->context, -1);
         g_dbus_method_invocation_return_value(invocation, g_variant_new("(aiai)", &updates, &errors));
     }
 }

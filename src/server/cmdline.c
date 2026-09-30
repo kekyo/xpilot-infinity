@@ -565,6 +565,16 @@ static option_desc opts[] = {
 	OPT_COMMAND | OPT_DEFAULTS
     },
     {
+	"strictMap",
+	"strictMap",
+	"false",
+	&options.strictMap,
+	valBool,
+	tuner_none,
+	"Require the specified map; fail startup instead of using the default map.\n",
+	OPT_COMMAND | OPT_DEFAULTS | OPT_VISIBLE
+    },
+    {
 	"mapName",
 	"mapName",
 	"unknown",

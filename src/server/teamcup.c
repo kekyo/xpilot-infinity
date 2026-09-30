@@ -75,7 +75,7 @@ static void teamcup_open_score_file(void)
 	     options.teamcupScoreFileNamePrefix, options.teamcupMatchNumber);
     
 
-    teamcup_score_file = fopen(teamcup_score_file_name, "w");
+    teamcup_score_file = Xp_fopen(teamcup_score_file_name, "w");
     if (teamcup_score_file == NULL) {
 	error("fopen() failed, could not create score file");
 	End_game();

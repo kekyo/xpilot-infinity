@@ -9,7 +9,8 @@ typedef struct tray_sni tray_sni;
  * @param bus Borrowed session connection; retained until destruction.
  * @param menu Borrowed menu, which must outlive the exporter.
  * @param icon_path UTF-8 path to the product PNG icon.
- * @param activate Callback for enabled command IDs (zero presents the window).
+ * @param activate Callback for enabled command IDs (zero presents the window,
+ * minus one requests a configuration refresh before showing the menu).
  * @param available Callback after registration and host availability changes.
  * @param context Borrowed callback context, detached on destruction.
  * @param error Optional output for an export error.

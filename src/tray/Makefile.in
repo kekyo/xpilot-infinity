@@ -92,33 +92,42 @@ build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
 bin_PROGRAMS = xpilot-infinity-tray$(EXEEXT) $(am__EXEEXT_1)
-@COND_WINDOWS_TRUE@am__append_1 = service_win32.c service_paths_win32.c service_paths_win32.h
-@COND_WINDOWS_TRUE@am__append_2 = tray_win32.c
-@COND_WINDOWS_TRUE@am__append_3 = tray-res.o -ladvapi32 -luser32 -lshell32 -lgdi32
-@COND_WINDOWS_TRUE@am__append_4 = xpilot-infinity-service-helper
-@COND_WINDOWS_FALSE@am__append_5 = $(TRAY_CFLAGS) -DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_60 \
-@COND_WINDOWS_FALSE@    -DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_60 \
-@COND_WINDOWS_FALSE@    -DGTK_VERSION_MIN_REQUIRED=GTK_VERSION_3_22 -DGTK_VERSION_MAX_ALLOWED=GTK_VERSION_3_22 \
-@COND_WINDOWS_FALSE@    -DXPILOT_TRAY_ICON=\"$(pkgdatadir)/icon-1254.png\"
+@COND_WINDOWS_TRUE@am__append_1 = service_win32.c service_paths_win32.c service_paths_win32.h \
+@COND_WINDOWS_TRUE@    settings_file_win32.c settings_file_win32.h $(top_srcdir)/src/common/utf8_files.c
 
+@COND_WINDOWS_TRUE@am__append_2 = tray_win32.c
+@COND_WINDOWS_TRUE@am__append_3 = tray-res.o -ladvapi32 -luser32 -lshell32 -lgdi32 -lole32 -luuid -lbcrypt
+@COND_WINDOWS_TRUE@am__append_4 = xpilot-infinity-service-helper
+@COND_WINDOWS_FALSE@am__append_5 = $(TRAY_CFLAGS) \
+@COND_WINDOWS_FALSE@	-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_60 \
+@COND_WINDOWS_FALSE@	-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_60 \
+@COND_WINDOWS_FALSE@	-DGTK_VERSION_MIN_REQUIRED=GTK_VERSION_3_22 \
+@COND_WINDOWS_FALSE@	-DGTK_VERSION_MAX_ALLOWED=GTK_VERSION_3_22 \
+@COND_WINDOWS_FALSE@	-DXPILOT_TRAY_ICON=\"$(pkgdatadir)/icon-1254.png\" \
+@COND_WINDOWS_FALSE@	-DXPILOT_MAP_DIRECTORY=\"$(pkgdatadir)/maps\"
 @COND_WINDOWS_FALSE@am__append_6 = service_systemd.c tray_sni.c tray_sni.h
 @COND_WINDOWS_FALSE@am__append_7 = tray_linux.c
 @COND_WINDOWS_FALSE@am__append_8 = $(TRAY_LIBS)
+@COND_WINDOWS_FALSE@libexec_PROGRAMS =  \
+@COND_WINDOWS_FALSE@	xpilot-infinity-settings-helper$(EXEEXT)
 subdir = src/tray
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
-DIST_COMMON = $(srcdir)/Makefile.am $(am__dist_pkgdata_DATA_DIST) \
-	$(am__DIST_COMMON)
+DIST_COMMON = $(srcdir)/Makefile.am $(am__dist_dbusconfig_DATA_DIST) \
+	$(am__dist_pkgdata_DATA_DIST) \
+	$(am__dist_polkitactions_DATA_DIST) $(am__DIST_COMMON)
 mkinstalldirs = $(SHELL) $(top_srcdir)/config/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 @COND_WINDOWS_TRUE@am__EXEEXT_1 =  \
 @COND_WINDOWS_TRUE@	xpilot-infinity-service-helper$(EXEEXT)
-am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkgdatadir)"
-PROGRAMS = $(bin_PROGRAMS)
+am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(libexecdir)" \
+	"$(DESTDIR)$(dbusservicesdir)" "$(DESTDIR)$(dbusconfigdir)" \
+	"$(DESTDIR)$(pkgdatadir)" "$(DESTDIR)$(polkitactionsdir)"
+PROGRAMS = $(bin_PROGRAMS) $(libexec_PROGRAMS)
 LIBRARIES = $(noinst_LIBRARIES)
 AR = ar
 ARFLAGS = cru
@@ -130,26 +139,41 @@ libxptray_a_AR = $(AR) $(ARFLAGS)
 libxptray_a_LIBADD =
 am__libxptray_a_SOURCES_DIST = tray_controller.c tray_controller.h \
 	service_control.h service_native.h tray_menu.c tray_menu.h \
-	service_config.c service_config.h service_win32.c \
-	service_paths_win32.c service_paths_win32.h service_systemd.c \
-	tray_sni.c tray_sni.h
+	service_config.c service_config.h map_catalog.c map_catalog.h \
+	settings_protocol.h service_win32.c service_paths_win32.c \
+	service_paths_win32.h settings_file_win32.c \
+	settings_file_win32.h $(top_srcdir)/src/common/utf8_files.c \
+	service_systemd.c tray_sni.c tray_sni.h
 @COND_WINDOWS_TRUE@am__objects_1 = service_win32.$(OBJEXT) \
-@COND_WINDOWS_TRUE@	service_paths_win32.$(OBJEXT)
+@COND_WINDOWS_TRUE@	service_paths_win32.$(OBJEXT) \
+@COND_WINDOWS_TRUE@	settings_file_win32.$(OBJEXT) \
+@COND_WINDOWS_TRUE@	utf8_files.$(OBJEXT)
 @COND_WINDOWS_FALSE@am__objects_2 = service_systemd.$(OBJEXT) \
 @COND_WINDOWS_FALSE@	tray_sni.$(OBJEXT)
 am_libxptray_a_OBJECTS = tray_controller.$(OBJEXT) tray_menu.$(OBJEXT) \
-	service_config.$(OBJEXT) $(am__objects_1) $(am__objects_2)
+	service_config.$(OBJEXT) map_catalog.$(OBJEXT) \
+	$(am__objects_1) $(am__objects_2)
 libxptray_a_OBJECTS = $(am_libxptray_a_OBJECTS)
 am__xpilot_infinity_service_helper_SOURCES_DIST =  \
-	service_helper_win32.c service_paths_win32.c
+	service_helper_win32.c
 @COND_WINDOWS_TRUE@am_xpilot_infinity_service_helper_OBJECTS =  \
-@COND_WINDOWS_TRUE@	service_helper_win32.$(OBJEXT) \
-@COND_WINDOWS_TRUE@	service_paths_win32.$(OBJEXT)
+@COND_WINDOWS_TRUE@	service_helper_win32.$(OBJEXT)
 xpilot_infinity_service_helper_OBJECTS =  \
 	$(am_xpilot_infinity_service_helper_OBJECTS)
-xpilot_infinity_service_helper_DEPENDENCIES =
+@COND_WINDOWS_TRUE@xpilot_infinity_service_helper_DEPENDENCIES =  \
+@COND_WINDOWS_TRUE@	libxptray.a
 xpilot_infinity_service_helper_LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(xpilot_infinity_service_helper_LDFLAGS) $(LDFLAGS) -o $@
+am__xpilot_infinity_settings_helper_SOURCES_DIST =  \
+	service_helper_linux.c settings_file_linux.c \
+	settings_file_linux.h
+@COND_WINDOWS_FALSE@am_xpilot_infinity_settings_helper_OBJECTS = xpilot_infinity_settings_helper-service_helper_linux.$(OBJEXT) \
+@COND_WINDOWS_FALSE@	xpilot_infinity_settings_helper-settings_file_linux.$(OBJEXT)
+xpilot_infinity_settings_helper_OBJECTS =  \
+	$(am_xpilot_infinity_settings_helper_OBJECTS)
+am__DEPENDENCIES_1 =
+@COND_WINDOWS_FALSE@xpilot_infinity_settings_helper_DEPENDENCIES =  \
+@COND_WINDOWS_FALSE@	libxptray.a $(am__DEPENDENCIES_1)
 am__xpilot_infinity_tray_SOURCES_DIST = main.c tray_platform.h \
 	tray_win32.c tray_linux.c
 @COND_WINDOWS_TRUE@am__objects_3 = tray_win32.$(OBJEXT)
@@ -157,10 +181,9 @@ am__xpilot_infinity_tray_SOURCES_DIST = main.c tray_platform.h \
 am_xpilot_infinity_tray_OBJECTS = main.$(OBJEXT) $(am__objects_3) \
 	$(am__objects_4)
 xpilot_infinity_tray_OBJECTS = $(am_xpilot_infinity_tray_OBJECTS)
-@COND_WINDOWS_TRUE@am__DEPENDENCIES_1 = tray-res.o
-am__DEPENDENCIES_2 =
-@COND_WINDOWS_FALSE@am__DEPENDENCIES_3 = $(am__DEPENDENCIES_2)
-xpilot_infinity_tray_DEPENDENCIES = libxptray.a $(am__DEPENDENCIES_1) \
+@COND_WINDOWS_TRUE@am__DEPENDENCIES_2 = tray-res.o
+@COND_WINDOWS_FALSE@am__DEPENDENCIES_3 = $(am__DEPENDENCIES_1)
+xpilot_infinity_tray_DEPENDENCIES = libxptray.a $(am__DEPENDENCIES_2) \
 	$(am__DEPENDENCIES_3)
 xpilot_infinity_tray_LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(xpilot_infinity_tray_LDFLAGS) $(LDFLAGS) -o $@
@@ -179,15 +202,22 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/config/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/main.Po \
+am__depfiles_remade = ./$(DEPDIR)/main.Po ./$(DEPDIR)/map_catalog.Po \
 	./$(DEPDIR)/service_config.Po \
 	./$(DEPDIR)/service_helper_win32.Po \
 	./$(DEPDIR)/service_paths_win32.Po \
 	./$(DEPDIR)/service_systemd.Po ./$(DEPDIR)/service_win32.Po \
+	./$(DEPDIR)/settings_file_win32.Po \
 	./$(DEPDIR)/tray_controller.Po ./$(DEPDIR)/tray_linux.Po \
 	./$(DEPDIR)/tray_menu.Po ./$(DEPDIR)/tray_sni.Po \
-	./$(DEPDIR)/tray_win32.Po
+	./$(DEPDIR)/tray_win32.Po ./$(DEPDIR)/utf8_files.Po \
+	./$(DEPDIR)/xpilot_infinity_settings_helper-service_helper_linux.Po \
+	./$(DEPDIR)/xpilot_infinity_settings_helper-settings_file_linux.Po
 am__mv = mv -f
+AM_V_lt = $(am__v_lt_@AM_V@)
+am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
+am__v_lt_0 = --silent
+am__v_lt_1 =
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 AM_V_CC = $(am__v_CC_@AM_V@)
@@ -202,9 +232,11 @@ am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 =
 SOURCES = $(libxptray_a_SOURCES) \
 	$(xpilot_infinity_service_helper_SOURCES) \
+	$(xpilot_infinity_settings_helper_SOURCES) \
 	$(xpilot_infinity_tray_SOURCES)
 DIST_SOURCES = $(am__libxptray_a_SOURCES_DIST) \
 	$(am__xpilot_infinity_service_helper_SOURCES_DIST) \
+	$(am__xpilot_infinity_settings_helper_SOURCES_DIST) \
 	$(am__xpilot_infinity_tray_SOURCES_DIST)
 RECURSIVE_TARGETS = all-recursive check-recursive cscopelist-recursive \
 	ctags-recursive dvi-recursive html-recursive info-recursive \
@@ -219,7 +251,6 @@ am__can_run_installinfo = \
     n|no|NO) false;; \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
-am__dist_pkgdata_DATA_DIST = $(top_srcdir)/images/icon-1254.png
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
     $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
@@ -247,7 +278,12 @@ am__uninstall_files_from_dir = { \
     || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
          $(am__cd) "$$dir" && rm -f $$files; }; \
   }
-DATA = $(dist_pkgdata_DATA)
+am__dist_dbusconfig_DATA_DIST =  \
+	data/org.xpilot.Infinity.ServerSettings1.conf
+am__dist_pkgdata_DATA_DIST = $(top_srcdir)/images/icon-1254.png
+am__dist_polkitactions_DATA_DIST = data/org.xpilot.infinity.policy
+DATA = $(dbusservices_DATA) $(dist_dbusconfig_DATA) \
+	$(dist_pkgdata_DATA) $(dist_polkitactions_DATA)
 RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
   distclean-recursive maintainer-clean-recursive
 am__recursive_targets = \
@@ -457,20 +493,32 @@ AM_CFLAGS = -std=c99 -Wall -Wextra -Werror
 noinst_LIBRARIES = libxptray.a
 libxptray_a_SOURCES = tray_controller.c tray_controller.h \
 	service_control.h service_native.h tray_menu.c tray_menu.h \
-	service_config.c service_config.h $(am__append_1) \
-	$(am__append_6)
+	service_config.c service_config.h map_catalog.c map_catalog.h \
+	settings_protocol.h $(am__append_1) $(am__append_6)
 xpilot_infinity_tray_SOURCES = main.c tray_platform.h $(am__append_2) \
 	$(am__append_7)
 xpilot_infinity_tray_LDADD = libxptray.a $(am__append_3) \
 	$(am__append_8)
-AM_CPPFLAGS = -I$(top_builddir)/src/common $(am__append_5)
+AM_CPPFLAGS = -I$(top_builddir)/src/common -I$(top_srcdir)/src/common \
+	$(am__append_5)
 @COND_WINDOWS_TRUE@xpilot_infinity_tray_LDFLAGS = -mwindows
-@COND_WINDOWS_TRUE@xpilot_infinity_service_helper_SOURCES = service_helper_win32.c service_paths_win32.c
-@COND_WINDOWS_TRUE@xpilot_infinity_service_helper_LDADD = -ladvapi32 -lshell32
+@COND_WINDOWS_TRUE@xpilot_infinity_service_helper_SOURCES = service_helper_win32.c
+@COND_WINDOWS_TRUE@xpilot_infinity_service_helper_LDADD = libxptray.a -ladvapi32 -lshell32 -luser32 -lole32 -luuid -lbcrypt
 @COND_WINDOWS_TRUE@xpilot_infinity_service_helper_LDFLAGS = -municode -mwindows
+@COND_WINDOWS_FALSE@CLEANFILES = org.xpilot.Infinity.ServerSettings1.service org.xpilot.Infinity.ServerSettings1.service.tmp
 @COND_WINDOWS_TRUE@CLEANFILES = tray-res.o
 @COND_WINDOWS_FALSE@dist_pkgdata_DATA = $(top_srcdir)/images/icon-1254.png
-EXTRA_DIST = tray.rc
+@COND_WINDOWS_FALSE@xpilot_infinity_settings_helper_SOURCES = service_helper_linux.c settings_file_linux.c settings_file_linux.h
+@COND_WINDOWS_FALSE@xpilot_infinity_settings_helper_CPPFLAGS = $(AM_CPPFLAGS) $(TRAY_POLKIT_CFLAGS)
+@COND_WINDOWS_FALSE@xpilot_infinity_settings_helper_LDADD = libxptray.a $(TRAY_POLKIT_LIBS)
+@COND_WINDOWS_FALSE@polkitactionsdir = $(datadir)/polkit-1/actions
+@COND_WINDOWS_FALSE@dist_polkitactions_DATA = data/org.xpilot.infinity.policy
+@COND_WINDOWS_FALSE@dbusconfigdir = $(sysconfdir)/dbus-1/system.d
+@COND_WINDOWS_FALSE@dist_dbusconfig_DATA = data/org.xpilot.Infinity.ServerSettings1.conf
+@COND_WINDOWS_FALSE@dbusservicesdir = $(datadir)/dbus-1/system-services
+@COND_WINDOWS_FALSE@dbusservices_DATA = org.xpilot.Infinity.ServerSettings1.service
+@COND_WINDOWS_FALSE@FUNCITY = npm exec --yes --package=funcity-cli@1.5.0 -- funcity
+EXTRA_DIST = tray.rc data/org.xpilot.Infinity.ServerSettings1.service.fc
 all: all-recursive
 
 .SUFFIXES:
@@ -546,6 +594,48 @@ uninstall-binPROGRAMS:
 
 clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
+install-libexecPROGRAMS: $(libexec_PROGRAMS)
+	@$(NORMAL_INSTALL)
+	@list='$(libexec_PROGRAMS)'; test -n "$(libexecdir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(libexecdir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(libexecdir)" || exit 1; \
+	fi; \
+	for p in $$list; do echo "$$p $$p"; done | \
+	sed 's/$(EXEEXT)$$//' | \
+	while read p p1; do if test -f $$p \
+	  ; then echo "$$p"; echo "$$p"; else :; fi; \
+	done | \
+	sed -e 'p;s,.*/,,;n;h' \
+	    -e 's|.*|.|' \
+	    -e 'p;x;s,.*/,,;s/$(EXEEXT)$$//;$(transform);s/$$/$(EXEEXT)/' | \
+	sed 'N;N;N;s,\n, ,g' | \
+	$(AWK) 'BEGIN { files["."] = ""; dirs["."] = 1 } \
+	  { d=$$3; if (dirs[d] != 1) { print "d", d; dirs[d] = 1 } \
+	    if ($$2 == $$4) files[d] = files[d] " " $$1; \
+	    else { print "f", $$3 "/" $$4, $$1; } } \
+	  END { for (d in files) print "f", d, files[d] }' | \
+	while read type dir files; do \
+	    if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
+	    test -z "$$files" || { \
+	      echo " $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files '$(DESTDIR)$(libexecdir)$$dir'"; \
+	      $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files "$(DESTDIR)$(libexecdir)$$dir" || exit $$?; \
+	    } \
+	; done
+
+uninstall-libexecPROGRAMS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(libexec_PROGRAMS)'; test -n "$(libexecdir)" || list=; \
+	files=`for p in $$list; do echo "$$p"; done | \
+	  sed -e 'h;s,^.*/,,;s/$(EXEEXT)$$//;$(transform)' \
+	      -e 's/$$/$(EXEEXT)/' \
+	`; \
+	test -n "$$list" || exit 0; \
+	echo " ( cd '$(DESTDIR)$(libexecdir)' && rm -f" $$files ")"; \
+	cd "$(DESTDIR)$(libexecdir)" && rm -f $$files
+
+clean-libexecPROGRAMS:
+	-test -z "$(libexec_PROGRAMS)" || rm -f $(libexec_PROGRAMS)
 
 clean-noinstLIBRARIES:
 	-test -z "$(noinst_LIBRARIES)" || rm -f $(noinst_LIBRARIES)
@@ -559,6 +649,10 @@ xpilot-infinity-service-helper$(EXEEXT): $(xpilot_infinity_service_helper_OBJECT
 	@rm -f xpilot-infinity-service-helper$(EXEEXT)
 	$(AM_V_CCLD)$(xpilot_infinity_service_helper_LINK) $(xpilot_infinity_service_helper_OBJECTS) $(xpilot_infinity_service_helper_LDADD) $(LIBS)
 
+xpilot-infinity-settings-helper$(EXEEXT): $(xpilot_infinity_settings_helper_OBJECTS) $(xpilot_infinity_settings_helper_DEPENDENCIES) $(EXTRA_xpilot_infinity_settings_helper_DEPENDENCIES)
+	@rm -f xpilot-infinity-settings-helper$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(xpilot_infinity_settings_helper_OBJECTS) $(xpilot_infinity_settings_helper_LDADD) $(LIBS)
+
 xpilot-infinity-tray$(EXEEXT): $(xpilot_infinity_tray_OBJECTS) $(xpilot_infinity_tray_DEPENDENCIES) $(EXTRA_xpilot_infinity_tray_DEPENDENCIES)
 	@rm -f xpilot-infinity-tray$(EXEEXT)
 	$(AM_V_CCLD)$(xpilot_infinity_tray_LINK) $(xpilot_infinity_tray_OBJECTS) $(xpilot_infinity_tray_LDADD) $(LIBS)
@@ -570,16 +664,21 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/map_catalog.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/service_config.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/service_helper_win32.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/service_paths_win32.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/service_systemd.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/service_win32.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/settings_file_win32.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tray_controller.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tray_linux.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tray_menu.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tray_sni.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tray_win32.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/utf8_files.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xpilot_infinity_settings_helper-service_helper_linux.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xpilot_infinity_settings_helper-settings_file_linux.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -600,6 +699,90 @@ am--depfiles: $(am__depfiles_remade)
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
+
+utf8_files.o: $(top_srcdir)/src/common/utf8_files.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT utf8_files.o -MD -MP -MF $(DEPDIR)/utf8_files.Tpo -c -o utf8_files.o `test -f '$(top_srcdir)/src/common/utf8_files.c' || echo '$(srcdir)/'`$(top_srcdir)/src/common/utf8_files.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/utf8_files.Tpo $(DEPDIR)/utf8_files.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$(top_srcdir)/src/common/utf8_files.c' object='utf8_files.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o utf8_files.o `test -f '$(top_srcdir)/src/common/utf8_files.c' || echo '$(srcdir)/'`$(top_srcdir)/src/common/utf8_files.c
+
+utf8_files.obj: $(top_srcdir)/src/common/utf8_files.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT utf8_files.obj -MD -MP -MF $(DEPDIR)/utf8_files.Tpo -c -o utf8_files.obj `if test -f '$(top_srcdir)/src/common/utf8_files.c'; then $(CYGPATH_W) '$(top_srcdir)/src/common/utf8_files.c'; else $(CYGPATH_W) '$(srcdir)/$(top_srcdir)/src/common/utf8_files.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/utf8_files.Tpo $(DEPDIR)/utf8_files.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$(top_srcdir)/src/common/utf8_files.c' object='utf8_files.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o utf8_files.obj `if test -f '$(top_srcdir)/src/common/utf8_files.c'; then $(CYGPATH_W) '$(top_srcdir)/src/common/utf8_files.c'; else $(CYGPATH_W) '$(srcdir)/$(top_srcdir)/src/common/utf8_files.c'; fi`
+
+xpilot_infinity_settings_helper-service_helper_linux.o: service_helper_linux.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(xpilot_infinity_settings_helper_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT xpilot_infinity_settings_helper-service_helper_linux.o -MD -MP -MF $(DEPDIR)/xpilot_infinity_settings_helper-service_helper_linux.Tpo -c -o xpilot_infinity_settings_helper-service_helper_linux.o `test -f 'service_helper_linux.c' || echo '$(srcdir)/'`service_helper_linux.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/xpilot_infinity_settings_helper-service_helper_linux.Tpo $(DEPDIR)/xpilot_infinity_settings_helper-service_helper_linux.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='service_helper_linux.c' object='xpilot_infinity_settings_helper-service_helper_linux.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(xpilot_infinity_settings_helper_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o xpilot_infinity_settings_helper-service_helper_linux.o `test -f 'service_helper_linux.c' || echo '$(srcdir)/'`service_helper_linux.c
+
+xpilot_infinity_settings_helper-service_helper_linux.obj: service_helper_linux.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(xpilot_infinity_settings_helper_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT xpilot_infinity_settings_helper-service_helper_linux.obj -MD -MP -MF $(DEPDIR)/xpilot_infinity_settings_helper-service_helper_linux.Tpo -c -o xpilot_infinity_settings_helper-service_helper_linux.obj `if test -f 'service_helper_linux.c'; then $(CYGPATH_W) 'service_helper_linux.c'; else $(CYGPATH_W) '$(srcdir)/service_helper_linux.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/xpilot_infinity_settings_helper-service_helper_linux.Tpo $(DEPDIR)/xpilot_infinity_settings_helper-service_helper_linux.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='service_helper_linux.c' object='xpilot_infinity_settings_helper-service_helper_linux.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(xpilot_infinity_settings_helper_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o xpilot_infinity_settings_helper-service_helper_linux.obj `if test -f 'service_helper_linux.c'; then $(CYGPATH_W) 'service_helper_linux.c'; else $(CYGPATH_W) '$(srcdir)/service_helper_linux.c'; fi`
+
+xpilot_infinity_settings_helper-settings_file_linux.o: settings_file_linux.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(xpilot_infinity_settings_helper_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT xpilot_infinity_settings_helper-settings_file_linux.o -MD -MP -MF $(DEPDIR)/xpilot_infinity_settings_helper-settings_file_linux.Tpo -c -o xpilot_infinity_settings_helper-settings_file_linux.o `test -f 'settings_file_linux.c' || echo '$(srcdir)/'`settings_file_linux.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/xpilot_infinity_settings_helper-settings_file_linux.Tpo $(DEPDIR)/xpilot_infinity_settings_helper-settings_file_linux.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='settings_file_linux.c' object='xpilot_infinity_settings_helper-settings_file_linux.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(xpilot_infinity_settings_helper_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o xpilot_infinity_settings_helper-settings_file_linux.o `test -f 'settings_file_linux.c' || echo '$(srcdir)/'`settings_file_linux.c
+
+xpilot_infinity_settings_helper-settings_file_linux.obj: settings_file_linux.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(xpilot_infinity_settings_helper_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT xpilot_infinity_settings_helper-settings_file_linux.obj -MD -MP -MF $(DEPDIR)/xpilot_infinity_settings_helper-settings_file_linux.Tpo -c -o xpilot_infinity_settings_helper-settings_file_linux.obj `if test -f 'settings_file_linux.c'; then $(CYGPATH_W) 'settings_file_linux.c'; else $(CYGPATH_W) '$(srcdir)/settings_file_linux.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/xpilot_infinity_settings_helper-settings_file_linux.Tpo $(DEPDIR)/xpilot_infinity_settings_helper-settings_file_linux.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='settings_file_linux.c' object='xpilot_infinity_settings_helper-settings_file_linux.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(xpilot_infinity_settings_helper_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o xpilot_infinity_settings_helper-settings_file_linux.obj `if test -f 'settings_file_linux.c'; then $(CYGPATH_W) 'settings_file_linux.c'; else $(CYGPATH_W) '$(srcdir)/settings_file_linux.c'; fi`
+install-dbusservicesDATA: $(dbusservices_DATA)
+	@$(NORMAL_INSTALL)
+	@list='$(dbusservices_DATA)'; test -n "$(dbusservicesdir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(dbusservicesdir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(dbusservicesdir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(dbusservicesdir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(dbusservicesdir)" || exit $$?; \
+	done
+
+uninstall-dbusservicesDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(dbusservices_DATA)'; test -n "$(dbusservicesdir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(dbusservicesdir)'; $(am__uninstall_files_from_dir)
+install-dist_dbusconfigDATA: $(dist_dbusconfig_DATA)
+	@$(NORMAL_INSTALL)
+	@list='$(dist_dbusconfig_DATA)'; test -n "$(dbusconfigdir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(dbusconfigdir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(dbusconfigdir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(dbusconfigdir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(dbusconfigdir)" || exit $$?; \
+	done
+
+uninstall-dist_dbusconfigDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(dist_dbusconfig_DATA)'; test -n "$(dbusconfigdir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(dbusconfigdir)'; $(am__uninstall_files_from_dir)
 install-dist_pkgdataDATA: $(dist_pkgdata_DATA)
 	@$(NORMAL_INSTALL)
 	@list='$(dist_pkgdata_DATA)'; test -n "$(pkgdatadir)" || list=; \
@@ -621,6 +804,27 @@ uninstall-dist_pkgdataDATA:
 	@list='$(dist_pkgdata_DATA)'; test -n "$(pkgdatadir)" || list=; \
 	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
 	dir='$(DESTDIR)$(pkgdatadir)'; $(am__uninstall_files_from_dir)
+install-dist_polkitactionsDATA: $(dist_polkitactions_DATA)
+	@$(NORMAL_INSTALL)
+	@list='$(dist_polkitactions_DATA)'; test -n "$(polkitactionsdir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(polkitactionsdir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(polkitactionsdir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(polkitactionsdir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(polkitactionsdir)" || exit $$?; \
+	done
+
+uninstall-dist_polkitactionsDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(dist_polkitactions_DATA)'; test -n "$(polkitactionsdir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(polkitactionsdir)'; $(am__uninstall_files_from_dir)
 
 # This directory's subdirectories are mostly independent; you can cd
 # into them and run 'make' without going through this Makefile.
@@ -783,7 +987,7 @@ check: check-recursive
 all-am: Makefile $(PROGRAMS) $(LIBRARIES) $(DATA)
 installdirs: installdirs-recursive
 installdirs-am:
-	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkgdatadir)"; do \
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(libexecdir)" "$(DESTDIR)$(dbusservicesdir)" "$(DESTDIR)$(dbusconfigdir)" "$(DESTDIR)$(pkgdatadir)" "$(DESTDIR)$(polkitactionsdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-recursive
@@ -819,21 +1023,26 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-recursive
 
-clean-am: clean-binPROGRAMS clean-generic clean-noinstLIBRARIES \
-	mostlyclean-am
+clean-am: clean-binPROGRAMS clean-generic clean-libexecPROGRAMS \
+	clean-noinstLIBRARIES mostlyclean-am
 
 distclean: distclean-recursive
 		-rm -f ./$(DEPDIR)/main.Po
+	-rm -f ./$(DEPDIR)/map_catalog.Po
 	-rm -f ./$(DEPDIR)/service_config.Po
 	-rm -f ./$(DEPDIR)/service_helper_win32.Po
 	-rm -f ./$(DEPDIR)/service_paths_win32.Po
 	-rm -f ./$(DEPDIR)/service_systemd.Po
 	-rm -f ./$(DEPDIR)/service_win32.Po
+	-rm -f ./$(DEPDIR)/settings_file_win32.Po
 	-rm -f ./$(DEPDIR)/tray_controller.Po
 	-rm -f ./$(DEPDIR)/tray_linux.Po
 	-rm -f ./$(DEPDIR)/tray_menu.Po
 	-rm -f ./$(DEPDIR)/tray_sni.Po
 	-rm -f ./$(DEPDIR)/tray_win32.Po
+	-rm -f ./$(DEPDIR)/utf8_files.Po
+	-rm -f ./$(DEPDIR)/xpilot_infinity_settings_helper-service_helper_linux.Po
+	-rm -f ./$(DEPDIR)/xpilot_infinity_settings_helper-settings_file_linux.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -850,13 +1059,14 @@ info: info-recursive
 
 info-am:
 
-install-data-am: install-dist_pkgdataDATA
+install-data-am: install-dbusservicesDATA install-dist_dbusconfigDATA \
+	install-dist_pkgdataDATA install-dist_polkitactionsDATA
 
 install-dvi: install-dvi-recursive
 
 install-dvi-am:
 
-install-exec-am: install-binPROGRAMS
+install-exec-am: install-binPROGRAMS install-libexecPROGRAMS
 
 install-html: install-html-recursive
 
@@ -880,16 +1090,21 @@ installcheck-am:
 
 maintainer-clean: maintainer-clean-recursive
 		-rm -f ./$(DEPDIR)/main.Po
+	-rm -f ./$(DEPDIR)/map_catalog.Po
 	-rm -f ./$(DEPDIR)/service_config.Po
 	-rm -f ./$(DEPDIR)/service_helper_win32.Po
 	-rm -f ./$(DEPDIR)/service_paths_win32.Po
 	-rm -f ./$(DEPDIR)/service_systemd.Po
 	-rm -f ./$(DEPDIR)/service_win32.Po
+	-rm -f ./$(DEPDIR)/settings_file_win32.Po
 	-rm -f ./$(DEPDIR)/tray_controller.Po
 	-rm -f ./$(DEPDIR)/tray_linux.Po
 	-rm -f ./$(DEPDIR)/tray_menu.Po
 	-rm -f ./$(DEPDIR)/tray_sni.Po
 	-rm -f ./$(DEPDIR)/tray_win32.Po
+	-rm -f ./$(DEPDIR)/utf8_files.Po
+	-rm -f ./$(DEPDIR)/xpilot_infinity_settings_helper-service_helper_linux.Po
+	-rm -f ./$(DEPDIR)/xpilot_infinity_settings_helper-settings_file_linux.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
@@ -905,25 +1120,31 @@ ps: ps-recursive
 
 ps-am:
 
-uninstall-am: uninstall-binPROGRAMS uninstall-dist_pkgdataDATA
+uninstall-am: uninstall-binPROGRAMS uninstall-dbusservicesDATA \
+	uninstall-dist_dbusconfigDATA uninstall-dist_pkgdataDATA \
+	uninstall-dist_polkitactionsDATA uninstall-libexecPROGRAMS
 
 .MAKE: $(am__recursive_targets) install-am install-strip
 
 .PHONY: $(am__recursive_targets) CTAGS GTAGS TAGS all all-am \
 	am--depfiles check check-am clean clean-binPROGRAMS \
-	clean-generic clean-noinstLIBRARIES cscopelist-am ctags \
-	ctags-am distclean distclean-compile distclean-generic \
-	distclean-tags distdir dvi dvi-am html html-am info info-am \
-	install install-am install-binPROGRAMS install-data \
-	install-data-am install-dist_pkgdataDATA install-dvi \
-	install-dvi-am install-exec install-exec-am install-html \
-	install-html-am install-info install-info-am install-man \
-	install-pdf install-pdf-am install-ps install-ps-am \
-	install-strip installcheck installcheck-am installdirs \
-	installdirs-am maintainer-clean maintainer-clean-generic \
-	mostlyclean mostlyclean-compile mostlyclean-generic pdf pdf-am \
-	ps ps-am tags tags-am uninstall uninstall-am \
-	uninstall-binPROGRAMS uninstall-dist_pkgdataDATA
+	clean-generic clean-libexecPROGRAMS clean-noinstLIBRARIES \
+	cscopelist-am ctags ctags-am distclean distclean-compile \
+	distclean-generic distclean-tags distdir dvi dvi-am html \
+	html-am info info-am install install-am install-binPROGRAMS \
+	install-data install-data-am install-dbusservicesDATA \
+	install-dist_dbusconfigDATA install-dist_pkgdataDATA \
+	install-dist_polkitactionsDATA install-dvi install-dvi-am \
+	install-exec install-exec-am install-html install-html-am \
+	install-info install-info-am install-libexecPROGRAMS \
+	install-man install-pdf install-pdf-am install-ps \
+	install-ps-am install-strip installcheck installcheck-am \
+	installdirs installdirs-am maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic pdf pdf-am ps ps-am tags tags-am uninstall \
+	uninstall-am uninstall-binPROGRAMS uninstall-dbusservicesDATA \
+	uninstall-dist_dbusconfigDATA uninstall-dist_pkgdataDATA \
+	uninstall-dist_polkitactionsDATA uninstall-libexecPROGRAMS
 
 .PRECIOUS: Makefile
 
@@ -932,6 +1153,9 @@ $(top_builddir)/src/common/version.h:
 	$(MAKE) -C $(top_builddir)/src/common version.h
 @COND_WINDOWS_TRUE@tray-res.o: $(srcdir)/tray.rc $(top_srcdir)/images/icon.ico
 @COND_WINDOWS_TRUE@	$(WINDRES) -I$(top_srcdir) $(srcdir)/tray.rc $@
+@COND_WINDOWS_FALSE@org.xpilot.Infinity.ServerSettings1.service: $(srcdir)/data/org.xpilot.Infinity.ServerSettings1.service.fc Makefile
+@COND_WINDOWS_FALSE@	$(FUNCITY) --no-rc run -D 'libexecdir=$(libexecdir)' -i $< > $@.tmp
+@COND_WINDOWS_FALSE@	mv $@.tmp $@
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

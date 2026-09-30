@@ -1,10 +1,11 @@
 #include "service_paths_win32.h"
 #include <shellapi.h>
+#include <shlobj.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <wchar.h>
 
-DWORD service_paths_win32(wchar_t **directory, wchar_t **configuration)
+static DWORD resolve(wchar_t **directory, wchar_t **configuration, bool strict)
 {
     *directory = *configuration = NULL;
     SC_HANDLE manager = OpenSCManagerW(NULL, NULL, SC_MANAGER_CONNECT);
@@ -35,16 +36,27 @@ DWORD service_paths_win32(wchar_t **directory, wchar_t **configuration)
     *directory = calloc(length + 1, sizeof(wchar_t));
     if (*directory) wmemcpy(*directory, arguments[0], length);
     bool service_mode = false;
+    bool log_path = false;
     for (int i = 1; i < count; i++) {
-        if (!wcscmp(arguments[i], L"--windows-service")) service_mode = true;
-        if (!wcscmp(arguments[i], L"-defaultsFileName") && i + 1 < count) {
+        if (!wcscmp(arguments[i], L"--windows-service") && !service_mode) service_mode = true;
+        else if (!wcscmp(arguments[i], L"--windows-service-log") && i + 1 < count && !log_path) {
+            log_path = true; ++i;
+        } else if (!wcscmp(arguments[i], L"-defaultsFileName") && i + 1 < count) {
             if (*configuration) { error = ERROR_BAD_CONFIGURATION; break; }
             *configuration = _wcsdup(arguments[++i]);
-        }
+        } else if (strict) { error = ERROR_BAD_CONFIGURATION; break; }
     }
     LocalFree(arguments);
-    if (!*directory || !*configuration) error = ERROR_BAD_CONFIGURATION;
-    if (!service_mode) error = ERROR_BAD_CONFIGURATION;
+    if (!*directory) error = ERROR_NOT_ENOUGH_MEMORY;
+    if (strict) {
+        wchar_t *fixed = NULL;
+        DWORD result = service_configuration_path_win32(&fixed);
+        if (result) error = result;
+        else if (!service_mode || !*configuration
+            || CompareStringOrdinal(*configuration, -1, fixed, -1, TRUE) != CSTR_EQUAL)
+            error = ERROR_BAD_CONFIGURATION;
+        free(fixed);
+    }
     if (error) {
         free(*directory); free(*configuration);
         *directory = *configuration = NULL;
@@ -52,10 +64,29 @@ DWORD service_paths_win32(wchar_t **directory, wchar_t **configuration)
     return error;
 }
 
+DWORD service_configuration_path_win32(wchar_t **path)
+{
+    *path = NULL;
+    wchar_t *base = NULL;
+    HRESULT result = SHGetKnownFolderPath(&FOLDERID_ProgramData, 0, NULL, &base);
+    if (FAILED(result)) return HRESULT_CODE(result);
+    const wchar_t suffix[] = L"\\XPilot Infinity\\server\\xpilot-infinity-server.conf";
+    size_t length = wcslen(base) + wcslen(suffix) + 1;
+    *path = malloc(length * sizeof(wchar_t));
+    if (*path) swprintf(*path, length, L"%ls%ls", base, suffix);
+    CoTaskMemFree(base);
+    return *path ? ERROR_SUCCESS : ERROR_NOT_ENOUGH_MEMORY;
+}
+
+DWORD service_paths_win32(wchar_t **directory, wchar_t **configuration)
+{
+    return resolve(directory, configuration, true);
+}
+
 DWORD service_helper_path_win32(wchar_t **path)
 {
     wchar_t *directory, *configuration;
-    DWORD error = service_paths_win32(&directory, &configuration);
+    DWORD error = resolve(&directory, &configuration, false);
     *path = NULL;
     if (error) return error;
     const wchar_t suffix[] = L"\\xpilot-infinity-service-helper.exe";

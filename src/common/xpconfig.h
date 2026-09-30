@@ -147,6 +147,13 @@
 #define CONF_ZCAT_FORMAT 		"gzip -d -c < %s"
 
 void Conf_print(void);
+#ifdef _WINDOWS
+/** Use UTF-8 for Windows installation paths.
+ * @remarks Call before reading any Conf_* path. Intended for the server's
+ * UTF-8 argument and file-I/O boundary; existing clients keep their path mode.
+ */
+void Conf_use_utf8_paths(void);
+#endif
 char *Conf_datadir(void);
 char *Conf_defaults_file_name(void);
 char *Conf_password_file_name(void);

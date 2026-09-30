@@ -13,6 +13,10 @@ trap finish EXIT
 data_directory=$(cat /xpilot-data-directory)
 mkdir -p "$data_directory"
 cp -a /xpilot-test-data/. "$data_directory/"
+# Match installed package ownership/modes, not the developer checkout's umask.
+chown -R root:root "$data_directory" /etc/default/xpilot-infinity-server
+chmod -R go-w "$data_directory"
+chmod 0644 /etc/default/xpilot-infinity-server
 /service-driver status | grep '^not-installed '
 cp /xpilot-test-server.service /usr/lib/systemd/system/xpilot-infinity-server.service
 systemctl daemon-reload
@@ -40,17 +44,22 @@ systemctl mask xpilot-infinity-server
 /service-driver status | grep '^stopped .*start=0 '
 if /service-driver start; then echo 'Masked service started' >&2; exit 1; fi
 systemctl unmask xpilot-infinity-server
+XPILOT_SERVER_BINARY=/usr/games/xpilot-infinity-server sh /test-strict-map.sh
 
 if test -x /test-desktop; then
     cp /xpilot-test-icon.png "$data_directory/icon-1254.png"
     useradd --create-home xpilot-tray-allowed
     useradd --create-home xpilot-tray-denied
+    useradd --create-home xpilot-tray-map-only
     useradd --create-home xpilot-tray-no-agent
     mkdir -p /etc/polkit-1/rules.d
     cat > /etc/polkit-1/rules.d/00-xpilot-test.rules <<'EOF'
 polkit.addRule(function(action, subject) {
-    if (action.id == "org.freedesktop.systemd1.manage-units" &&
-        action.lookup("unit") == "xpilot-infinity-server.service") {
+    if (action.id == "org.xpilot.infinity.select-map" ||
+        (action.id == "org.freedesktop.systemd1.manage-units" &&
+        action.lookup("unit") == "xpilot-infinity-server.service")) {
+        if (subject.user == "xpilot-tray-map-only")
+            return action.id == "org.xpilot.infinity.select-map" ? polkit.Result.YES : polkit.Result.NO;
         if (subject.user == "xpilot-tray-allowed") return polkit.Result.YES;
         if (subject.user == "xpilot-tray-denied") return polkit.Result.NO;
         if (subject.user == "xpilot-tray-no-agent") return polkit.Result.AUTH_ADMIN;
@@ -68,6 +77,24 @@ EOF
     /service-driver status | grep '^running '
     runuser -u xpilot-tray-allowed -- xvfb-run -a /test-desktop /xpilot-infinity-tray stop
     /service-driver status | grep '^stopped '
+fi
+
+if test -x /xpilot-settings-helper; then
+    cat > /usr/share/dbus-1/system-services/org.xpilot.Infinity.ServerSettings1.service <<'EOF'
+[D-BUS Service]
+Name=org.xpilot.Infinity.ServerSettings1
+Exec=/xpilot-settings-helper
+User=root
+EOF
+    systemctl reload dbus
+    sh /test-settings-helper.sh
+    runuser -u xpilot-tray-allowed -- xvfb-run -a /test-desktop /xpilot-infinity-tray map
+    /service-driver status | grep '^stopped '
+    /service-driver start
+    /contact-probe --status udp://127.0.0.1:15345 | grep -F "WORLD...........: Blood's Music"
+    runuser -u xpilot-tray-allowed -- xvfb-run -a /test-desktop /xpilot-infinity-tray map-running
+    /contact-probe --status udp://127.0.0.1:15345 | grep -F 'WORLD...........: New Dark Hell-Next Generation'
+    /service-driver stop
 fi
 
 # Request acceptance must not hide failure to execute the actual server.

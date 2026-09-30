@@ -8,21 +8,31 @@ test_service_config_SOURCES = test_service_config.c ../service_config.c
 service_driver_SOURCES = service_driver.c
 service_driver_LDADD = ../libxptray.a
 if COND_WINDOWS
-service_driver_LDADD += -ladvapi32 -luser32 -lshell32
+service_driver_LDADD += -ladvapi32 -luser32 -lshell32 -lole32 -luuid
 else
 AM_CPPFLAGS += $(TRAY_CFLAGS)
 service_driver_LDADD += $(TRAY_LIBS)
 check_PROGRAMS += test-sni
-noinst_PROGRAMS += test-desktop
+check_PROGRAMS += test-catalog test-settings-file
+check_PROGRAMS += test-utf8-files
+test_utf8_files_SOURCES = test_utf8_files.c $(top_srcdir)/src/common/utf8_files.c
+test_utf8_files_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/src/common
+test_catalog_SOURCES = test_catalog.c ../map_catalog.c ../service_config.c
+test_settings_file_SOURCES = test_settings_file.c ../settings_file_linux.c ../service_config.c
+test_settings_file_LDADD = $(TRAY_POLKIT_LIBS)
+noinst_PROGRAMS += test-desktop test-auth-cancel
+test_auth_cancel_SOURCES = test_auth_cancel.c
+test_auth_cancel_CPPFLAGS = $(AM_CPPFLAGS) $(TRAY_POLKIT_CFLAGS)
+test_auth_cancel_LDADD = $(TRAY_POLKIT_LIBS)
 test_desktop_SOURCES = test_desktop.c
 test_desktop_LDADD = $(TRAY_LIBS)
 test_sni_SOURCES = test_sni.c
 test_sni_CPPFLAGS = $(AM_CPPFLAGS) -DXPILOT_TEST_ICON=\"$(abs_top_srcdir)/images/icon-1254.png\"
 test_sni_LDADD = ../libxptray.a $(TRAY_LIBS)
-TESTS = test-controller test-menu test-service-config test-sni
+TESTS = test-controller test-menu test-service-config test-sni test-catalog test-settings-file test-utf8-files
 
 .PHONY: integration-check
-integration-check: service-driver test-desktop
+integration-check: service-driver test-desktop test-auth-cancel
 	XPILOT_SERVICE_DRIVER='$(abs_builddir)/service-driver' \
 	XPILOT_SERVER_BINARY='$(abs_top_builddir)/src/server/xpilot-infinity-server' \
 	XPILOT_CONTACT_TARGET_PROBE='$(abs_top_builddir)/tests/test-contact-target-probe' \
@@ -30,6 +40,8 @@ integration-check: service-driver test-desktop
 	XPILOT_TEST_PKGDATADIR='$(pkgdatadir)' \
 	XPILOT_TRAY_BINARY='$(abs_top_builddir)/src/tray/xpilot-infinity-tray' \
 	XPILOT_DESKTOP_TEST='$(abs_builddir)/test-desktop' \
+	XPILOT_AUTH_CANCEL_TEST='$(abs_builddir)/test-auth-cancel' \
+	XPILOT_SETTINGS_HELPER='$(abs_top_builddir)/src/tray/xpilot-infinity-settings-helper' \
 	$(SHELL) $(srcdir)/run-systemd.sh
 endif
-EXTRA_DIST = run-systemd.sh run-systemd-inside.sh xpilot-tray-test.service Containerfile
+EXTRA_DIST = run-systemd.sh run-systemd-inside.sh xpilot-tray-test.service Containerfile test-strict-map.sh test-settings-helper.sh

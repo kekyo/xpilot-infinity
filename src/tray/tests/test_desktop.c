@@ -10,6 +10,8 @@ typedef struct {
     char *item_owner;
     bool start;
     bool denied;
+    bool map;
+    bool map_running;
     bool exited;
     bool query_pending;
     bool query_again;
@@ -49,6 +51,8 @@ static void layout_ready(GObject *object, GAsyncResult *result, void *context)
     g_variant_get(reply, "(u@(ia{sv}av))", &revision, &layout);
     GVariant *children = g_variant_get_child_value(layout, 2);
     bool can_start = false, can_stop = false;
+    int map_id = 0;
+    bool map_enabled = false, map_checked = false;
     char *label = NULL;
     for (size_t i = 0; i < g_variant_n_children(children); i++) {
         GVariant *wrapped = g_variant_get_child_value(children, i);
@@ -61,16 +65,43 @@ static void layout_ready(GObject *object, GAsyncResult *result, void *context)
         if (id == TRAY_START) can_start = enabled;
         if (id == TRAY_STOP) can_stop = enabled;
         if (id == TRAY_STATUS) g_variant_lookup(properties, "label", "s", &label);
+        if (id == TRAY_MAP_MENU && test->map) {
+            for (size_t j = 0; j < g_variant_n_children(nested); j++) {
+                GVariant *wrapper = g_variant_get_child_value(nested, j);
+                GVariant *map_row = g_variant_get_variant(wrapper);
+                GVariant *map_properties = g_variant_get_child_value(map_row, 1);
+                const char *name = NULL;
+                g_variant_lookup(map_properties, "label", "&s", &name);
+                if (name && !strcmp(name, test->map_running ? "ndh.xp2" : "blood-music.xp2")) {
+                    g_variant_get_child(map_row, 0, "i", &map_id);
+                    gboolean available = FALSE;
+                    gint32 checked = 0;
+                    g_variant_lookup(map_properties, "enabled", "b", &available);
+                    g_variant_lookup(map_properties, "toggle-state", "i", &checked);
+                    map_enabled = available;
+                    map_checked = checked == 1;
+                }
+                g_variant_unref(map_properties); g_variant_unref(map_row); g_variant_unref(wrapper);
+            }
+        }
         g_variant_unref(nested); g_variant_unref(properties);
         g_variant_unref(row); g_variant_unref(wrapped);
     }
     assert(label != NULL);
     g_print("desktop menu: %s (start=%d stop=%d)\n", label, can_start, can_stop);
-    if (test->stage == 0 && (test->start ? can_start : can_stop)) {
+    if (test->map && test->stage == 0 && map_id && map_enabled) {
+        assert(!map_checked);
+        test->stage = 1;
+        send_event(test, map_id);
+    } else if (test->map && test->stage == 1 && map_checked && map_enabled
+               && (test->map_running ? can_stop : can_start)) {
+        test->stage = 2;
+        send_event(test, TRAY_QUIT);
+    } else if (!test->map && test->stage == 0 && (test->start ? can_start : can_stop)) {
         assert(test->start ? !can_stop : !can_start);
         test->stage = 1;
         send_event(test, test->start ? TRAY_START : TRAY_STOP);
-    } else if (test->stage == 1) {
+    } else if (!test->map && test->stage == 1) {
         bool reached = test->denied ? strstr(label, "not authorized") != NULL
             : test->start ? can_stop && strstr(label, "Service running")
                           : can_start && strstr(label, "Service stopped");
@@ -180,6 +211,8 @@ int main(int argc, char **argv)
     bool fallback = !strcmp(argv[2], "fallback");
     test.start = strcmp(argv[2], "stop") != 0;
     test.denied = !strcmp(argv[2], "denied");
+    test.map_running = !strcmp(argv[2], "map-running");
+    test.map = test.map_running || !strcmp(argv[2], "map");
     char *display = g_strdup(g_getenv("DISPLAY"));
     GTestDBus *test_bus = g_test_dbus_new(G_TEST_DBUS_NONE);
     g_test_dbus_up(test_bus);

@@ -123,6 +123,8 @@ am_xpilot_infinity_server_OBJECTS = alliance.$(OBJEXT) \
 xpilot_infinity_server_OBJECTS = $(am_xpilot_infinity_server_OBJECTS)
 xpilot_infinity_server_DEPENDENCIES =  \
 	$(top_builddir)/src/common/libxpcommon.a
+xpilot_infinity_server_LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(xpilot_infinity_server_LDFLAGS) $(LDFLAGS) -o $@
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -382,6 +384,7 @@ xpilot_infinity_server_SOURCES = \
 	windows_service.c windows_service.h xp2map.c xpmap.c xpserver.h
 
 xpilot_infinity_server_LDADD = $(top_builddir)/src/common/libxpcommon.a @X_EXTRA_LIBS@ @W32_LIBS@
+@COND_WINDOWS_TRUE@xpilot_infinity_server_LDFLAGS = -municode
 all: all-am
 
 .SUFFIXES:
@@ -460,7 +463,7 @@ clean-binPROGRAMS:
 
 xpilot-infinity-server$(EXEEXT): $(xpilot_infinity_server_OBJECTS) $(xpilot_infinity_server_DEPENDENCIES) $(EXTRA_xpilot_infinity_server_DEPENDENCIES)
 	@rm -f xpilot-infinity-server$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(xpilot_infinity_server_OBJECTS) $(xpilot_infinity_server_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(xpilot_infinity_server_LINK) $(xpilot_infinity_server_OBJECTS) $(xpilot_infinity_server_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
