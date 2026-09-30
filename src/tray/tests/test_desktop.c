@@ -1,10 +1,13 @@
 #include "tray_menu.h"
 #include <gio/gio.h>
 #include <glib-unix.h>
+#define ATSPI_DISABLE_DEPRECATED
+#include <atspi/atspi.h>
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 #include <X11/extensions/XTest.h>
 #include <assert.h>
+#include <signal.h>
 #include <string.h>
 
 typedef struct {
@@ -16,6 +19,10 @@ typedef struct {
     bool map_running;
     bool exited;
     bool editor;
+    int exit_signal;
+    bool real_editor;
+    bool document_saved;
+    AtspiAccessible *editor_window;
     char *before;
     bool query_pending;
     bool query_again;
@@ -95,7 +102,10 @@ static void layout_ready(GObject *object, GAsyncResult *result, void *context)
     }
     assert(label != NULL);
     g_print("desktop menu: %s (start=%d stop=%d)\n", label, can_start, can_stop);
-    if (test->editor && test->stage == 0 && can_edit) {
+    if (test->exit_signal && test->stage == 0 && can_stop) {
+        test->stage = 2;
+        g_subprocess_send_signal(test->application, test->exit_signal);
+    } else if (test->editor && test->stage == 0 && can_edit) {
         assert(!can_apply);
         test->stage = 1;
         send_event(test, TRAY_EDIT);
@@ -186,6 +196,7 @@ static void exited(GObject *object, GAsyncResult *result, void *context)
     desktop_test *test = context;
     GError *error = NULL;
     bool success = g_subprocess_wait_check_finish(G_SUBPROCESS(object), result, &error);
+    if (test->exit_signal) success = !success && g_subprocess_get_if_signaled(G_SUBPROCESS(object));
     if (error) g_printerr("Desktop exited: %s\n", error->message);
     assert(success && test->stage == (test->editor ? 4u : 2u));
     test->exited = true;
@@ -242,6 +253,129 @@ static gboolean window_event(int fd, GIOCondition condition, void *context)
     return G_SOURCE_CONTINUE;
 }
 
+static bool activate_button(AtspiAccessible *node, const char *label)
+{
+    GError *error = NULL;
+    char *name = atspi_accessible_get_name(node, &error);
+    assert(!error);
+    bool matches = name && !strcmp(name, label);
+    g_free(name);
+    if (matches) {
+        AtspiAction *action = atspi_accessible_get_action_iface(node);
+        if (action) {
+            bool activated = atspi_action_do_action(action, 0, &error);
+            assert(activated && !error);
+            g_object_unref(action);
+            return true;
+        }
+    }
+    int count = atspi_accessible_get_child_count(node, &error);
+    assert(!error);
+    for (int i = 0; i < count; i++) {
+        AtspiAccessible *child = atspi_accessible_get_child_at_index(node, i, &error);
+        assert(child && !error);
+        bool activated = activate_button(child, label);
+        g_object_unref(child);
+        if (activated) return true;
+    }
+    return false;
+}
+
+static bool edit_document(AtspiAccessible *node, desktop_test *test)
+{
+    GError *error = NULL;
+    AtspiEditableText *editable = atspi_accessible_get_editable_text_iface(node);
+    AtspiText *text = atspi_accessible_get_text_iface(node);
+    bool edited = false;
+    if (editable && text) {
+        char *contents = atspi_text_get_text(text, 0, (int)g_utf8_strlen(test->before, -1), &error);
+        assert(!error);
+        size_t length = contents ? strlen(contents) : 0;
+        size_t baseline_length = strlen(test->before);
+        /* Gedit keeps its implicit final newline outside the visible buffer. */
+        bool matches = contents && (!strcmp(contents, test->before)
+            || (baseline_length == length + 1 && test->before[length] == '\n'
+                && !memcmp(contents, test->before, length)));
+        if (matches) {
+            char *replacement = g_strdup_printf("XPILOT_SERVER_OPTIONS='-noQuit +reportMeta -port %s -map ndh.xp2'",
+                g_getenv("XPILOT_EDITOR_TEST_PORT"));
+            test->document_saved = true;
+            assert(atspi_editable_text_set_text_contents(editable, replacement, &error));
+            assert(!error);
+            g_free(replacement);
+            edited = true;
+        }
+        g_free(contents);
+    }
+    g_clear_object(&editable);
+    g_clear_object(&text);
+    if (edited) return true;
+    int count = atspi_accessible_get_child_count(node, &error);
+    assert(!error);
+    for (int i = 0; i < count; i++) {
+        AtspiAccessible *child = atspi_accessible_get_child_at_index(node, i, &error);
+        assert(child && !error);
+        edited = edit_document(child, test);
+        g_object_unref(child);
+        if (edited) return true;
+    }
+    return false;
+}
+
+static bool inspect_accessible_window(AtspiAccessible *node, desktop_test *test)
+{
+    /* GtkMessageDialog exposes its message type as the accessible name, which
+       may differ from its window title. The confirmation action is unambiguous. */
+    if (test->editor && test->stage == 2) {
+        test->stage = 3;
+        bool activated = activate_button(node, "Apply saved changes");
+        if (!activated) test->stage = 2;
+        return activated;
+    }
+    GError *error = NULL;
+    char *name = atspi_accessible_get_name(node, &error);
+    assert(!error);
+    bool activated = false;
+    if (test->real_editor && test->stage == 1 && name && strstr(name, "xpilot-infinity-server.txt")
+        && atspi_accessible_get_role(node, &error) == ATSPI_ROLE_FRAME && !test->editor_window) {
+        assert(!error);
+        test->editor_window = g_object_ref(node);
+        g_print("Default editor window: %s\n", name);
+    }
+    if (!test->editor && test->stage == 0 && name && !strcmp(name, "XPilot Infinity Server")) {
+        test->stage = 2;
+        activated = activate_button(node, "Quit tray (server keeps running)");
+        if (!activated) test->stage = 0;
+    }
+    g_free(name);
+    if (activated) return true;
+    int count = atspi_accessible_get_child_count(node, &error);
+    assert(!error);
+    for (int i = 0; i < count; i++) {
+        AtspiAccessible *child = atspi_accessible_get_child_at_index(node, i, &error);
+        assert(child && !error);
+        activated = inspect_accessible_window(child, test);
+        g_object_unref(child);
+        if (activated) return true;
+    }
+    return false;
+}
+
+static void accessible_window(AtspiEvent *event, void *context)
+{
+    desktop_test *test = context;
+    /* GTK can publish an already mapped window when first joining AT-SPI.
+       Registry child registration is also a readiness event in that case. */
+    if (test->stage == (test->editor ? 2u : 0u) || (test->real_editor && test->stage == 1))
+        inspect_accessible_window(event->source, test);
+    if (test->real_editor && test->stage == 1 && test->editor_window && !test->document_saved
+        && edit_document(test->editor_window, test)) {
+        assert(activate_button(test->editor_window, "Save"));
+        g_print("The default GUI editor saved the editing copy.\n");
+    }
+    g_boxed_free(ATSPI_TYPE_EVENT, event);
+}
+
 int main(int argc, char **argv)
 {
     assert(argc == 3);
@@ -249,14 +383,24 @@ int main(int argc, char **argv)
     desktop_test test = {0};
     bool fallback = !strcmp(argv[2], "fallback");
     test.editor = !strcmp(argv[2], "editor");
+    test.real_editor = test.editor && g_getenv("XPILOT_REAL_EDITOR");
+    test.exit_signal = !strcmp(argv[2], "crash") ? SIGKILL : !strcmp(argv[2], "terminate") ? SIGTERM : 0;
     test.start = strcmp(argv[2], "stop") != 0;
     test.denied = !strcmp(argv[2], "denied");
     test.map_running = !strcmp(argv[2], "map-running");
     test.map = test.map_running || !strcmp(argv[2], "map");
     char *display = g_strdup(g_getenv("DISPLAY"));
+    char *runtime_directory = g_strdup(g_getenv("XDG_RUNTIME_DIR"));
     GTestDBus *test_bus = g_test_dbus_new(G_TEST_DBUS_NONE);
+    g_test_dbus_add_service_dir(test_bus, "/usr/share/dbus-1/services");
     g_test_dbus_up(test_bus);
     if (display) { g_setenv("DISPLAY", display, TRUE); g_free(display); }
+    /* GTestDBus clears this to prevent using the real session bus. Keep our
+       isolated compositor's socket directory while retaining its test bus. */
+    if (runtime_directory) {
+        g_setenv("XDG_RUNTIME_DIR", runtime_directory, TRUE);
+        g_free(runtime_directory);
+    }
     GError *error = NULL;
     if (test.editor) assert(g_file_get_contents("/etc/default/xpilot-infinity-server", &test.before, NULL, &error));
     test.bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, &error);
@@ -282,7 +426,19 @@ int main(int argc, char **argv)
         "com.canonical.dbusmenu", "LayoutUpdated", "/Menu", NULL,
         G_DBUS_SIGNAL_FLAGS_NONE, menu_changed, &test, NULL);
     guint window_watch = 0;
-    if (fallback || test.editor) {
+    AtspiEventListener *accessible_watch = NULL;
+    bool wayland = !g_strcmp0(g_getenv("GDK_BACKEND"), "wayland");
+    if ((fallback || test.editor) && (wayland || test.real_editor)) {
+        assert(atspi_init() == 0);
+        accessible_watch = atspi_event_listener_new(accessible_window, &test, NULL);
+        assert(atspi_event_listener_register(accessible_watch, "window:create", &error));
+        assert(atspi_event_listener_register(accessible_watch, "object:children-changed:add", &error));
+        if (test.real_editor) {
+            assert(atspi_event_listener_register(accessible_watch, "object:text-changed", &error));
+            assert(atspi_event_listener_register(accessible_watch, "object:property-change:accessible-name", &error));
+        }
+        assert(!error);
+    } else if (fallback || test.editor) {
         test.display = XOpenDisplay(NULL);
         assert(test.display);
         XSelectInput(test.display, DefaultRootWindow(test.display), SubstructureNotifyMask);
@@ -296,6 +452,18 @@ int main(int argc, char **argv)
     guint deadline = g_timeout_add_seconds(120, expired, &test);
     while (!test.exited) g_main_context_iteration(NULL, TRUE);
     g_source_remove(deadline);
+    if (accessible_watch) {
+        assert(atspi_event_listener_deregister(accessible_watch, "window:create", &error));
+        assert(atspi_event_listener_deregister(accessible_watch, "object:children-changed:add", &error));
+        if (test.real_editor) {
+            assert(atspi_event_listener_deregister(accessible_watch, "object:text-changed", &error));
+            assert(atspi_event_listener_deregister(accessible_watch, "object:property-change:accessible-name", &error));
+        }
+        assert(!error);
+        g_object_unref(accessible_watch);
+        g_clear_object(&test.editor_window);
+        atspi_exit();
+    }
     if (window_watch) {
         g_source_remove(window_watch);
         XCloseDisplay(test.display);

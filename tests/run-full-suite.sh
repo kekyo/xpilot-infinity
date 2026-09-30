@@ -61,6 +61,7 @@ else
 fi
 test_build_version=9.8.7
 test_build_commit=0123456701234567012345670123456701234567
+: "${XPILOT_SYSTEMD_TEST_IMAGE:?Set the image built from src/tray/tests/Containerfile}"
 
 vendor_build_dir="$suite_dir/vendor-sdl3-build"
 vendor_prefix="$suite_dir/vendor-sdl3-prefix"
@@ -88,7 +89,15 @@ run_configuration()
     shift
     build_dir="$suite_dir/build-$configuration_name"
     install_prefix="$suite_dir/prefix-$configuration_name"
-    mkdir -p "$build_dir" "$install_prefix"
+    mkdir -p "$build_dir"
+    if test "$configuration_name" = tray-only; then
+        # DynamicUser services have private /tmp directories. Use a production
+        # data path inside the container; this configuration is never installed
+        # on the host (its make check contains no SDL install/e2e target).
+        install_prefix=/usr/local
+    else
+        mkdir -p "$install_prefix"
+    fi
 
     echo "===== configure: $configuration_name ====="
     (
@@ -102,6 +111,7 @@ run_configuration()
         test "$server_version" = \
             "XPilot Infinity [$test_build_version-$test_build_commit]" \
             || { echo "build-time product metadata was not applied: $server_version" >&2; exit 1; }
+        if test -x src/client/sdl/xpilot-infinity-sdl; then
         client_version=$(src/client/sdl/xpilot-infinity-sdl -version \
             | sed -n '/^XPilot Infinity /p' | tail -n 1 || true)
         test "$client_version" = "$server_version" \
@@ -109,15 +119,24 @@ run_configuration()
         client_help=$(src/client/sdl/xpilot-infinity-sdl -help 2>&1 || true)
         printf '%s\n' "$client_help" | grep -Fq 'soundFile' \
             || { echo "default client sound options are unavailable" >&2; exit 1; }
+        fi
         if ! make "XPILOT_VERSION=$test_build_version" \
             "XPILOT_COMMIT_ID=$test_build_commit" check; then
-            for test_log in tests/*.log; do
+            for test_log in tests/*.log src/tray/tests/*.log; do
                 if test -f "$test_log"; then
                     echo "===== $test_log =====" >&2
                     sed -n '1,320p' "$test_log" >&2
                 fi
             done
             exit 1
+        fi
+        if test "$configuration_name" = tray-only; then
+            test -x src/tray/xpilot-infinity-tray
+            test ! -e src/client/sdl/xpilot-infinity-sdl
+            make -C src/tray/tests integration-check \
+                "XPILOT_CONTACT_TARGET_PROBE=$suite_dir/build-system-default/tests/test-contact-target-probe"
+        elif test "$configuration_name" = tray-disabled; then
+            test ! -e src/tray/xpilot-infinity-tray
         fi
     )
 }
@@ -128,7 +147,7 @@ run_configuration()
 PKG_CONFIG_PATH="$system_pkg_config_path" SDL3_LIBS="$system_sdl3_libs" \
     SDL3_IMAGE_LIBS="$system_sdl3_image_libs" \
     SDL3_TTF_LIBS="$system_sdl3_ttf_libs" \
-    run_configuration system-default --with-sdl3=system
+    run_configuration system-default --with-sdl3=system --enable-server-tray=yes
 PKG_CONFIG_PATH="$system_pkg_config_path" SDL3_LIBS="$system_sdl3_libs" \
     SDL3_IMAGE_LIBS="$system_sdl3_image_libs" \
     SDL3_TTF_LIBS="$system_sdl3_ttf_libs" \
@@ -141,12 +160,23 @@ run_configuration vendored-sdl-only \
     --with-sdl3=vendored --with-sdl3-prefix="$vendor_prefix" \
     --enable-sdl-client --disable-x11-client --disable-replay \
     --disable-xp-mapedit
+run_configuration tray-only --enable-server-tray=yes \
+    --disable-sdl-client --disable-x11-client --disable-replay --disable-xp-mapedit
+run_configuration tray-disabled --enable-server-tray=no \
+    --disable-sdl-client --disable-x11-client --disable-replay --disable-xp-mapedit
 
-echo "===== build and test: MinGW Windows targets ====="
+windows_test_option=--test
+case "${XPILOT_WINDOWS_RUNTIME_TESTS:-1}" in
+    0) windows_test_option= ;;
+    1) ;;
+    *) echo 'XPILOT_WINDOWS_RUNTIME_TESTS must be 0 or 1' >&2; exit 2 ;;
+esac
+echo "===== build: MinGW Windows targets (runtime tests: ${XPILOT_WINDOWS_RUNTIME_TESTS:-1}) ====="
 XPILOT_PACKAGE_VERSION=$test_build_version \
 XPILOT_COMMIT_ID=$test_build_commit \
     "$build_source_dir/build.sh" \
-    --target windows --arch all --test \
-    --build-root "$suite_dir/windows" --jobs "$test_jobs"
+    --target windows --arch all $windows_test_option \
+    --build-root "$suite_dir/windows" --artifact-root "$suite_dir/windows-artifacts" \
+    --jobs "$test_jobs"
 
 echo "All native and MinGW out-of-tree configurations passed"

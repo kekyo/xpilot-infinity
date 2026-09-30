@@ -29,14 +29,21 @@ trap 'exit 143' TERM
 # needs mount/device namespacing, which podman's default seccomp profile denies.
 container=$(podman create --privileged --network=none --systemd=always \
     --entrypoint /sbin/init "$XPILOT_SYSTEMD_TEST_IMAGE" --unit=xpilot-tray-test.service)
+if test -n "${XPILOT_TEST_PACKAGE:-}"; then
+    podman cp "$XPILOT_TEST_PACKAGE" "$container:/xpilot-test.deb"
+fi
 # Install the test as a unit before boot. Its dependency on dbus.service is the
 # readiness boundary; no fixed delay or periodic startup probe is involved.
 podman cp "$XPILOT_SERVICE_DRIVER" "$container:/service-driver"
 podman cp "$XPILOT_CONTACT_TARGET_PROBE" "$container:/contact-probe"
-podman cp "$XPILOT_SERVER_BINARY" "$container:/usr/games/xpilot-infinity-server"
+if test -z "${XPILOT_TEST_PACKAGE:-}"; then
+    podman cp "$XPILOT_SERVER_BINARY" "$container:/usr/games/xpilot-infinity-server"
+fi
 if test -n "${XPILOT_TRAY_BINARY:-}"; then
     : "${XPILOT_DESKTOP_TEST:?Set the desktop test path}"
-    podman cp "$XPILOT_TRAY_BINARY" "$container:/xpilot-infinity-tray"
+    if test -z "${XPILOT_TEST_PACKAGE:-}"; then
+        podman cp "$XPILOT_TRAY_BINARY" "$container:/xpilot-infinity-tray"
+    fi
     podman cp "$XPILOT_DESKTOP_TEST" "$container:/test-desktop"
     podman cp "$XPILOT_TEST_SOURCE_DIR/images/icon-1254.png" "$container:/xpilot-test-icon.png"
 fi
@@ -46,16 +53,20 @@ if test -n "${XPILOT_SETTINGS_HELPER:-}"; then
     : "${XPILOT_AUTH_CANCEL_TEST:?Set the authentication-cancel test path}"
     podman cp "$XPILOT_AUTH_CANCEL_TEST" "$container:/test-auth-cancel"
     podman cp "$XPILOT_TEST_SOURCE_DIR/src/tray/tests/test-default-editor.sh" "$container:/test-default-editor"
-    podman cp "$XPILOT_SETTINGS_HELPER" "$container:/xpilot-settings-helper"
-    podman cp "$XPILOT_TEST_SOURCE_DIR/src/tray/data/org.xpilot.infinity.policy" "$container:/usr/share/polkit-1/actions/org.xpilot.infinity.policy"
-    podman cp "$XPILOT_TEST_SOURCE_DIR/src/tray/data/org.xpilot.Infinity.ServerSettings1.conf" "$container:/etc/dbus-1/system.d/org.xpilot.Infinity.ServerSettings1.conf"
+    if test -z "${XPILOT_TEST_PACKAGE:-}"; then
+        podman cp "$XPILOT_SETTINGS_HELPER" "$container:/xpilot-settings-helper"
+        podman cp "$XPILOT_TEST_SOURCE_DIR/src/tray/data/org.xpilot.infinity.policy" "$container:/usr/share/polkit-1/actions/org.xpilot.infinity.policy"
+        podman cp "$XPILOT_TEST_SOURCE_DIR/src/tray/data/org.xpilot.Infinity.ServerSettings1.conf" "$container:/etc/dbus-1/system.d/org.xpilot.Infinity.ServerSettings1.conf"
+    fi
     podman cp "$XPILOT_TEST_SOURCE_DIR/src/tray/tests/test-settings-editor.sh" "$container:/test-settings-editor.sh"
     podman cp "$XPILOT_TEST_SOURCE_DIR/src/tray/tests/test-settings-helper.sh" "$container:/test-settings-helper.sh"
 fi
 podman cp "$XPILOT_TEST_SOURCE_DIR/debian/xpilot-infinity-server.service" \
     "$container:/xpilot-test-server.service"
-podman cp "$XPILOT_TEST_SOURCE_DIR/debian/xpilot-infinity-server.default" \
-    "$container:/etc/default/xpilot-infinity-server"
+if test -z "${XPILOT_TEST_PACKAGE:-}"; then
+    podman cp "$XPILOT_TEST_SOURCE_DIR/debian/xpilot-infinity-server.default" \
+        "$container:/etc/default/xpilot-infinity-server"
+fi
 podman cp "$XPILOT_TEST_SOURCE_DIR/src/tray/tests/run-systemd-inside.sh" \
     "$container:/run-systemd-inside.sh"
 podman cp "$XPILOT_TEST_SOURCE_DIR/src/tray/tests/xpilot-tray-test.service" \

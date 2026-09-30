@@ -87,6 +87,10 @@ Section "!XPilot Infinity client and server" SEC_CORE
     "$SMPROGRAMS\XPilot Infinity\XPilot Infinity.lnk" \
     "$INSTDIR\xpilot-infinity-sdl.exe" "" "$INSTDIR\icon.ico" 0 \
     SW_SHOWNORMAL "" "Open the XPilot Infinity server browser"
+  CreateShortcut \
+    "$SMPROGRAMS\XPilot Infinity\XPilot Infinity Server Tray.lnk" \
+    "$INSTDIR\xpilot-infinity-tray.exe" "" "$INSTDIR\icon.ico" 0 \
+    SW_SHOWNORMAL "" "Manage the installed XPilot Infinity server service"
 
   WriteUninstaller "$INSTDIR\uninstall.exe"
   WriteRegStr HKLM "${PRODUCT_KEY}" "InstallDir" "$INSTDIR"
@@ -115,7 +119,7 @@ server_config_exists:
 SectionEnd
 
 LangString DESC_CORE ${LANG_ENGLISH} \
-  "Install the SDL client, dedicated server, game data, and Start menu shortcut."
+  "Install the SDL client, dedicated server, service tray, game data, and Start menu shortcuts."
 LangString DESC_SERVER_SERVICE ${LANG_ENGLISH} \
   "Register the dedicated server with Windows. The service uses manual startup and is not started by this installer."
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
@@ -216,6 +220,7 @@ Section "Uninstall"
   Pop $0
 
   Delete "$SMPROGRAMS\XPilot Infinity\XPilot Infinity.lnk"
+  Delete "$SMPROGRAMS\XPilot Infinity\XPilot Infinity Server Tray.lnk"
   RMDir "$SMPROGRAMS\XPilot Infinity"
   DeleteRegKey HKLM "${UNINSTALL_KEY}"
   DeleteRegKey HKLM "${PRODUCT_KEY}"

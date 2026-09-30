@@ -1,0 +1,42 @@
+.TH XPILOT-INFINITY-TRAY 6 "September 2026" "XPilot Infinity"
+.SH NAME
+xpilot-infinity-tray \- control the local XPilot Infinity server service
+.SH SYNOPSIS
+.B xpilot-infinity-tray
+.SH DESCRIPTION
+Run the tray as a normal desktop user. It connects to the installed
+xpilot-infinity-server.service system service without starting or stopping it.
+The menu shows service state and provides start, stop, map selection and
+configuration editing. Required administrative authorization is requested
+when performing an operation.
+.PP
+Selecting a map saves shared service configuration. If the service is running,
+it restarts after a normal stop; connected players are disconnected.
+The selected map describes saved configuration, not a verified running game.
+.PP
+Edit configuration opens a private copy in the default plain-text editor.
+Save it as UTF-8 without a byte-order mark, then choose Apply saved changes
+in the tray. Saving in the editor alone does not change the service.
+Applying while running restarts the server. Conflicts leave the copy intact;
+resume editing or discard the copy explicitly before starting again.
+.PP
+The tray uses StatusNotifierItem on X11 and Wayland, with XEmbed support on
+X11. If no usable tray host exists, a control window provides the operations.
+Exiting the tray or logging out does not stop the server. Use Stop server
+to request a normal service shutdown.
+.SH FILES
+.TP
+.I /etc/default/xpilot-infinity-server
+Shared server options for the packaged system service.
+.TP
+.I /usr/share/games/xpilot-infinity/maps
+Maps supplied by Debian packages. Other installation prefixes may differ.
+.SH DIAGNOSTICS
+The details action displays configuration and log locations and the most
+recent operation result. Read Linux service logs with
+.BR "journalctl -u xpilot-infinity-server.service" .
+If the service is not installed, install the XPilot Infinity package first.
+.SH SEE ALSO
+.BR xpilot-infinity-server (6),
+.BR systemctl (1),
+.BR journalctl (1)

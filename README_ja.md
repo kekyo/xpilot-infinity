@@ -314,6 +314,49 @@ sc.exe config XPilotInfinityServer start= demand
 xpilot-infinity-setup.exe /S /SERVER_SERVICE=1 /D=C:\Games\XPilotInfinity
 ```
 
+### デスクトップからサーバーを操作する
+
+アプリケーションメニューの XPilot Infinity Server Tray、または
+`xpilot-infinity-tray` を起動します。トレイは一般ユーザー権限で動き、
+登録済みのローカルサービスへ接続します。Linux では
+`xpilot-infinity-server.service` を含む Debian パッケージを導入してください。
+Windows ではインストーラーの任意選択のサーバーサービスを登録します。
+トレイの起動だけでは、サービスの登録や開始は行いません。ZIP 版のトレイも
+登録済みサービスへ接続できます。先に対応するサーバーと認可ヘルパーを、
+管理者が保護するインストール先へ導入してください。
+
+Start server と Stop server で開始・停止を操作します。必要に応じて Linux は
+polkit、Windows は UAC の認証を求めます。マップの選択は共有設定を変更します。
+稼働中の変更ではサービスを正常停止してから再起動するため、プレイヤーの
+接続が切断されます。メニューに表示する設定マップは、稼働中のゲームが
+実際に読み込んだマップを保証する表示ではありません。インストール済みの
+マップは、トレイを起動した作業ディレクトリにかかわらず参照できます。
+
+Edit configuration は、設定の編集用コピーを既定のテキストエディタで開きます。
+UTF-8（BOM なし）で保存してから、トレイの Apply saved changes を選び、
+反映を確認してください。エディタで保存するだけではサービスは変更されません。
+停止中の反映は設定の保存のみ、稼働中の反映は保存と再起動を行います。
+エディタは通常権限で起動します。自由編集の反映とマップ選択の認可は別です。
+
+エディタで未保存の変更は反映しません。保存済みの未反映内容はトレイの再起動後も
+残り、編集を再開できます。Discard editing copy でコピーを破棄し、やり直すことも
+できます。別のセッションで共有設定が変更されると、古いコピーの反映は競合として
+中止し、編集内容を保持します。残したい変更は、破棄する前に別途保存してください。
+認証のキャンセルや保存失敗でもコピーを保持します。保存には成功したが再起動に
+失敗した場合は区別して表示するので、詳細とサービスのログを確認してください。
+
+共有設定は Linux では `/etc/default/xpilot-infinity-server`、Windows では
+`%ProgramData%\XPilot Infinity\server\xpilot-infinity-server.conf` にあります。
+Linux のログは `journalctl -u xpilot-infinity-server.service`、Windows のログは
+`%ProgramData%\XPilot Infinity\server` で確認できます。詳細メニューにも
+実際の設定とログの場所を表示します。操作対象はシステムサービスであり、
+以下で説明する Podman のユーザーサービスは対象に含みません。
+
+X11 と Wayland では StatusNotifierItem 対応のホストにアイコンを表示し、
+X11 では XEmbed のトレイにも対応します。利用できるホストがない場合は
+操作ウィンドウを表示します。トレイの終了、操作ウィンドウを閉じる操作、
+ログアウトではサーバーを停止しません。停止するには Stop server を選んでください。
+
 ### Podman でサーバーを実行する
 
 このリポジトリには、専用サーバー向けのマルチステージ

@@ -149,9 +149,11 @@ am_test_controller_OBJECTS = test_controller.$(OBJEXT) \
 test_controller_OBJECTS = $(am_test_controller_OBJECTS)
 test_controller_LDADD = $(LDADD)
 am__test_desktop_SOURCES_DIST = test_desktop.c
-@COND_WINDOWS_FALSE@am_test_desktop_OBJECTS = test_desktop.$(OBJEXT)
+@COND_WINDOWS_FALSE@am_test_desktop_OBJECTS =  \
+@COND_WINDOWS_FALSE@	test_desktop-test_desktop.$(OBJEXT)
 test_desktop_OBJECTS = $(am_test_desktop_OBJECTS)
-@COND_WINDOWS_FALSE@test_desktop_DEPENDENCIES = $(am__DEPENDENCIES_1)
+@COND_WINDOWS_FALSE@test_desktop_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+@COND_WINDOWS_FALSE@	$(am__DEPENDENCIES_1)
 am__test_editor_SOURCES_DIST = test_editor.c ../config_editor.c \
 	../service_config.c
 @COND_WINDOWS_FALSE@am_test_editor_OBJECTS = test_editor.$(OBJEXT) \
@@ -220,8 +222,9 @@ am__depfiles_remade = ./$(DEPDIR)/config_editor.Po \
 	./$(DEPDIR)/settings_file_linux.Po \
 	./$(DEPDIR)/test_auth_cancel-test_auth_cancel.Po \
 	./$(DEPDIR)/test_catalog.Po ./$(DEPDIR)/test_controller.Po \
-	./$(DEPDIR)/test_desktop.Po ./$(DEPDIR)/test_editor.Po \
-	./$(DEPDIR)/test_menu.Po ./$(DEPDIR)/test_service_config.Po \
+	./$(DEPDIR)/test_desktop-test_desktop.Po \
+	./$(DEPDIR)/test_editor.Po ./$(DEPDIR)/test_menu.Po \
+	./$(DEPDIR)/test_service_config.Po \
 	./$(DEPDIR)/test_settings_file.Po \
 	./$(DEPDIR)/test_sni-test_sni.Po \
 	./$(DEPDIR)/test_sni_hosts-test_sni_hosts.Po \
@@ -573,6 +576,8 @@ TRAY_CFLAGS = @TRAY_CFLAGS@
 TRAY_LIBS = @TRAY_LIBS@
 TRAY_POLKIT_CFLAGS = @TRAY_POLKIT_CFLAGS@
 TRAY_POLKIT_LIBS = @TRAY_POLKIT_LIBS@
+TRAY_TEST_CFLAGS = @TRAY_TEST_CFLAGS@
+TRAY_TEST_LIBS = @TRAY_TEST_LIBS@
 VERSION = @VERSION@
 W32_LIBS = @W32_LIBS@
 WINDRES = @WINDRES@
@@ -668,10 +673,12 @@ service_driver_LDADD = ../libxptray.a $(am__append_1) $(am__append_3)
 @COND_WINDOWS_FALSE@test_auth_cancel_CPPFLAGS = $(AM_CPPFLAGS) $(TRAY_POLKIT_CFLAGS)
 @COND_WINDOWS_FALSE@test_auth_cancel_LDADD = $(TRAY_POLKIT_LIBS)
 @COND_WINDOWS_FALSE@test_desktop_SOURCES = test_desktop.c
-@COND_WINDOWS_FALSE@test_desktop_LDADD = $(TRAY_LIBS) -lXtst
+@COND_WINDOWS_FALSE@test_desktop_CPPFLAGS = $(AM_CPPFLAGS) $(TRAY_TEST_CFLAGS)
+@COND_WINDOWS_FALSE@test_desktop_LDADD = $(TRAY_LIBS) -lXtst $(TRAY_TEST_LIBS)
 @COND_WINDOWS_FALSE@test_sni_SOURCES = test_sni.c
 @COND_WINDOWS_FALSE@test_sni_CPPFLAGS = $(AM_CPPFLAGS) -DXPILOT_TEST_ICON=\"$(abs_top_srcdir)/images/icon-1254.png\"
 @COND_WINDOWS_FALSE@test_sni_LDADD = ../libxptray.a $(TRAY_LIBS)
+@COND_WINDOWS_FALSE@XPILOT_CONTACT_TARGET_PROBE = $(abs_top_builddir)/tests/test-contact-target-probe
 EXTRA_DIST = run-systemd.sh run-systemd-inside.sh \
 	xpilot-tray-test.service Containerfile test-strict-map.sh \
 	test-settings-helper.sh test-settings-editor.sh \
@@ -783,7 +790,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_auth_cancel-test_auth_cancel.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_catalog.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_controller.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_desktop.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_desktop-test_desktop.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_editor.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_menu.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_service_config.Po@am__quote@ # am--include-marker
@@ -871,6 +878,20 @@ tray_controller.obj: ../tray_controller.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='../tray_controller.c' object='tray_controller.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o tray_controller.obj `if test -f '../tray_controller.c'; then $(CYGPATH_W) '../tray_controller.c'; else $(CYGPATH_W) '$(srcdir)/../tray_controller.c'; fi`
+
+test_desktop-test_desktop.o: test_desktop.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_desktop_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT test_desktop-test_desktop.o -MD -MP -MF $(DEPDIR)/test_desktop-test_desktop.Tpo -c -o test_desktop-test_desktop.o `test -f 'test_desktop.c' || echo '$(srcdir)/'`test_desktop.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_desktop-test_desktop.Tpo $(DEPDIR)/test_desktop-test_desktop.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='test_desktop.c' object='test_desktop-test_desktop.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_desktop_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o test_desktop-test_desktop.o `test -f 'test_desktop.c' || echo '$(srcdir)/'`test_desktop.c
+
+test_desktop-test_desktop.obj: test_desktop.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_desktop_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT test_desktop-test_desktop.obj -MD -MP -MF $(DEPDIR)/test_desktop-test_desktop.Tpo -c -o test_desktop-test_desktop.obj `if test -f 'test_desktop.c'; then $(CYGPATH_W) 'test_desktop.c'; else $(CYGPATH_W) '$(srcdir)/test_desktop.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_desktop-test_desktop.Tpo $(DEPDIR)/test_desktop-test_desktop.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='test_desktop.c' object='test_desktop-test_desktop.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_desktop_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o test_desktop-test_desktop.obj `if test -f 'test_desktop.c'; then $(CYGPATH_W) 'test_desktop.c'; else $(CYGPATH_W) '$(srcdir)/test_desktop.c'; fi`
 
 config_editor.o: ../config_editor.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT config_editor.o -MD -MP -MF $(DEPDIR)/config_editor.Tpo -c -o config_editor.o `test -f '../config_editor.c' || echo '$(srcdir)/'`../config_editor.c
@@ -1348,7 +1369,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/test_auth_cancel-test_auth_cancel.Po
 	-rm -f ./$(DEPDIR)/test_catalog.Po
 	-rm -f ./$(DEPDIR)/test_controller.Po
-	-rm -f ./$(DEPDIR)/test_desktop.Po
+	-rm -f ./$(DEPDIR)/test_desktop-test_desktop.Po
 	-rm -f ./$(DEPDIR)/test_editor.Po
 	-rm -f ./$(DEPDIR)/test_menu.Po
 	-rm -f ./$(DEPDIR)/test_service_config.Po
@@ -1413,7 +1434,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/test_auth_cancel-test_auth_cancel.Po
 	-rm -f ./$(DEPDIR)/test_catalog.Po
 	-rm -f ./$(DEPDIR)/test_controller.Po
-	-rm -f ./$(DEPDIR)/test_desktop.Po
+	-rm -f ./$(DEPDIR)/test_desktop-test_desktop.Po
 	-rm -f ./$(DEPDIR)/test_editor.Po
 	-rm -f ./$(DEPDIR)/test_menu.Po
 	-rm -f ./$(DEPDIR)/test_service_config.Po
@@ -1465,7 +1486,7 @@ uninstall-am:
 @COND_WINDOWS_FALSE@integration-check: service-driver test-desktop test-auth-cancel
 @COND_WINDOWS_FALSE@	XPILOT_SERVICE_DRIVER='$(abs_builddir)/service-driver' \
 @COND_WINDOWS_FALSE@	XPILOT_SERVER_BINARY='$(abs_top_builddir)/src/server/xpilot-infinity-server' \
-@COND_WINDOWS_FALSE@	XPILOT_CONTACT_TARGET_PROBE='$(abs_top_builddir)/tests/test-contact-target-probe' \
+@COND_WINDOWS_FALSE@	XPILOT_CONTACT_TARGET_PROBE='$(XPILOT_CONTACT_TARGET_PROBE)' \
 @COND_WINDOWS_FALSE@	XPILOT_TEST_SOURCE_DIR='$(abs_top_srcdir)' \
 @COND_WINDOWS_FALSE@	XPILOT_TEST_PKGDATADIR='$(pkgdatadir)' \
 @COND_WINDOWS_FALSE@	XPILOT_TRAY_BINARY='$(abs_top_builddir)/src/tray/xpilot-infinity-tray' \

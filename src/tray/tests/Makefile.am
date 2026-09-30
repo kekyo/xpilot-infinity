@@ -35,7 +35,8 @@ test_auth_cancel_SOURCES = test_auth_cancel.c
 test_auth_cancel_CPPFLAGS = $(AM_CPPFLAGS) $(TRAY_POLKIT_CFLAGS)
 test_auth_cancel_LDADD = $(TRAY_POLKIT_LIBS)
 test_desktop_SOURCES = test_desktop.c
-test_desktop_LDADD = $(TRAY_LIBS) -lXtst
+test_desktop_CPPFLAGS = $(AM_CPPFLAGS) $(TRAY_TEST_CFLAGS)
+test_desktop_LDADD = $(TRAY_LIBS) -lXtst $(TRAY_TEST_LIBS)
 test_sni_SOURCES = test_sni.c
 test_sni_CPPFLAGS = $(AM_CPPFLAGS) -DXPILOT_TEST_ICON=\"$(abs_top_srcdir)/images/icon-1254.png\"
 test_sni_LDADD = ../libxptray.a $(TRAY_LIBS)
@@ -43,10 +44,11 @@ TESTS = test-controller test-menu test-service-config test-sni test-catalog test
 TESTS += test-sni-hosts
 
 .PHONY: integration-check
+XPILOT_CONTACT_TARGET_PROBE = $(abs_top_builddir)/tests/test-contact-target-probe
 integration-check: service-driver test-desktop test-auth-cancel
 	XPILOT_SERVICE_DRIVER='$(abs_builddir)/service-driver' \
 	XPILOT_SERVER_BINARY='$(abs_top_builddir)/src/server/xpilot-infinity-server' \
-	XPILOT_CONTACT_TARGET_PROBE='$(abs_top_builddir)/tests/test-contact-target-probe' \
+	XPILOT_CONTACT_TARGET_PROBE='$(XPILOT_CONTACT_TARGET_PROBE)' \
 	XPILOT_TEST_SOURCE_DIR='$(abs_top_srcdir)' \
 	XPILOT_TEST_PKGDATADIR='$(pkgdatadir)' \
 	XPILOT_TRAY_BINARY='$(abs_top_builddir)/src/tray/xpilot-infinity-tray' \

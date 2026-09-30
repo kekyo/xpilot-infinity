@@ -17,6 +17,7 @@ then
 
     if [ -z "${DPKG_ROOT:-}" ] && [ -d /run/systemd/system ]; then
         systemctl --system daemon-reload >/dev/null || true
+        systemctl --system reload dbus.service >/dev/null 2>&1 || true
         if [ -n "${2:-}" ]; then
             deb-systemd-invoke try-restart "$unit" >/dev/null || true
         fi

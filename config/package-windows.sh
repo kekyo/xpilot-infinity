@@ -91,10 +91,14 @@ esac
 
 server_executable="$build_dir/src/server/xpilot-infinity-server.exe"
 client_executable="$build_dir/src/client/sdl/xpilot-infinity-sdl.exe"
+tray_executable="$build_dir/src/tray/xpilot-infinity-tray.exe"
+helper_executable="$build_dir/src/tray/xpilot-infinity-service-helper.exe"
 test -f "$server_executable" \
     || fail "Windows server executable is missing: $server_executable"
 test -f "$client_executable" \
     || fail "Windows SDL client executable is missing: $client_executable"
+test -f "$tray_executable" || fail "Windows tray executable is missing: $tray_executable"
+test -f "$helper_executable" || fail "Windows service helper is missing: $helper_executable"
 openal_runtime="$dependency_prefix/bin/OpenAL32.dll"
 test -f "$openal_runtime" \
     || fail "OpenAL Soft runtime is missing: $openal_runtime"
@@ -117,6 +121,7 @@ for output_dir in "$package_dir" "$package_work_dir"; do
 done
 mkdir -p "$package_work_dir/lib"
 cp "$server_executable" "$client_executable" "$package_work_dir/"
+cp "$tray_executable" "$helper_executable" "$package_work_dir/"
 cp "$openal_runtime" "$alut_runtime" "$package_work_dir/"
 
 for data_directory in fonts maps textures sound; do
@@ -131,6 +136,7 @@ for data_file in defaults.txt password.txt robots.txt shipshapes.txt; do
     cp "$source_dir/lib/$data_file" "$package_work_dir/lib/"
 done
 cp "$source_dir/COPYING" "$package_work_dir/"
+cp "$source_dir/README.md" "$source_dir/README_ja.md" "$package_work_dir/"
 mkdir -p "$package_work_dir/licenses"
 cp "$source_dir/vendor/openal-soft/COPYING" \
     "$package_work_dir/licenses/OpenAL-Soft-COPYING"

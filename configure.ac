@@ -289,6 +289,9 @@ if test x$enable_server_tray = xyes && test x$server_tray != xyes; then
     AC_MSG_ERROR([server tray requires Linux GTK >= 3.22, GIO >= 2.60, GDK X11, Xlib and polkit development packages, or a supported MinGW host])
 fi
 AM_CONDITIONAL([COND_SERVER_TRAY], [test x$server_tray = xyes])
+if test x$server_tray = xyes && test x$windows_target != xyes; then
+    PKG_CHECK_MODULES([TRAY_TEST], [atspi-2])
+fi
 AC_MSG_NOTICE([Server tray support: $server_tray (requested: $enable_server_tray)])
 
 if test x$mingw_vendored_deps = xyes; then

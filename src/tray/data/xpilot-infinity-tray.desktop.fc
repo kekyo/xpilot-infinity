@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=XPilot Infinity Server Tray
+Name[ja]=XPilot Infinity サーバートレイ
+Comment=Manage the local XPilot Infinity server service
+Comment[ja]=ローカルの XPilot Infinity サーバーサービスを管理します
+Exec="{{bindir}}/xpilot-infinity-tray"
+Icon={{pkgdatadir}}/icon-1254.png
+Terminal=false
+Categories=Game;

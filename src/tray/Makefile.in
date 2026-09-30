@@ -126,8 +126,9 @@ CONFIG_CLEAN_VPATH_FILES =
 @COND_WINDOWS_TRUE@am__EXEEXT_1 =  \
 @COND_WINDOWS_TRUE@	xpilot-infinity-service-helper$(EXEEXT)
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(libexecdir)" \
-	"$(DESTDIR)$(dbusservicesdir)" "$(DESTDIR)$(dbusconfigdir)" \
-	"$(DESTDIR)$(pkgdatadir)" "$(DESTDIR)$(polkitactionsdir)"
+	"$(DESTDIR)$(applicationsdir)" "$(DESTDIR)$(dbusservicesdir)" \
+	"$(DESTDIR)$(dbusconfigdir)" "$(DESTDIR)$(pkgdatadir)" \
+	"$(DESTDIR)$(polkitactionsdir)"
 PROGRAMS = $(bin_PROGRAMS) $(libexec_PROGRAMS)
 LIBRARIES = $(noinst_LIBRARIES)
 AR = ar
@@ -288,8 +289,9 @@ am__dist_dbusconfig_DATA_DIST =  \
 	data/org.xpilot.Infinity.ServerSettings1.conf
 am__dist_pkgdata_DATA_DIST = $(top_srcdir)/images/icon-1254.png
 am__dist_polkitactions_DATA_DIST = data/org.xpilot.infinity.policy
-DATA = $(dbusservices_DATA) $(dist_dbusconfig_DATA) \
-	$(dist_pkgdata_DATA) $(dist_polkitactions_DATA)
+DATA = $(applications_DATA) $(dbusservices_DATA) \
+	$(dist_dbusconfig_DATA) $(dist_pkgdata_DATA) \
+	$(dist_polkitactions_DATA)
 RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
   distclean-recursive maintainer-clean-recursive
 am__recursive_targets = \
@@ -422,6 +424,8 @@ TRAY_CFLAGS = @TRAY_CFLAGS@
 TRAY_LIBS = @TRAY_LIBS@
 TRAY_POLKIT_CFLAGS = @TRAY_POLKIT_CFLAGS@
 TRAY_POLKIT_LIBS = @TRAY_POLKIT_LIBS@
+TRAY_TEST_CFLAGS = @TRAY_TEST_CFLAGS@
+TRAY_TEST_LIBS = @TRAY_TEST_LIBS@
 VERSION = @VERSION@
 W32_LIBS = @W32_LIBS@
 @COND_WINDOWS_TRUE@WINDRES = @WINDRES@
@@ -512,20 +516,27 @@ AM_CPPFLAGS = -I$(top_builddir)/src/common -I$(top_srcdir)/src/common \
 @COND_WINDOWS_TRUE@xpilot_infinity_service_helper_SOURCES = service_helper_win32.c
 @COND_WINDOWS_TRUE@xpilot_infinity_service_helper_LDADD = libxptray.a -ladvapi32 -lshell32 -luser32 -lole32 -luuid -lbcrypt
 @COND_WINDOWS_TRUE@xpilot_infinity_service_helper_LDFLAGS = -municode -mwindows
-@COND_WINDOWS_FALSE@CLEANFILES = org.xpilot.Infinity.ServerSettings1.service org.xpilot.Infinity.ServerSettings1.service.tmp
+@COND_WINDOWS_FALSE@CLEANFILES = org.xpilot.Infinity.ServerSettings1.service \
+@COND_WINDOWS_FALSE@	org.xpilot.Infinity.ServerSettings1.service.tmp \
+@COND_WINDOWS_FALSE@	xpilot-infinity-tray.desktop \
+@COND_WINDOWS_FALSE@	xpilot-infinity-tray.desktop.tmp
 @COND_WINDOWS_TRUE@CLEANFILES = tray-res.o
 @COND_WINDOWS_FALSE@dist_pkgdata_DATA = $(top_srcdir)/images/icon-1254.png
 @COND_WINDOWS_FALSE@xpilot_infinity_settings_helper_SOURCES = service_helper_linux.c settings_file_linux.c settings_file_linux.h
 @COND_WINDOWS_FALSE@xpilot_infinity_settings_helper_CPPFLAGS = $(AM_CPPFLAGS) $(TRAY_POLKIT_CFLAGS)
 @COND_WINDOWS_FALSE@xpilot_infinity_settings_helper_LDADD = libxptray.a $(TRAY_POLKIT_LIBS)
-@COND_WINDOWS_FALSE@polkitactionsdir = $(datadir)/polkit-1/actions
+@COND_WINDOWS_FALSE@polkitactionsdir = $(datarootdir)/polkit-1/actions
 @COND_WINDOWS_FALSE@dist_polkitactions_DATA = data/org.xpilot.infinity.policy
 @COND_WINDOWS_FALSE@dbusconfigdir = $(sysconfdir)/dbus-1/system.d
 @COND_WINDOWS_FALSE@dist_dbusconfig_DATA = data/org.xpilot.Infinity.ServerSettings1.conf
-@COND_WINDOWS_FALSE@dbusservicesdir = $(datadir)/dbus-1/system-services
+@COND_WINDOWS_FALSE@dbusservicesdir = $(datarootdir)/dbus-1/system-services
 @COND_WINDOWS_FALSE@dbusservices_DATA = org.xpilot.Infinity.ServerSettings1.service
-@COND_WINDOWS_FALSE@FUNCITY = npm exec --yes --package=funcity-cli@1.5.0 -- funcity
-EXTRA_DIST = tray.rc data/org.xpilot.Infinity.ServerSettings1.service.fc
+# Keep the CLI's CommonJS dependency compatible with distribution Node builds,
+# including the 32-bit Linux architectures supported by the package matrix.
+@COND_WINDOWS_FALSE@FUNCITY = npm exec --yes --package=commander@11.1.0 --package=funcity-cli@1.5.0 -- funcity
+@COND_WINDOWS_FALSE@applicationsdir = $(datarootdir)/applications
+@COND_WINDOWS_FALSE@applications_DATA = xpilot-infinity-tray.desktop
+EXTRA_DIST = tray.rc data/org.xpilot.Infinity.ServerSettings1.service.fc data/xpilot-infinity-tray.desktop.fc
 all: all-recursive
 
 .SUFFIXES:
@@ -751,6 +762,27 @@ xpilot_infinity_settings_helper-settings_file_linux.obj: settings_file_linux.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='settings_file_linux.c' object='xpilot_infinity_settings_helper-settings_file_linux.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(xpilot_infinity_settings_helper_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o xpilot_infinity_settings_helper-settings_file_linux.obj `if test -f 'settings_file_linux.c'; then $(CYGPATH_W) 'settings_file_linux.c'; else $(CYGPATH_W) '$(srcdir)/settings_file_linux.c'; fi`
+install-applicationsDATA: $(applications_DATA)
+	@$(NORMAL_INSTALL)
+	@list='$(applications_DATA)'; test -n "$(applicationsdir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(applicationsdir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(applicationsdir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(applicationsdir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(applicationsdir)" || exit $$?; \
+	done
+
+uninstall-applicationsDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(applications_DATA)'; test -n "$(applicationsdir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(applicationsdir)'; $(am__uninstall_files_from_dir)
 install-dbusservicesDATA: $(dbusservices_DATA)
 	@$(NORMAL_INSTALL)
 	@list='$(dbusservices_DATA)'; test -n "$(dbusservicesdir)" || list=; \
@@ -997,7 +1029,7 @@ check: check-recursive
 all-am: Makefile $(PROGRAMS) $(LIBRARIES) $(DATA)
 installdirs: installdirs-recursive
 installdirs-am:
-	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(libexecdir)" "$(DESTDIR)$(dbusservicesdir)" "$(DESTDIR)$(dbusconfigdir)" "$(DESTDIR)$(pkgdatadir)" "$(DESTDIR)$(polkitactionsdir)"; do \
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(libexecdir)" "$(DESTDIR)$(applicationsdir)" "$(DESTDIR)$(dbusservicesdir)" "$(DESTDIR)$(dbusconfigdir)" "$(DESTDIR)$(pkgdatadir)" "$(DESTDIR)$(polkitactionsdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-recursive
@@ -1072,8 +1104,9 @@ info: info-recursive
 
 info-am:
 
-install-data-am: install-dbusservicesDATA install-dist_dbusconfigDATA \
-	install-dist_pkgdataDATA install-dist_polkitactionsDATA
+install-data-am: install-applicationsDATA install-dbusservicesDATA \
+	install-dist_dbusconfigDATA install-dist_pkgdataDATA \
+	install-dist_polkitactionsDATA
 
 install-dvi: install-dvi-recursive
 
@@ -1136,9 +1169,10 @@ ps: ps-recursive
 
 ps-am:
 
-uninstall-am: uninstall-binPROGRAMS uninstall-dbusservicesDATA \
-	uninstall-dist_dbusconfigDATA uninstall-dist_pkgdataDATA \
-	uninstall-dist_polkitactionsDATA uninstall-libexecPROGRAMS
+uninstall-am: uninstall-applicationsDATA uninstall-binPROGRAMS \
+	uninstall-dbusservicesDATA uninstall-dist_dbusconfigDATA \
+	uninstall-dist_pkgdataDATA uninstall-dist_polkitactionsDATA \
+	uninstall-libexecPROGRAMS
 
 .MAKE: $(am__recursive_targets) install-am install-strip
 
@@ -1147,8 +1181,9 @@ uninstall-am: uninstall-binPROGRAMS uninstall-dbusservicesDATA \
 	clean-generic clean-libexecPROGRAMS clean-noinstLIBRARIES \
 	cscopelist-am ctags ctags-am distclean distclean-compile \
 	distclean-generic distclean-tags distdir dvi dvi-am html \
-	html-am info info-am install install-am install-binPROGRAMS \
-	install-data install-data-am install-dbusservicesDATA \
+	html-am info info-am install install-am \
+	install-applicationsDATA install-binPROGRAMS install-data \
+	install-data-am install-dbusservicesDATA \
 	install-dist_dbusconfigDATA install-dist_pkgdataDATA \
 	install-dist_polkitactionsDATA install-dvi install-dvi-am \
 	install-exec install-exec-am install-html install-html-am \
@@ -1158,9 +1193,10 @@ uninstall-am: uninstall-binPROGRAMS uninstall-dbusservicesDATA \
 	installdirs installdirs-am maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-compile \
 	mostlyclean-generic pdf pdf-am ps ps-am tags tags-am uninstall \
-	uninstall-am uninstall-binPROGRAMS uninstall-dbusservicesDATA \
-	uninstall-dist_dbusconfigDATA uninstall-dist_pkgdataDATA \
-	uninstall-dist_polkitactionsDATA uninstall-libexecPROGRAMS
+	uninstall-am uninstall-applicationsDATA uninstall-binPROGRAMS \
+	uninstall-dbusservicesDATA uninstall-dist_dbusconfigDATA \
+	uninstall-dist_pkgdataDATA uninstall-dist_polkitactionsDATA \
+	uninstall-libexecPROGRAMS
 
 .PRECIOUS: Makefile
 
@@ -1171,6 +1207,9 @@ $(top_builddir)/src/common/version.h:
 @COND_WINDOWS_TRUE@	$(WINDRES) -I$(top_srcdir) $(srcdir)/tray.rc $@
 @COND_WINDOWS_FALSE@org.xpilot.Infinity.ServerSettings1.service: $(srcdir)/data/org.xpilot.Infinity.ServerSettings1.service.fc Makefile
 @COND_WINDOWS_FALSE@	$(FUNCITY) --no-rc run -D 'libexecdir=$(libexecdir)' -i $< > $@.tmp
+@COND_WINDOWS_FALSE@	mv $@.tmp $@
+@COND_WINDOWS_FALSE@xpilot-infinity-tray.desktop: $(srcdir)/data/xpilot-infinity-tray.desktop.fc Makefile
+@COND_WINDOWS_FALSE@	$(FUNCITY) --no-rc run -D 'bindir=$(bindir)' -D 'pkgdatadir=$(pkgdatadir)' -i $< > $@.tmp
 @COND_WINDOWS_FALSE@	mv $@.tmp $@
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.

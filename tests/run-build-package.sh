@@ -148,8 +148,10 @@ policy_meta="$test_root/policy-meta"
 mkdir -p "$policy_source/debian" \
     "$policy_source/images" \
     "$policy_stage/usr/games" "$policy_stage/usr/share/man/man6" \
+    "$policy_stage/usr/lib/xpilot-infinity" \
     "$policy_meta"
 printf 'fixture README\n' > "$policy_source/README.md"
+printf 'fixture README ja\n' > "$policy_source/README_ja.md"
 printf 'fixture upstream changes\n' > "$policy_source/ChangeLog"
 printf 'fixture copyright\n' > "$policy_source/debian/copyright"
 cat > "$policy_source/debian/changelog.in" <<'EOF'
@@ -200,11 +202,13 @@ readelf -S "$test_root/fixture-executable" | grep -Fq .debug_info \
     || fail "the fixture executable did not contain debug information"
 for executable_name in \
     xpilot-infinity-sdl xpilot-infinity-x11 xpilot-infinity-server \
-    xpilot-infinity-replay xpilot-infinity-xp-mapedit
+    xpilot-infinity-replay xpilot-infinity-xp-mapedit xpilot-infinity-tray
 do
     cp "$test_root/fixture-executable" \
         "$policy_stage/usr/games/$executable_name"
 done
+cp "$test_root/fixture-executable" \
+    "$policy_stage/usr/lib/xpilot-infinity/xpilot-infinity-settings-helper"
 
 (
     BUILD_LINUX_DIST_SOURCE_ONLY=1

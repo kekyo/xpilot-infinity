@@ -445,7 +445,7 @@ validate_deb_package()
     dpkg-deb -e "$package_path" "$extract_dir/DEBIAN"
     for executable_name in \
         xpilot-infinity-sdl xpilot-infinity-x11 xpilot-infinity-server \
-        xpilot-infinity-replay xpilot-infinity-xp-mapedit
+        xpilot-infinity-replay xpilot-infinity-xp-mapedit xpilot-infinity-tray
     do
         executable_path="$extract_dir/usr/games/$executable_name"
         assert_file "$executable_path"
@@ -461,6 +461,10 @@ validate_deb_package()
     done
 
     assert_file "$extract_dir/usr/share/games/xpilot-infinity/defaults.txt"
+    assert_file "$extract_dir/usr/lib/xpilot-infinity/xpilot-infinity-settings-helper"
+    assert_file "$extract_dir/usr/share/applications/xpilot-infinity-tray.desktop"
+    assert_file "$extract_dir/usr/share/dbus-1/system-services/org.xpilot.Infinity.ServerSettings1.service"
+    assert_file "$extract_dir/usr/share/polkit-1/actions/org.xpilot.infinity.policy"
     assert_file "$extract_dir/usr/share/games/xpilot-infinity/maps/ndh.xp2"
     assert_file "$extract_dir/usr/share/games/xpilot-infinity/textures/ship.ppm"
     assert_file "$extract_dir/usr/share/games/xpilot-infinity/sound/sounds.txt"

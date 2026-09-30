@@ -41,16 +41,24 @@ libexec_PROGRAMS = xpilot-infinity-settings-helper
 xpilot_infinity_settings_helper_SOURCES = service_helper_linux.c settings_file_linux.c settings_file_linux.h
 xpilot_infinity_settings_helper_CPPFLAGS = $(AM_CPPFLAGS) $(TRAY_POLKIT_CFLAGS)
 xpilot_infinity_settings_helper_LDADD = libxptray.a $(TRAY_POLKIT_LIBS)
-polkitactionsdir = $(datadir)/polkit-1/actions
+polkitactionsdir = $(datarootdir)/polkit-1/actions
 dist_polkitactions_DATA = data/org.xpilot.infinity.policy
 dbusconfigdir = $(sysconfdir)/dbus-1/system.d
 dist_dbusconfig_DATA = data/org.xpilot.Infinity.ServerSettings1.conf
-dbusservicesdir = $(datadir)/dbus-1/system-services
+dbusservicesdir = $(datarootdir)/dbus-1/system-services
 dbusservices_DATA = org.xpilot.Infinity.ServerSettings1.service
-FUNCITY = npm exec --yes --package=funcity-cli@1.5.0 -- funcity
+# Keep the CLI's CommonJS dependency compatible with distribution Node builds,
+# including the 32-bit Linux architectures supported by the package matrix.
+FUNCITY = npm exec --yes --package=commander@11.1.0 --package=funcity-cli@1.5.0 -- funcity
 org.xpilot.Infinity.ServerSettings1.service: $(srcdir)/data/org.xpilot.Infinity.ServerSettings1.service.fc Makefile
 	$(FUNCITY) --no-rc run -D 'libexecdir=$(libexecdir)' -i $< > $@.tmp
 	mv $@.tmp $@
 CLEANFILES = org.xpilot.Infinity.ServerSettings1.service org.xpilot.Infinity.ServerSettings1.service.tmp
+applicationsdir = $(datarootdir)/applications
+applications_DATA = xpilot-infinity-tray.desktop
+xpilot-infinity-tray.desktop: $(srcdir)/data/xpilot-infinity-tray.desktop.fc Makefile
+	$(FUNCITY) --no-rc run -D 'bindir=$(bindir)' -D 'pkgdatadir=$(pkgdatadir)' -i $< > $@.tmp
+	mv $@.tmp $@
+CLEANFILES += xpilot-infinity-tray.desktop xpilot-infinity-tray.desktop.tmp
 endif
-EXTRA_DIST = tray.rc data/org.xpilot.Infinity.ServerSettings1.service.fc
+EXTRA_DIST = tray.rc data/org.xpilot.Infinity.ServerSettings1.service.fc data/xpilot-infinity-tray.desktop.fc
