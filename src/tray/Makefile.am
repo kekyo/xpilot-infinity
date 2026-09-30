@@ -3,7 +3,8 @@ AM_CFLAGS = -std=c99 -Wall -Wextra -Werror
 noinst_LIBRARIES = libxptray.a
 libxptray_a_SOURCES = tray_controller.c tray_controller.h \
     service_control.h service_native.h tray_menu.c tray_menu.h \
-    service_config.c service_config.h map_catalog.c map_catalog.h settings_protocol.h
+    service_config.c service_config.h map_catalog.c map_catalog.h settings_protocol.h \
+    config_editor.c config_editor.h
 bin_PROGRAMS = xpilot-infinity-tray
 xpilot_infinity_tray_SOURCES = main.c tray_platform.h
 xpilot_infinity_tray_LDADD = libxptray.a
@@ -13,7 +14,8 @@ $(top_builddir)/src/common/version.h:
 	$(MAKE) -C $(top_builddir)/src/common version.h
 if COND_WINDOWS
 libxptray_a_SOURCES += service_win32.c service_paths_win32.c service_paths_win32.h \
-    settings_file_win32.c settings_file_win32.h $(top_srcdir)/src/common/utf8_files.c
+    settings_file_win32.c settings_file_win32.h settings_transfer_win32.c settings_transfer_win32.h \
+    $(top_srcdir)/src/common/utf8_files.c
 xpilot_infinity_tray_SOURCES += tray_win32.c
 xpilot_infinity_tray_LDADD += tray-res.o -ladvapi32 -luser32 -lshell32 -lgdi32 -lole32 -luuid -lbcrypt
 xpilot_infinity_tray_LDFLAGS = -mwindows

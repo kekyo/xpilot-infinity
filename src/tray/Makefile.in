@@ -93,7 +93,8 @@ host_triplet = @host@
 target_triplet = @target@
 bin_PROGRAMS = xpilot-infinity-tray$(EXEEXT) $(am__EXEEXT_1)
 @COND_WINDOWS_TRUE@am__append_1 = service_win32.c service_paths_win32.c service_paths_win32.h \
-@COND_WINDOWS_TRUE@    settings_file_win32.c settings_file_win32.h $(top_srcdir)/src/common/utf8_files.c
+@COND_WINDOWS_TRUE@    settings_file_win32.c settings_file_win32.h settings_transfer_win32.c settings_transfer_win32.h \
+@COND_WINDOWS_TRUE@    $(top_srcdir)/src/common/utf8_files.c
 
 @COND_WINDOWS_TRUE@am__append_2 = tray_win32.c
 @COND_WINDOWS_TRUE@am__append_3 = tray-res.o -ladvapi32 -luser32 -lshell32 -lgdi32 -lole32 -luuid -lbcrypt
@@ -140,19 +141,22 @@ libxptray_a_LIBADD =
 am__libxptray_a_SOURCES_DIST = tray_controller.c tray_controller.h \
 	service_control.h service_native.h tray_menu.c tray_menu.h \
 	service_config.c service_config.h map_catalog.c map_catalog.h \
-	settings_protocol.h service_win32.c service_paths_win32.c \
-	service_paths_win32.h settings_file_win32.c \
-	settings_file_win32.h $(top_srcdir)/src/common/utf8_files.c \
-	service_systemd.c tray_sni.c tray_sni.h
+	settings_protocol.h config_editor.c config_editor.h \
+	service_win32.c service_paths_win32.c service_paths_win32.h \
+	settings_file_win32.c settings_file_win32.h \
+	settings_transfer_win32.c settings_transfer_win32.h \
+	$(top_srcdir)/src/common/utf8_files.c service_systemd.c \
+	tray_sni.c tray_sni.h
 @COND_WINDOWS_TRUE@am__objects_1 = service_win32.$(OBJEXT) \
 @COND_WINDOWS_TRUE@	service_paths_win32.$(OBJEXT) \
 @COND_WINDOWS_TRUE@	settings_file_win32.$(OBJEXT) \
+@COND_WINDOWS_TRUE@	settings_transfer_win32.$(OBJEXT) \
 @COND_WINDOWS_TRUE@	utf8_files.$(OBJEXT)
 @COND_WINDOWS_FALSE@am__objects_2 = service_systemd.$(OBJEXT) \
 @COND_WINDOWS_FALSE@	tray_sni.$(OBJEXT)
 am_libxptray_a_OBJECTS = tray_controller.$(OBJEXT) tray_menu.$(OBJEXT) \
 	service_config.$(OBJEXT) map_catalog.$(OBJEXT) \
-	$(am__objects_1) $(am__objects_2)
+	config_editor.$(OBJEXT) $(am__objects_1) $(am__objects_2)
 libxptray_a_OBJECTS = $(am_libxptray_a_OBJECTS)
 am__xpilot_infinity_service_helper_SOURCES_DIST =  \
 	service_helper_win32.c
@@ -202,12 +206,13 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/config/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/main.Po ./$(DEPDIR)/map_catalog.Po \
-	./$(DEPDIR)/service_config.Po \
+am__depfiles_remade = ./$(DEPDIR)/config_editor.Po ./$(DEPDIR)/main.Po \
+	./$(DEPDIR)/map_catalog.Po ./$(DEPDIR)/service_config.Po \
 	./$(DEPDIR)/service_helper_win32.Po \
 	./$(DEPDIR)/service_paths_win32.Po \
 	./$(DEPDIR)/service_systemd.Po ./$(DEPDIR)/service_win32.Po \
 	./$(DEPDIR)/settings_file_win32.Po \
+	./$(DEPDIR)/settings_transfer_win32.Po \
 	./$(DEPDIR)/tray_controller.Po ./$(DEPDIR)/tray_linux.Po \
 	./$(DEPDIR)/tray_menu.Po ./$(DEPDIR)/tray_sni.Po \
 	./$(DEPDIR)/tray_win32.Po ./$(DEPDIR)/utf8_files.Po \
@@ -494,7 +499,8 @@ noinst_LIBRARIES = libxptray.a
 libxptray_a_SOURCES = tray_controller.c tray_controller.h \
 	service_control.h service_native.h tray_menu.c tray_menu.h \
 	service_config.c service_config.h map_catalog.c map_catalog.h \
-	settings_protocol.h $(am__append_1) $(am__append_6)
+	settings_protocol.h config_editor.c config_editor.h \
+	$(am__append_1) $(am__append_6)
 xpilot_infinity_tray_SOURCES = main.c tray_platform.h $(am__append_2) \
 	$(am__append_7)
 xpilot_infinity_tray_LDADD = libxptray.a $(am__append_3) \
@@ -663,6 +669,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/config_editor.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/map_catalog.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/service_config.Po@am__quote@ # am--include-marker
@@ -671,6 +678,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/service_systemd.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/service_win32.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/settings_file_win32.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/settings_transfer_win32.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tray_controller.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tray_linux.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tray_menu.Po@am__quote@ # am--include-marker
@@ -1027,7 +1035,8 @@ clean-am: clean-binPROGRAMS clean-generic clean-libexecPROGRAMS \
 	clean-noinstLIBRARIES mostlyclean-am
 
 distclean: distclean-recursive
-		-rm -f ./$(DEPDIR)/main.Po
+		-rm -f ./$(DEPDIR)/config_editor.Po
+	-rm -f ./$(DEPDIR)/main.Po
 	-rm -f ./$(DEPDIR)/map_catalog.Po
 	-rm -f ./$(DEPDIR)/service_config.Po
 	-rm -f ./$(DEPDIR)/service_helper_win32.Po
@@ -1035,6 +1044,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/service_systemd.Po
 	-rm -f ./$(DEPDIR)/service_win32.Po
 	-rm -f ./$(DEPDIR)/settings_file_win32.Po
+	-rm -f ./$(DEPDIR)/settings_transfer_win32.Po
 	-rm -f ./$(DEPDIR)/tray_controller.Po
 	-rm -f ./$(DEPDIR)/tray_linux.Po
 	-rm -f ./$(DEPDIR)/tray_menu.Po
@@ -1089,7 +1099,8 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-recursive
-		-rm -f ./$(DEPDIR)/main.Po
+		-rm -f ./$(DEPDIR)/config_editor.Po
+	-rm -f ./$(DEPDIR)/main.Po
 	-rm -f ./$(DEPDIR)/map_catalog.Po
 	-rm -f ./$(DEPDIR)/service_config.Po
 	-rm -f ./$(DEPDIR)/service_helper_win32.Po
@@ -1097,6 +1108,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/service_systemd.Po
 	-rm -f ./$(DEPDIR)/service_win32.Po
 	-rm -f ./$(DEPDIR)/settings_file_win32.Po
+	-rm -f ./$(DEPDIR)/settings_transfer_win32.Po
 	-rm -f ./$(DEPDIR)/tray_controller.Po
 	-rm -f ./$(DEPDIR)/tray_linux.Po
 	-rm -f ./$(DEPDIR)/tray_menu.Po

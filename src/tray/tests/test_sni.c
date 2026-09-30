@@ -64,8 +64,8 @@ int main(void)
     GVariant *layout;
     g_variant_get(layout_reply, "(u@(ia{sv}av))", &revision, &layout);
     GVariant *children = g_variant_get_child_value(layout, 2);
-    assert(g_variant_n_children(children) == 8);
-    GVariant *wrapped = g_variant_get_child_value(children, 5);
+    assert(g_variant_n_children(children) == 11);
+    GVariant *wrapped = g_variant_get_child_value(children, 7);
     GVariant *submenu = g_variant_get_variant(wrapped);
     GVariant *maps = g_variant_get_child_value(submenu, 2);
     assert(g_variant_n_children(maps) == 2);

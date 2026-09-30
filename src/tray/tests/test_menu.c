@@ -7,6 +7,8 @@ int main(void)
     tray_menu menu = {0};
     tray_status status = {0};
     tray_menu_update(&menu, &status, "a_&_map.xp2");
+    assert(tray_menu_find(&menu, TRAY_EDIT) != NULL);
+    assert(tray_menu_find(&menu, TRAY_APPLY) != NULL);
     assert(tray_menu_find(&menu, TRAY_START) != NULL);
     assert(!tray_menu_find(&menu, TRAY_START)->enabled);
     assert(tray_menu_find(&menu, TRAY_QUIT)->enabled);
@@ -49,6 +51,18 @@ int main(void)
     maps.names--; maps.count++;
     assert(tray_menu_set_maps(&menu, &maps, "first.xp2", true, false));
     assert(menu.maps[0].id != first_id);
+    tray_menu_set_editor(&menu, true, EDITOR_UNCHANGED, false, false);
+    assert(tray_menu_find(&menu, TRAY_EDIT)->enabled);
+    assert(!tray_menu_find(&menu, TRAY_APPLY)->enabled);
+    tray_menu_set_editor(&menu, true, EDITOR_CHANGED, false, true);
+    assert(tray_menu_find(&menu, TRAY_APPLY)->enabled);
+    assert(strstr(tray_menu_find(&menu, TRAY_APPLY)->label, "restarts"));
+    tray_menu_set_editor(&menu, true, EDITOR_CONFLICT, false, true);
+    assert(!tray_menu_find(&menu, TRAY_APPLY)->enabled);
+    assert(tray_menu_find(&menu, TRAY_EDIT)->enabled);
+    assert(tray_menu_find(&menu, TRAY_DISCARD)->enabled);
+    tray_menu_set_editor(&menu, true, EDITOR_CHANGED, true, true);
+    assert(!tray_menu_find(&menu, TRAY_APPLY)->enabled);
     tray_menu_clear(&menu);
     return 0;
 }

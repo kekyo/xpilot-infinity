@@ -2,6 +2,8 @@
 #include <gio/gio.h>
 #include <glib-unix.h>
 #include <X11/Xlib.h>
+#include <X11/keysym.h>
+#include <X11/extensions/XTest.h>
 #include <assert.h>
 #include <string.h>
 
@@ -13,6 +15,8 @@ typedef struct {
     bool map;
     bool map_running;
     bool exited;
+    bool editor;
+    char *before;
     bool query_pending;
     bool query_again;
     unsigned stage;
@@ -50,7 +54,7 @@ static void layout_ready(GObject *object, GAsyncResult *result, void *context)
     GVariant *layout;
     g_variant_get(reply, "(u@(ia{sv}av))", &revision, &layout);
     GVariant *children = g_variant_get_child_value(layout, 2);
-    bool can_start = false, can_stop = false;
+    bool can_start = false, can_stop = false, can_edit = false, can_apply = false;
     int map_id = 0;
     bool map_enabled = false, map_checked = false;
     char *label = NULL;
@@ -62,6 +66,8 @@ static void layout_ready(GObject *object, GAsyncResult *result, void *context)
         g_variant_get(row, "(i@a{sv}@av)", &id, &properties, &nested);
         gboolean enabled = FALSE;
         g_variant_lookup(properties, "enabled", "b", &enabled);
+        if (id == TRAY_EDIT) can_edit = enabled;
+        if (id == TRAY_APPLY) can_apply = enabled;
         if (id == TRAY_START) can_start = enabled;
         if (id == TRAY_STOP) can_stop = enabled;
         if (id == TRAY_STATUS) g_variant_lookup(properties, "label", "s", &label);
@@ -89,7 +95,27 @@ static void layout_ready(GObject *object, GAsyncResult *result, void *context)
     }
     assert(label != NULL);
     g_print("desktop menu: %s (start=%d stop=%d)\n", label, can_start, can_stop);
-    if (test->map && test->stage == 0 && map_id && map_enabled) {
+    if (test->editor && test->stage == 0 && can_edit) {
+        assert(!can_apply);
+        test->stage = 1;
+        send_event(test, TRAY_EDIT);
+    } else if (test->editor && test->stage == 1 && can_apply) {
+        char *actual = NULL;
+        assert(g_file_get_contents("/etc/default/xpilot-infinity-server", &actual, NULL, &error));
+        assert(!strcmp(actual, test->before));
+        g_free(actual);
+        test->stage = 2;
+        send_event(test, TRAY_APPLY);
+    } else if (test->editor && test->stage == 3 && !can_apply && can_edit && (can_start || can_stop)) {
+        char *actual = NULL;
+        assert(g_file_get_contents("/etc/default/xpilot-infinity-server", &actual, NULL, &error));
+        const char *port = g_getenv("XPILOT_EDITOR_TEST_PORT");
+        if (port && strstr(actual, port)) {
+            test->stage = 4;
+            send_event(test, TRAY_QUIT);
+        }
+        g_free(actual);
+    } else if (!test->editor && test->map && test->stage == 0 && map_id && map_enabled) {
         assert(!map_checked);
         test->stage = 1;
         send_event(test, map_id);
@@ -97,11 +123,11 @@ static void layout_ready(GObject *object, GAsyncResult *result, void *context)
                && (test->map_running ? can_stop : can_start)) {
         test->stage = 2;
         send_event(test, TRAY_QUIT);
-    } else if (!test->map && test->stage == 0 && (test->start ? can_start : can_stop)) {
+    } else if (!test->editor && !test->map && test->stage == 0 && (test->start ? can_start : can_stop)) {
         assert(test->start ? !can_stop : !can_start);
         test->stage = 1;
         send_event(test, test->start ? TRAY_START : TRAY_STOP);
-    } else if (!test->map && test->stage == 1) {
+    } else if (!test->editor && !test->map && test->stage == 1) {
         bool reached = test->denied ? strstr(label, "not authorized") != NULL
             : test->start ? can_stop && strstr(label, "Service running")
                           : can_start && strstr(label, "Service stopped");
@@ -112,7 +138,7 @@ static void layout_ready(GObject *object, GAsyncResult *result, void *context)
     }
     g_free(label);
     g_variant_unref(children); g_variant_unref(layout); g_variant_unref(reply);
-    if (test->query_again && test->stage < 2) {
+    if (test->query_again && test->stage < (test->editor ? 4u : 2u)) {
         test->query_again = false;
         query_layout(test);
     }
@@ -120,7 +146,7 @@ static void layout_ready(GObject *object, GAsyncResult *result, void *context)
 
 static void query_layout(desktop_test *test)
 {
-    if (test->stage >= 2 || !test->item_owner) return;
+    if (test->stage >= (test->editor ? 4u : 2u) || !test->item_owner) return;
     if (test->query_pending) { test->query_again = true; return; }
     test->query_pending = true;
     g_dbus_connection_call(test->bus, test->item_owner, "/Menu", "com.canonical.dbusmenu",
@@ -161,7 +187,7 @@ static void exited(GObject *object, GAsyncResult *result, void *context)
     GError *error = NULL;
     bool success = g_subprocess_wait_check_finish(G_SUBPROCESS(object), result, &error);
     if (error) g_printerr("Desktop exited: %s\n", error->message);
-    assert(success && test->stage == 2);
+    assert(success && test->stage == (test->editor ? 4u : 2u));
     test->exited = true;
     g_clear_error(&error);
 }
@@ -182,9 +208,22 @@ static gboolean window_event(int fd, GIOCondition condition, void *context)
     while (XPending(test->display)) {
         XEvent event;
         XNextEvent(test->display, &event);
-        if (event.type != MapNotify || test->stage == 2) continue;
+        if (event.type != MapNotify || test->stage == (test->editor ? 4u : 2u)) continue;
         char *title = NULL;
         XFetchName(test->display, event.xmap.window, &title);
+        if (test->editor) {
+            bool apply = title && !strcmp(title, "Apply saved configuration");
+            if (title) XFree(title);
+            if (!apply || test->stage != 2) continue;
+            XSetInputFocus(test->display, event.xmap.window, RevertToParent, CurrentTime);
+            assert(XTestFakeKeyEvent(test->display, XKeysymToKeycode(test->display, XK_Alt_L), True, CurrentTime));
+            assert(XTestFakeKeyEvent(test->display, XKeysymToKeycode(test->display, XK_a), True, CurrentTime));
+            assert(XTestFakeKeyEvent(test->display, XKeysymToKeycode(test->display, XK_a), False, CurrentTime));
+            assert(XTestFakeKeyEvent(test->display, XKeysymToKeycode(test->display, XK_Alt_L), False, CurrentTime));
+            XFlush(test->display);
+            test->stage = 3;
+            continue;
+        }
         bool fallback = title && !strcmp(title, "XPilot Infinity Server");
         if (title) XFree(title);
         if (!fallback) continue;
@@ -209,6 +248,7 @@ int main(int argc, char **argv)
     assert(g_file_test("/run/systemd/container", G_FILE_TEST_EXISTS));
     desktop_test test = {0};
     bool fallback = !strcmp(argv[2], "fallback");
+    test.editor = !strcmp(argv[2], "editor");
     test.start = strcmp(argv[2], "stop") != 0;
     test.denied = !strcmp(argv[2], "denied");
     test.map_running = !strcmp(argv[2], "map-running");
@@ -218,6 +258,7 @@ int main(int argc, char **argv)
     g_test_dbus_up(test_bus);
     if (display) { g_setenv("DISPLAY", display, TRUE); g_free(display); }
     GError *error = NULL;
+    if (test.editor) assert(g_file_get_contents("/etc/default/xpilot-infinity-server", &test.before, NULL, &error));
     test.bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, &error);
     assert(error == NULL && test.bus != NULL);
     const char *xml = "<node><interface name='org.kde.StatusNotifierWatcher'>"
@@ -241,7 +282,7 @@ int main(int argc, char **argv)
         "com.canonical.dbusmenu", "LayoutUpdated", "/Menu", NULL,
         G_DBUS_SIGNAL_FLAGS_NONE, menu_changed, &test, NULL);
     guint window_watch = 0;
-    if (fallback) {
+    if (fallback || test.editor) {
         test.display = XOpenDisplay(NULL);
         assert(test.display);
         XSelectInput(test.display, DefaultRootWindow(test.display), SubstructureNotifyMask);
@@ -264,6 +305,7 @@ int main(int argc, char **argv)
     g_dbus_node_info_unref(info);
     g_object_unref(test.application);
     g_free(test.item_owner);
+    g_free(test.before);
     g_object_unref(test.bus);
     g_test_dbus_down(test_bus);
     g_object_unref(test_bus);

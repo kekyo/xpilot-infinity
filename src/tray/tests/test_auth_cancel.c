@@ -65,17 +65,23 @@ int main(void)
     char *before = NULL;
     assert(g_file_get_contents(XP_SETTINGS_FILE, &before, NULL, &error));
     char *generation = g_compute_checksum_for_string(G_CHECKSUM_SHA256, before, -1);
-    g_dbus_connection_call(bus, XP_SETTINGS_BUS, XP_SETTINGS_PATH, XP_SETTINGS_BUS, "SelectMap",
-        g_variant_new("(ss)", generation, "ndh.xp2"), G_VARIANT_TYPE("(bbss)"),
-        G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION, 120000, NULL, completed, &test);
-    g_main_loop_run(test.loop);
-    assert(test.challenged && test.canceled);
-    char *after = NULL;
-    assert(g_file_get_contents(XP_SETTINGS_FILE, &after, NULL, &error));
-    assert(!strcmp(before, after));
+    const char *methods[] = {"SelectMap", "Apply"};
+    for (unsigned i = 0; i < 2; i++) {
+        test.challenged = test.canceled = false;
+        g_dbus_connection_call(bus, XP_SETTINGS_BUS, XP_SETTINGS_PATH, XP_SETTINGS_BUS, methods[i],
+            g_variant_new("(ss)", generation, i ? "XPILOT_SERVER_OPTIONS='-port 15347'" : "ndh.xp2"),
+            G_VARIANT_TYPE("(bbss)"), G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION,
+            120000, NULL, completed, &test);
+        g_main_loop_run(test.loop);
+        assert(test.challenged && test.canceled);
+        char *after = NULL;
+        assert(g_file_get_contents(XP_SETTINGS_FILE, &after, NULL, &error));
+        assert(!strcmp(before, after));
+        g_free(after);
+    }
     assert(polkit_authority_unregister_authentication_agent_sync(authority, subject, "/test/Agent", NULL, &error));
     g_dbus_connection_unregister_object(bus, registration);
-    g_free(before); g_free(after); g_free(generation);
+    g_free(before); g_free(generation);
     g_main_loop_unref(test.loop); g_object_unref(subject); g_object_unref(authority);
     g_dbus_node_info_unref(info); g_object_unref(bus);
     return 0;

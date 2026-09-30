@@ -19,6 +19,7 @@ typedef struct {
     GDBusMethodInvocation *invocation;
     char *generation;
     char *map;
+    char *text;
     char *identity;
     char *saved_generation;
     unsigned authorization;
@@ -169,7 +170,7 @@ static void finish(settings_helper *helper, bool applied, const char *error_name
         g_free(name);
     }
     g_object_unref(request->invocation);
-    g_free(request->generation); g_free(request->map); g_free(request->identity);
+    g_free(request->generation); g_free(request->map); g_free(request->text); g_free(request->identity);
     g_free(request->saved_generation); g_free(request);
     helper->request = NULL;
 }
@@ -213,7 +214,7 @@ static void authorize(settings_helper *helper)
         g_dbus_method_invocation_get_sender(request->invocation));
     PolkitDetails *details = polkit_details_new();
     polkit_details_insert(details, "unit", SERVER_UNIT);
-    const char *action = XP_SETTINGS_MAP_ACTION;
+    const char *action = request->text ? XP_SETTINGS_EDIT_ACTION : XP_SETTINGS_MAP_ACTION;
     if (request->authorization) {
         action = "org.freedesktop.systemd1.manage-units";
         polkit_details_insert(details, "verb", request->authorization == 1 ? "stop" : "start");
@@ -269,8 +270,9 @@ static void advance(settings_helper *helper)
         }
         g_free(identity);
         settings_file *file = settings_file_open(XP_SETTINGS_FILE, request->generation, &error);
-        char *path = file ? selected_path(request->map, &error) : NULL;
-        char *replacement = path ? service_config_select_map(settings_file_text(file), path, true) : NULL;
+        char *path = file && !request->text ? selected_path(request->map, &error) : NULL;
+        char *replacement = file && request->text ? g_strdup(request->text)
+            : path ? service_config_select_map(settings_file_text(file), path, true) : NULL;
         g_free(path);
         if (!file || !replacement) {
             finish(helper, false, "Configuration", error ? error->message : "Configuration uses unsupported or ambiguous options");
@@ -337,14 +339,17 @@ static void method_call(GDBusConnection *bus, const char *sender, const char *pa
     if (helper->request) {
         g_dbus_method_invocation_return_dbus_error(invocation, XP_SETTINGS_BUS ".Busy", "Another configuration operation is active"); return;
     }
-    const char *generation, *map;
-    g_variant_get(parameters, "(&s&s)", &generation, &map);
-    if ((strlen(generation) != 64 && strcmp(generation, "absent")) || !map_catalog_name(map)) {
-        g_dbus_method_invocation_return_dbus_error(invocation, XP_SETTINGS_BUS ".Invalid", "Invalid generation or map identifier"); return;
+    const char *generation, *value;
+    bool edit = !strcmp(method, "Apply");
+    g_variant_get(parameters, "(&s&s)", &generation, &value);
+    if ((strlen(generation) != 64 && strcmp(generation, "absent"))
+        || (edit ? !service_config_valid(value, strlen(value)) : !map_catalog_name(value))) {
+        g_dbus_method_invocation_return_dbus_error(invocation, XP_SETTINGS_BUS ".Invalid", "Invalid generation, UTF-8 snapshot or map identifier"); return;
     }
     settings_request *request = g_new0(settings_request, 1);
     request->invocation = g_object_ref(invocation);
-    request->generation = g_strdup(generation); request->map = g_strdup(map);
+    request->generation = g_strdup(generation);
+    if (edit) request->text = g_strdup(value); else request->map = g_strdup(value);
     helper->request = request;
     request->identity = service_identity(helper, &request->running, &error);
     if (!request->identity || !service_layout(helper, &error)) {
@@ -372,6 +377,9 @@ int main(void)
     const char *xml = "<node><interface name='" XP_SETTINGS_BUS "'>"
         "<method name='Inspect'><arg type='b' direction='out'/><arg type='s' direction='out'/></method>"
         "<method name='SelectMap'><arg type='s' direction='in'/><arg type='s' direction='in'/>"
+        "<arg type='b' direction='out'/><arg type='b' direction='out'/>"
+        "<arg type='s' direction='out'/><arg type='s' direction='out'/></method>"
+        "<method name='Apply'><arg type='s' direction='in'/><arg type='s' direction='in'/>"
         "<arg type='b' direction='out'/><arg type='b' direction='out'/>"
         "<arg type='s' direction='out'/><arg type='s' direction='out'/></method></interface></node>";
     GDBusNodeInfo *info = g_dbus_node_info_new_for_xml(xml, &error);

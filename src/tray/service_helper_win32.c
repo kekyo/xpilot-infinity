@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include "service_paths_win32.h"
 #include "settings_file_win32.h"
+#include "settings_transfer_win32.h"
 #include "service_config.h"
 #include "service_native.h"
 #include "tray_controller.h"
@@ -28,7 +29,7 @@ static DWORD transition(service_native *native, tray_controller *controller, ser
     return status->service.state == target ? ERROR_SUCCESS : ERROR_SERVICE_NOT_ACTIVE;
 }
 
-static DWORD select_map(const char *generation, const char *map)
+static DWORD save_configuration(const char *generation, const char *map, const char *text)
 {
     wchar_t *directory = NULL, *path = NULL;
     DWORD error = service_paths_win32(&directory, &path);
@@ -60,9 +61,13 @@ static DWORD select_map(const char *generation, const char *map)
         free(config);
     }
     char *selected = NULL;
-    if (!error) error = settings_win32_map(map, &selected);
+    if (!error && !text) error = settings_win32_map(map, &selected);
     settings_file_win32 *file = !error ? settings_win32_open(generation, &error) : NULL;
-    char *replacement = file ? service_config_select_map(settings_win32_text(file), selected, false) : NULL;
+    char *replacement = file && !text ? service_config_select_map(settings_win32_text(file), selected, false) : NULL;
+    if (file && text) {
+        replacement = malloc(strlen(text) + 1);
+        if (replacement) memcpy(replacement, text, strlen(text) + 1);
+    }
     if (file && !replacement) error = ERROR_BAD_CONFIGURATION;
     SERVICE_STATUS_PROCESS current;
     if (!error && !QueryServiceStatusEx(service, SC_STATUS_PROCESS_INFO,
@@ -133,17 +138,21 @@ static DWORD service_action_request(bool start)
 
 /* The broker performs both SCM calls and UAC outside the desktop event loop.
  * Accepted work is independent of the tray. Only fixed service operations and
- * a generation plus a hex-encoded map ID are accepted, never paths/commands. */
+ * a generation plus a map ID or a hashed snapshot object are accepted, never
+ * filesystem paths or arbitrary commands. Snapshot handles survive UI exit. */
 int wmain(int argc, wchar_t **argv)
 {
     bool authorized = argc > 1 && !wcscmp(argv[argc - 1], L"--authorized");
     int count = argc - (authorized ? 1 : 0);
     bool map = count == 4 && !wcscmp(argv[1], L"--map");
+    bool edit = count == 5 && !wcscmp(argv[1], L"--apply");
     bool action = count == 2 && (!wcscmp(argv[1], L"--start") || !wcscmp(argv[1], L"--stop"));
-    if (!map && !action) return ERROR_INVALID_PARAMETER;
+    if (!map && !edit && !action) return ERROR_INVALID_PARAMETER;
     char *generation = NULL, *name = NULL;
+    if (map || edit) generation = Xp_utf8(argv[2]);
+    if ((map || edit) && (!generation || strlen(generation) != 64
+        || strspn(generation, "0123456789abcdef") != 64)) { free(generation); return ERROR_INVALID_PARAMETER; }
     if (map) {
-        generation = Xp_utf8(argv[2]);
         size_t length = wcslen(argv[3]);
         if (!generation || strlen(generation) != 64 || strspn(generation, "0123456789abcdef") != 64
             || !length || length > 8192 || length % 2) { free(generation); return ERROR_INVALID_PARAMETER; }
@@ -157,16 +166,26 @@ int wmain(int argc, wchar_t **argv)
         }
         if (strlen(name) != length / 2) { free(generation); free(name); return ERROR_INVALID_PARAMETER; }
     }
-    DWORD error = map ? select_map(generation, name) : service_action_request(!wcscmp(argv[1], L"--start"));
+    char *snapshot = NULL, *transfer = NULL, *hash = NULL;
+    HANDLE mapping = NULL;
+    DWORD error = ERROR_SUCCESS;
+    if (edit) {
+        transfer = Xp_utf8(argv[3]); hash = Xp_utf8(argv[4]);
+        error = transfer && hash ? settings_transfer_read(transfer, hash, &snapshot, &mapping) : ERROR_INVALID_PARAMETER;
+    }
+    if (!error) error = map || edit ? save_configuration(generation, name, snapshot)
+        : service_action_request(!wcscmp(argv[1], L"--start"));
+    free(snapshot); free(transfer); free(hash);
     free(generation); free(name);
-    if (error != ERROR_ACCESS_DENIED || authorized) return (int)error;
+    if (error != ERROR_ACCESS_DENIED || authorized) { if (mapping) CloseHandle(mapping); return (int)error; }
     wchar_t *path = NULL;
     error = service_helper_path_win32(&path);
-    if (error) return (int)error;
-    size_t length = map ? wcslen(argv[2]) + wcslen(argv[3]) + 48 : 48;
+    if (error) { if (mapping) CloseHandle(mapping); return (int)error; }
+    size_t length = edit ? 256 : map ? wcslen(argv[2]) + wcslen(argv[3]) + 48 : 48;
     wchar_t *parameters = calloc(length, sizeof(wchar_t));
-    if (!parameters) { free(path); return ERROR_NOT_ENOUGH_MEMORY; }
-    if (map) swprintf(parameters, length, L"--map %ls %ls --authorized", argv[2], argv[3]);
+    if (!parameters) { free(path); if (mapping) CloseHandle(mapping); return ERROR_NOT_ENOUGH_MEMORY; }
+    if (edit) swprintf(parameters, length, L"--apply %ls %ls %ls --authorized", argv[2], argv[3], argv[4]);
+    else if (map) swprintf(parameters, length, L"--map %ls %ls --authorized", argv[2], argv[3]);
     else swprintf(parameters, length, L"%ls --authorized", argv[1]);
     SHELLEXECUTEINFOW launch = {0};
     launch.cbSize = sizeof(launch);
@@ -183,5 +202,6 @@ int wmain(int argc, wchar_t **argv)
         CloseHandle(launch.hProcess);
     }
     free(path); free(parameters);
+    if (mapping) CloseHandle(mapping);
     return (int)error;
 }

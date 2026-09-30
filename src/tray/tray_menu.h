@@ -2,6 +2,7 @@
 #define XPILOT_TRAY_MENU_H
 #include "tray_controller.h"
 #include "map_catalog.h"
+#include "config_editor.h"
 #include <stddef.h>
 
 /** Stable IDs for service management actions. */
@@ -13,7 +14,10 @@ typedef enum {
     TRAY_STOP, /**< Normally stop the fixed product service. */
     TRAY_DETAILS, /**< Display errors and the log location. */
     TRAY_QUIT, /**< Exit the tray, leaving the service running. */
-    TRAY_MAP_MENU /**< Single-selection map submenu. */
+    TRAY_MAP_MENU, /**< Single-selection map submenu. */
+    TRAY_EDIT, /**< Open the private editing copy with normal user privileges. */
+    TRAY_APPLY, /**< Explicitly authorize application of saved changes. */
+    TRAY_DISCARD /**< Discard only the private editing session. */
 } tray_action;
 
 /** Menu row, owned by the menu instance. */
@@ -27,7 +31,7 @@ typedef struct {
 
 /** Shared menu representation used by both native frontends. */
 typedef struct {
-    tray_menu_item items[8]; /**< Ordered top-level items. */
+    tray_menu_item items[11]; /**< Ordered top-level items. */
     tray_menu_item *maps; /**< Owned submenu entries with stable IDs. */
     size_t map_count; /**< Number of map entries. */
     int next_map_id; /**< Never reuses an ID removed during this menu lifetime. */
@@ -57,6 +61,14 @@ const tray_menu_item *tray_menu_find(const tray_menu *menu, int id);
  */
 bool tray_menu_set_maps(tray_menu *menu, const map_catalog *catalog, const char *selected,
                         bool enabled, bool running);
+/** Update editing actions without changing the service.
+ * @param menu Live menu.
+ * @param available Shared configuration is readable and supported by the helper.
+ * @param state Current saved-copy state.
+ * @param busy A service/settings operation is pending.
+ * @param running Applying saved changes will restart a running service.
+ */
+void tray_menu_set_editor(tray_menu *menu, bool available, editor_state state, bool busy, bool running);
 /** Release menu-owned storage without taking any service action.
  * @param menu Live or zero-initialized menu.
  */

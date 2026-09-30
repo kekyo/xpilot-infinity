@@ -15,9 +15,16 @@ typedef struct {
     tray_sni *sni;
     GApplication *application;
     GtkWidget *window;
-    GtkWidget *rows[8];
+    GtkWidget *rows[11];
     GFileMonitor *config_monitor;
     GFileMonitor *maps_monitor;
+    GFileMonitor *editor_monitor;
+    config_editor *editor;
+    char *configuration;
+    char *applying_snapshot;
+    editor_state editing_state;
+    bool editor_changed;
+    bool editor_launching;
     GDBusConnection *settings_bus;
     GCancellable *settings_cancel;
     unsigned settings_pending;
@@ -47,10 +54,13 @@ static void show_details(linux_tray *tray)
         "Logs: journalctl -u xpilot-infinity-server.service\n\n"
         "Install the XPilot Infinity server service if it is not registered.\n"
         "Start and stop may require administrator authentication.\n"
-        "Quitting this tray leaves the server running.",
+        "Quitting this tray leaves the server running.\n\n"
+        "The editing copy is saved separately. Save in your editor, then choose Apply saved changes.\n"
+        "Editing copy: %s",
         status->service.detail, status->operation_detail,
         tray->settings_detail ? tray->settings_detail : "",
-        tray->last_saved_detail ? tray->last_saved_detail : "");
+        tray->last_saved_detail ? tray->last_saved_detail : "",
+        tray->editor ? config_editor_path(tray->editor) : "Unavailable");
     GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(tray->window),
         GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, "%s", detail);
     g_free(detail);
@@ -74,12 +84,118 @@ static void settings_applied(GObject *object, GAsyncResult *result, void *contex
             g_variant_get(reply, "(bb&s&s)", &saved, &applied, &generation, &detail);
             tray->settings_detail = g_strdup(detail);
             success = applied;
+            if (saved && tray->applying_snapshot && tray->editor
+                && !config_editor_accept(tray->editor, tray->applying_snapshot, generation)) {
+                g_free(tray->settings_detail);
+                tray->settings_detail = g_strdup_printf("Configuration saved, but the editing baseline could not be recorded: %s",
+                    config_editor_error(tray->editor));
+                success = false;
+            }
         } else tray->settings_detail = g_strdup(error->message);
         tray->config_changed = true;
         if (!success) show_details(tray);
     }
+    g_clear_pointer(&tray->applying_snapshot, free);
+    tray->editor_changed = true;
     g_clear_pointer(&reply, g_variant_unref);
     g_clear_error(&error);
+}
+
+static void editor_error(linux_tray *tray, const char *detail)
+{
+    g_free(tray->settings_detail);
+    tray->settings_detail = g_strdup(detail);
+    show_details(tray);
+}
+
+static void editor_launched(GObject *object, GAsyncResult *result, void *context)
+{
+    linux_tray *tray = context;
+    GError *error = NULL;
+    bool launched = g_app_info_launch_uris_finish(G_APP_INFO(object), result, &error);
+    tray->settings_pending--;
+    tray->editor_launching = false;
+    if (!tray->done && !launched) editor_error(tray, error->message);
+    tray->editor_changed = true;
+    g_clear_error(&error);
+}
+
+static void open_editor(linux_tray *tray)
+{
+    tray->config_changed = tray->editor_changed = true;
+    update(tray);
+    if (!tray->editor || tray->editor_launching) return;
+    if (tray->editing_state == EDITOR_NONE && !tray->configuration) {
+        editor_error(tray, "The shared configuration is not readable. Ask the administrator to restore normal-user read access."); return;
+    }
+    if (!config_editor_begin(tray->editor, tray->configuration ? tray->configuration : "",
+        tray->generation ? tray->generation : "absent")) {
+        editor_error(tray, config_editor_error(tray->editor)); return;
+    }
+    GAppInfo *application = g_app_info_get_default_for_type("text/plain", FALSE);
+    if (!application) { editor_error(tray, "No default text editor is configured for text/plain."); return; }
+    GError *error = NULL;
+    char *uri = g_filename_to_uri(config_editor_path(tray->editor), NULL, &error);
+    if (!uri) {
+        editor_error(tray, error->message); g_error_free(error); g_object_unref(application); return;
+    }
+    GList uris = {uri, NULL, NULL};
+    GdkAppLaunchContext *launch = gdk_display_get_app_launch_context(gtk_widget_get_display(tray->window));
+    tray->editor_launching = true;
+    tray->settings_pending++;
+    g_app_info_launch_uris_async(application, &uris, G_APP_LAUNCH_CONTEXT(launch), tray->settings_cancel,
+        editor_launched, tray);
+    g_object_unref(launch); g_object_unref(application); g_free(uri);
+    tray->editor_changed = true;
+}
+
+static void editing_response(GtkDialog *dialog, int response, void *context)
+{
+    linux_tray *tray = context;
+    int action = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(dialog), "tray-action"));
+    gtk_widget_destroy(GTK_WIDGET(dialog));
+    if (response != GTK_RESPONSE_ACCEPT || tray->settings_busy || !tray->editor) return;
+    tray->config_changed = tray->editor_changed = true;
+    update(tray);
+    if (action == TRAY_DISCARD) {
+        if (!config_editor_discard(tray->editor)) editor_error(tray, config_editor_error(tray->editor));
+        tray->editor_changed = true;
+        return;
+    }
+    if (!tray->settings_bus || !tray->generation || !tray->settings_available) return;
+    tray->applying_snapshot = config_editor_snapshot(tray->editor, tray->generation);
+    if (!tray->applying_snapshot) { editor_error(tray, config_editor_error(tray->editor)); return; }
+    if (!config_editor_prepare(tray->editor, tray->applying_snapshot, tray->generation)) {
+        g_clear_pointer(&tray->applying_snapshot, free);
+        editor_error(tray, config_editor_error(tray->editor)); return;
+    }
+    tray->settings_busy = true;
+    tray->settings_pending++;
+    g_dbus_connection_call(tray->settings_bus, XP_SETTINGS_BUS, XP_SETTINGS_PATH,
+        XP_SETTINGS_BUS, "Apply", g_variant_new("(ss)", tray->generation, tray->applying_snapshot),
+        G_VARIANT_TYPE("(bbss)"), G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION,
+        G_MAXINT, tray->settings_cancel, settings_applied, tray);
+}
+
+static void confirm_editing(linux_tray *tray, int action)
+{
+    const char *message = action == TRAY_DISCARD
+        ? "Discard the editing copy and its saved changes? The shared configuration is unchanged. Close the external editor to prevent it from saving the discarded copy again."
+        : "Apply the saved editing copy to " CONFIG_FILE "? Unsaved editor changes are not included. A running service will restart and disconnect players. Administrator authentication may be required.";
+    GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(tray->window), GTK_DIALOG_DESTROY_WITH_PARENT,
+        GTK_MESSAGE_QUESTION, GTK_BUTTONS_CANCEL, "%s", message);
+    gtk_window_set_title(GTK_WINDOW(dialog), action == TRAY_DISCARD ? "Discard editing copy" : "Apply saved configuration");
+    gtk_dialog_add_button(GTK_DIALOG(dialog), action == TRAY_DISCARD ? "_Discard copy" : "_Apply saved changes", GTK_RESPONSE_ACCEPT);
+    g_object_set_data(G_OBJECT(dialog), "tray-action", GINT_TO_POINTER(action));
+    g_signal_connect(dialog, "response", G_CALLBACK(editing_response), tray);
+    gtk_widget_show(dialog);
+}
+
+static void editor_changed(GFileMonitor *monitor, GFile *file, GFile *other,
+                            GFileMonitorEvent event, void *context)
+{
+    (void)monitor; (void)file; (void)other; (void)event;
+    ((linux_tray *)context)->editor_changed = true;
 }
 
 static void select_map(linux_tray *tray, const tray_menu_item *item)
@@ -121,7 +237,7 @@ static void popup_maps(linux_tray *tray)
     g_signal_connect_swapped(menu, "selection-done", G_CALLBACK(gtk_widget_destroy), menu);
     g_signal_connect_swapped(menu, "destroy", G_CALLBACK(g_object_unref), menu);
     gtk_widget_show_all(menu);
-    gtk_menu_popup_at_widget(GTK_MENU(menu), tray->rows[5], GDK_GRAVITY_SOUTH_WEST,
+    gtk_menu_popup_at_widget(GTK_MENU(menu), tray->rows[7], GDK_GRAVITY_SOUTH_WEST,
                              GDK_GRAVITY_NORTH_WEST, NULL);
 }
 
@@ -145,6 +261,8 @@ static void activate(void *context, int id)
     case TRAY_START: tray_controller_request(tray->controller, XP_SERVICE_START); break;
     case TRAY_STOP: tray_controller_request(tray->controller, XP_SERVICE_STOP); break;
     case TRAY_MAP_MENU: popup_maps(tray); break;
+    case TRAY_EDIT: open_editor(tray); break;
+    case TRAY_APPLY: case TRAY_DISCARD: confirm_editing(tray, id); break;
     case TRAY_DETAILS: show_details(tray); break;
     case TRAY_QUIT: tray->done = true; break;
     default: break;
@@ -246,6 +364,8 @@ static void update(linux_tray *tray)
 {
     if (tray->config_changed) {
         tray->config_changed = false;
+        tray->editor_changed = true;
+        g_clear_pointer(&tray->configuration, g_free);
         char *text = NULL;
         tray->map_supported = false;
         g_clear_pointer(&tray->last_saved_detail, g_free);
@@ -256,6 +376,7 @@ static void update(linux_tray *tray)
         gsize length;
         if (g_file_get_contents(CONFIG_FILE, &text, &length, &error)
             && service_config_valid(text, length)) {
+            tray->configuration = g_strdup(text);
             tray->configured_map = service_config_map(text, true);
             tray->generation = g_compute_checksum_for_string(G_CHECKSUM_SHA256, text, -1);
             char *check = service_config_select_map(text, XPILOT_MAP_DIRECTORY "/ndh.xp2", true);
@@ -286,6 +407,12 @@ static void update(linux_tray *tray)
         map_catalog_clear(&tray->catalog);
         map_catalog_read(XPILOT_MAP_DIRECTORY, &tray->catalog);
     }
+    if (tray->editor_changed) {
+        tray->editor_changed = false;
+        if (tray->editor && tray->configuration)
+            config_editor_reconcile(tray->editor, tray->configuration, tray->generation);
+        tray->editing_state = tray->editor ? config_editor_status(tray->editor, tray->generation) : EDITOR_NONE;
+    }
     unsigned revision = tray->menu.revision;
     tray_status status = *tray_controller_status(tray->controller);
     if (tray->settings_busy) { status.busy = true; status.can_start = status.can_stop = false; }
@@ -299,6 +426,8 @@ static void update(linux_tray *tray)
     tray_menu_set_maps(&tray->menu, &tray->catalog, selected,
         stable && !status.busy && tray->generation && tray->settings_available && tray->map_supported,
         status.service.state == XP_SERVICE_RUNNING);
+    tray_menu_set_editor(&tray->menu, tray->editor && tray->configuration && tray->settings_available,
+        tray->editing_state, status.busy || tray->editor_launching, status.service.state == XP_SERVICE_RUNNING);
     if (revision != tray->menu.revision) {
         for (size_t i = 0; i < G_N_ELEMENTS(tray->menu.items); i++) {
             const tray_menu_item *item = &tray->menu.items[i];
@@ -383,6 +512,19 @@ int tray_platform_run(int argc, char **argv)
     g_object_unref(directory);
     if (tray.maps_monitor) g_signal_connect(tray.maps_monitor, "changed", G_CALLBACK(maps_changed), &tray);
     tray.maps_changed = true;
+    char editor_failure[256];
+    char *editing_directory = g_build_filename(g_get_user_config_dir(), "xpilot-infinity-server-editor", NULL);
+    if (g_mkdir_with_parents(g_get_user_config_dir(), 0700) == 0)
+        tray.editor = config_editor_open(editing_directory, editor_failure);
+    else snprintf(editor_failure, sizeof(editor_failure), "Cannot create the user configuration directory");
+    if (tray.editor) {
+        directory = g_file_new_for_path(editing_directory);
+        tray.editor_monitor = g_file_monitor_directory(directory, G_FILE_MONITOR_NONE, NULL, NULL);
+        g_object_unref(directory);
+        if (tray.editor_monitor) g_signal_connect(tray.editor_monitor, "changed", G_CALLBACK(editor_changed), &tray);
+    } else tray.settings_detail = g_strdup(editor_failure);
+    g_free(editing_directory);
+    tray.editor_changed = true;
     tray.settings_cancel = g_cancellable_new();
     tray.settings_pending++;
     g_bus_get(G_BUS_TYPE_SYSTEM, tray.settings_cancel, settings_bus_ready, &tray);
@@ -407,6 +549,9 @@ int tray_platform_run(int argc, char **argv)
     g_clear_object(&tray.settings_bus);
     g_clear_object(&tray.config_monitor);
     g_clear_object(&tray.maps_monitor);
+    g_clear_object(&tray.editor_monitor);
+    config_editor_close(tray.editor);
+    g_free(tray.configuration);
     tray_controller_destroy(tray.controller);
     service_native_destroy(tray.native);
     free(tray.configured_map);

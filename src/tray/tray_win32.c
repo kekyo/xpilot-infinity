@@ -2,6 +2,7 @@
 #include <windows.h>
 #include <windowsx.h>
 #include <shellapi.h>
+#include <shlobj.h>
 #include <sddl.h>
 #include <share.h>
 #include "tray_platform.h"
@@ -10,6 +11,8 @@
 #include "service_config.h"
 #include "service_paths_win32.h"
 #include "settings_file_win32.h"
+#include "settings_transfer_win32.h"
+#include "config_editor.h"
 #include "utf8_files.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,7 +23,7 @@
 
 typedef struct {
     HWND window;
-    HWND rows[8];
+    HWND rows[11];
     HICON icon;
     HANDLE mutex;
     NOTIFYICONDATAW notification;
@@ -36,6 +39,13 @@ typedef struct {
     map_catalog maps;
     char *map_directory;
     HANDLE settings_process;
+    HANDLE snapshot_mapping;
+    HANDLE watches[3];
+    config_editor *editor;
+    char *configuration;
+    char *applying_snapshot;
+    editor_state editing_state;
+    bool map_supported;
 } windows_tray;
 
 static wchar_t *wide(const char *text)
@@ -47,10 +57,29 @@ static wchar_t *wide(const char *text)
     return result;
 }
 
+static void watch_directory(windows_tray *tray, unsigned index, const wchar_t *directory)
+{
+    if (tray->watches[index]) return;
+    HANDLE watch = FindFirstChangeNotificationW(directory, FALSE,
+        FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_SIZE);
+    if (watch != INVALID_HANDLE_VALUE) tray->watches[index] = watch;
+}
+
+static void show_settings_error(windows_tray *tray, const char *detail)
+{
+    snprintf(tray->settings_detail, sizeof(tray->settings_detail), "%s", detail);
+    wchar_t *message = wide(detail);
+    if (message) MessageBoxW(tray->window, message, L"XPilot Infinity Server", MB_OK | MB_ICONWARNING);
+    free(message);
+}
+
 static void read_map(windows_tray *tray)
 {
     free(tray->configured_map);
     free(tray->map_directory);
+    free(tray->configuration);
+    tray->configuration = NULL;
+    tray->map_supported = false;
     tray->configured_map = tray->map_directory = NULL;
     tray->generation[0] = 0;
     tray->last_saved_detail[0] = 0;
@@ -66,17 +95,18 @@ static void read_map(windows_tray *tray)
     char *text = NULL;
     error = settings_win32_read(path, &text, tray->generation);
     if (!error) {
+        tray->configuration = text;
         tray->configured_map = service_config_map(text, false);
         char *check = service_config_select_map(text, "C:\\validation.xp2", false);
+        tray->map_supported = check != NULL;
         if (!check) {
-            tray->generation[0] = 0;
             snprintf(tray->settings_detail, sizeof(tray->settings_detail),
                 "Map changes unavailable: configuration has unsupported map overrides or syntax.");
         }
         free(check);
     } else snprintf(tray->settings_detail, sizeof(tray->settings_detail),
         "Cannot read the shared UTF-8 configuration (error %lu).", (unsigned long)error);
-    free(text);
+    if (error) free(text);
     size_t result_length = wcslen(path) + 8;
     wchar_t *result_path = calloc(result_length, sizeof(wchar_t));
     if (result_path) {
@@ -98,8 +128,11 @@ static void read_map(windows_tray *tray)
         swprintf(maps, length, L"%ls\\lib\\maps", directory);
         tray->map_directory = Xp_utf8(maps);
         if (tray->map_directory) map_catalog_read(tray->map_directory, &tray->maps);
+        watch_directory(tray, 2, maps);
         free(maps);
     }
+    wchar_t *separator = wcsrchr(path, L'\\');
+    if (separator) { *separator = 0; watch_directory(tray, 1, path); }
     free(directory); free(path);
 }
 
@@ -129,7 +162,6 @@ static void start_map(windows_tray *tray, const char *name)
             else {
                 CloseHandle(process.hThread);
                 tray->settings_process = process.hProcess;
-                service_native_set_wait_handle(tray->native, process.hProcess);
                 snprintf(tray->settings_detail, sizeof(tray->settings_detail),
                     "Authorizing and saving the selected map. A running service will restart.");
             }
@@ -146,10 +178,16 @@ static void finish_map(windows_tray *tray)
     if (!tray->settings_process || WaitForSingleObject(tray->settings_process, 0) != WAIT_OBJECT_0) return;
     DWORD error = ERROR_SUCCESS;
     if (!GetExitCodeProcess(tray->settings_process, &error)) error = GetLastError();
-    service_native_set_wait_handle(tray->native, NULL);
+    service_native_set_wait_handles(tray->native, NULL, 0);
     CloseHandle(tray->settings_process);
     tray->settings_process = NULL;
     read_map(tray);
+    if ((!error || (error & 0x20000000UL)) && tray->applying_snapshot && tray->editor
+        && tray->configuration && !strcmp(tray->configuration, tray->applying_snapshot))
+        config_editor_accept(tray->editor, tray->applying_snapshot, tray->generation);
+    free(tray->applying_snapshot); tray->applying_snapshot = NULL;
+    if (tray->snapshot_mapping) CloseHandle(tray->snapshot_mapping);
+    tray->snapshot_mapping = NULL;
     if (!error) snprintf(tray->settings_detail, sizeof(tray->settings_detail),
         "Configuration saved. A running service was restarted; game readiness and the active map remain unverified.");
     else if (error & 0x20000000UL) snprintf(tray->settings_detail, sizeof(tray->settings_detail),
@@ -184,8 +222,13 @@ static void update(windows_tray *tray)
     }
     bool stable = status.service.state == XP_SERVICE_RUNNING || status.service.state == XP_SERVICE_STOPPED
         || status.service.state == XP_SERVICE_FAILED;
-    tray_menu_set_maps(&tray->menu, &tray->maps, selected, stable && !status.busy && tray->generation[0],
+    tray_menu_set_maps(&tray->menu, &tray->maps, selected, stable && !status.busy && tray->generation[0] && tray->map_supported,
         status.service.state == XP_SERVICE_RUNNING);
+    if (tray->editor && tray->configuration)
+        config_editor_reconcile(tray->editor, tray->configuration, tray->generation);
+    tray->editing_state = tray->editor ? config_editor_status(tray->editor, tray->generation) : EDITOR_NONE;
+    tray_menu_set_editor(&tray->menu, tray->editor && tray->configuration && stable,
+        tray->editing_state, status.busy, status.service.state == XP_SERVICE_RUNNING);
     if (revision == tray->menu.revision) return;
     for (size_t i = 0; i < sizeof(tray->menu.items) / sizeof(tray->menu.items[0]); i++) {
         wchar_t *label = wide(tray->menu.items[i].label);
@@ -207,6 +250,84 @@ static void update(windows_tray *tray)
 
 static void popup(windows_tray *tray, POINT point);
 
+static void open_editor(windows_tray *tray)
+{
+    read_map(tray);
+    if (!tray->editor) return;
+    if (!tray->configuration && config_editor_status(tray->editor, tray->generation) == EDITOR_NONE) {
+        show_settings_error(tray, "The shared configuration is unreadable. Ask the administrator to restore normal-user read access.");
+        return;
+    }
+    if (!config_editor_begin(tray->editor, tray->configuration ? tray->configuration : "", tray->generation)) {
+        show_settings_error(tray, config_editor_error(tray->editor)); return;
+    }
+    wchar_t *path = wide(config_editor_path(tray->editor));
+    SHELLEXECUTEINFOW request = {0};
+    request.cbSize = sizeof(request);
+    request.fMask = SEE_MASK_ASYNCOK | SEE_MASK_FLAG_NO_UI;
+    request.hwnd = tray->window;
+    request.lpVerb = L"open";
+    request.lpFile = path;
+    request.nShow = SW_SHOWNORMAL;
+    if (!path || !ShellExecuteExW(&request)) {
+        DWORD error = path ? GetLastError() : ERROR_NOT_ENOUGH_MEMORY;
+        char detail[256];
+        snprintf(detail, sizeof(detail), "Cannot open the editing copy in the default .txt editor (error %lu). Check the file association.",
+            (unsigned long)error);
+        show_settings_error(tray, detail);
+    }
+    free(path);
+}
+
+static void apply_editor(windows_tray *tray)
+{
+    if (MessageBoxW(tray->window,
+        L"Apply the saved editing copy to %ProgramData%\\XPilot Infinity\\server\\xpilot-infinity-server.conf?\n\n"
+        L"Unsaved editor changes are not included. A running service will restart and disconnect players. Administrator authentication may be required.",
+        L"Apply saved configuration", MB_OKCANCEL | MB_ICONQUESTION) != IDOK) return;
+    read_map(tray);
+    tray->applying_snapshot = config_editor_snapshot(tray->editor, tray->generation);
+    if (!tray->applying_snapshot) { show_settings_error(tray, config_editor_error(tray->editor)); return; }
+    if (!config_editor_prepare(tray->editor, tray->applying_snapshot, tray->generation)) {
+        free(tray->applying_snapshot); tray->applying_snapshot = NULL;
+        show_settings_error(tray, config_editor_error(tray->editor)); return;
+    }
+    char token[65], hash[65];
+    DWORD error = settings_transfer_create(tray->applying_snapshot, token, hash, &tray->snapshot_mapping);
+    wchar_t *helper = NULL;
+    if (!error) error = service_helper_path_win32(&helper);
+    if (!error) {
+        wchar_t *generation = wide(tray->generation), *object = wide(token), *checksum = wide(hash);
+        size_t length = wcslen(helper) + 256;
+        wchar_t *command = calloc(length, sizeof(wchar_t));
+        if (!generation || !object || !checksum || !command) error = ERROR_NOT_ENOUGH_MEMORY;
+        else {
+            swprintf(command, length, L"\"%ls\" --apply %ls %ls %ls", helper, generation, object, checksum);
+            STARTUPINFOW startup = {0};
+            PROCESS_INFORMATION process;
+            startup.cb = sizeof(startup);
+            if (!CreateProcessW(helper, command, NULL, NULL, FALSE, CREATE_NO_WINDOW,
+                NULL, NULL, &startup, &process)) error = GetLastError();
+            else {
+                CloseHandle(process.hThread);
+                tray->settings_process = process.hProcess;
+                snprintf(tray->settings_detail, sizeof(tray->settings_detail),
+                    "Authorizing and applying saved changes. A running service will restart.");
+            }
+        }
+        free(generation); free(object); free(checksum); free(command);
+    }
+    free(helper);
+    if (error) {
+        if (tray->snapshot_mapping) CloseHandle(tray->snapshot_mapping);
+        tray->snapshot_mapping = NULL;
+        free(tray->applying_snapshot); tray->applying_snapshot = NULL;
+        char detail[256];
+        snprintf(detail, sizeof(detail), "Could not submit the saved editing copy (error %lu). Changes were retained.", (unsigned long)error);
+        show_settings_error(tray, detail);
+    }
+}
+
 static void activate(windows_tray *tray, int id)
 {
     const tray_menu_item *item = tray_menu_find(&tray->menu, id);
@@ -215,6 +336,14 @@ static void activate(windows_tray *tray, int id)
         tray_controller_request(tray->controller, id == TRAY_START ? XP_SERVICE_START : XP_SERVICE_STOP);
     else if (id == TRAY_QUIT)
         tray->done = true;
+    else if (id == TRAY_EDIT) open_editor(tray);
+    else if (id == TRAY_APPLY) apply_editor(tray);
+    else if (id == TRAY_DISCARD) {
+        if (MessageBoxW(tray->window,
+            L"Discard the editing copy and its saved changes? The shared configuration is unchanged. Close the external editor to prevent it from saving the discarded copy again.",
+            L"Discard editing copy", MB_OKCANCEL | MB_ICONQUESTION) == IDOK
+            && !config_editor_discard(tray->editor)) show_settings_error(tray, config_editor_error(tray->editor));
+    }
     else if (id == TRAY_MAP_MENU) {
         POINT point; GetCursorPos(&point); popup(tray, point);
     } else if (item->radio && !item->checked) start_map(tray, item->label);
@@ -225,8 +354,10 @@ static void activate(windows_tray *tray, int id)
             "Configuration / logs: %%ProgramData%%\\XPilot Infinity\\server\n\n"
             "Install the optional Dedicated server service component if the service is absent.\n"
             "Start and stop may require administrator authentication.\n"
-            "Quitting this tray leaves the server running.",
-            status->service.detail, status->operation_detail, tray->settings_detail, tray->last_saved_detail);
+            "Quitting this tray leaves the server running.\n\n"
+            "Save in your editor, then choose Apply saved changes.\nEditing copy: %s",
+            status->service.detail, status->operation_detail, tray->settings_detail, tray->last_saved_detail,
+            tray->editor ? config_editor_path(tray->editor) : "Unavailable");
         wchar_t *message = wide(detail);
         if (message) MessageBoxW(tray->window, message, L"XPilot Infinity Server", MB_OK | MB_ICONINFORMATION);
         free(message);
@@ -354,6 +485,23 @@ int tray_platform_run(int argc, char **argv)
     tray.controller = tray_controller_create(service_native_control(tray.native));
     if (!tray.controller) { service_native_destroy(tray.native); CloseHandle(tray.mutex); return 1; }
     tray_controller_connect(tray.controller);
+    HRESULT apartment = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+    wchar_t *local_data = NULL;
+    if (SUCCEEDED(SHGetKnownFolderPath(&FOLDERID_LocalAppData, KF_FLAG_DEFAULT, NULL, &local_data))) {
+        size_t length = wcslen(local_data) + 40;
+        wchar_t *directory = calloc(length, sizeof(wchar_t));
+        if (directory) {
+            swprintf(directory, length, L"%ls\\XPilot Infinity Server Editor", local_data);
+            char *path = Xp_utf8(directory), error[256];
+            if (path) {
+                tray.editor = config_editor_open(path, error);
+                if (tray.editor) watch_directory(&tray, 0, directory);
+                else snprintf(tray.settings_detail, sizeof(tray.settings_detail), "%s", error);
+            }
+            free(path); free(directory);
+        }
+        CoTaskMemFree(local_data);
+    }
     read_map(&tray);
     tray_menu_update(&tray.menu, tray_controller_status(tray.controller),
                       tray.configured_map ? tray.configured_map : "Unavailable");
@@ -368,7 +516,7 @@ int tray_platform_run(int argc, char **argv)
     window_class.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     RegisterClassW(&window_class);
     tray.window = CreateWindowExW(0, WINDOW_CLASS, L"XPilot Infinity Server",
-        WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 560, 370,
+        WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 560, 510,
         NULL, NULL, instance, &tray);
     if (!tray.window) tray.done = true;
     for (size_t i = 0; tray.window && i < sizeof(tray.menu.items) / sizeof(tray.menu.items[0]); i++) {
@@ -400,7 +548,23 @@ int tray_platform_run(int argc, char **argv)
     if (!tray.visible_icon) ShowWindow(tray.window, SW_SHOW);
     update(&tray);
     while (!tray.done) {
+        HANDLE handles[4];
+        unsigned count = 0;
+        if (tray.settings_process) handles[count++] = tray.settings_process;
+        for (unsigned i = 0; i < 3; i++) if (tray.watches[i]) handles[count++] = tray.watches[i];
+        service_native_set_wait_handles(tray.native, handles, count);
         service_native_dispatch(tray.native, 60000);
+        service_native_set_wait_handles(tray.native, NULL, 0);
+        bool changed = false;
+        for (unsigned i = 0; i < 3; i++) {
+            if (tray.watches[i] && WaitForSingleObject(tray.watches[i], 0) == WAIT_OBJECT_0) {
+                if (!FindNextChangeNotification(tray.watches[i])) {
+                    FindCloseChangeNotification(tray.watches[i]); tray.watches[i] = NULL;
+                }
+                changed = true;
+            }
+        }
+        if (changed) read_map(&tray);
         finish_map(&tray);
         update(&tray);
     }
@@ -410,9 +574,13 @@ int tray_platform_run(int argc, char **argv)
     tray_controller_destroy(tray.controller);
     service_native_destroy(tray.native);
     if (tray.settings_process) CloseHandle(tray.settings_process);
-    free(tray.configured_map); free(tray.map_directory);
+    if (tray.snapshot_mapping) CloseHandle(tray.snapshot_mapping);
+    for (unsigned i = 0; i < 3; i++) if (tray.watches[i]) FindCloseChangeNotification(tray.watches[i]);
+    config_editor_close(tray.editor);
+    free(tray.configured_map); free(tray.map_directory); free(tray.configuration); free(tray.applying_snapshot);
     map_catalog_clear(&tray.maps);
     tray_menu_clear(&tray.menu);
     CloseHandle(tray.mutex);
+    if (SUCCEEDED(apartment)) CoUninitialize();
     return 0;
 }

@@ -56,6 +56,7 @@ if test -x /test-desktop; then
     cat > /etc/polkit-1/rules.d/00-xpilot-test.rules <<'EOF'
 polkit.addRule(function(action, subject) {
     if (action.id == "org.xpilot.infinity.select-map" ||
+        action.id == "org.xpilot.infinity.apply-configuration" ||
         (action.id == "org.freedesktop.systemd1.manage-units" &&
         action.lookup("unit") == "xpilot-infinity-server.service")) {
         if (subject.user == "xpilot-tray-map-only")
@@ -88,6 +89,34 @@ User=root
 EOF
     systemctl reload dbus
     sh /test-settings-helper.sh
+    sh /test-settings-editor.sh
+    chmod 0755 /test-default-editor
+    mkdir -p '/tmp/編集 test/config' '/tmp/編集 test/data/applications'
+    cat > '/tmp/編集 test/data/applications/xpilot-test-editor.desktop' <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=XPilot test text editor
+Exec=/test-default-editor %f
+MimeType=text/plain;
+Terminal=false
+EOF
+    cat > '/tmp/編集 test/config/mimeapps.list' <<'EOF'
+[Default Applications]
+text/plain=xpilot-test-editor.desktop;
+EOF
+    chown -R xpilot-tray-allowed:xpilot-tray-allowed '/tmp/編集 test'
+    chmod -R go-rwx '/tmp/編集 test'
+    runuser -u xpilot-tray-allowed -- env 'XDG_CONFIG_HOME=/tmp/編集 test/config' \
+        'XDG_DATA_HOME=/tmp/編集 test/data' XPILOT_EDITOR_TEST_PORT=15346 \
+        xvfb-run -a /test-desktop /xpilot-infinity-tray editor
+    /service-driver status | grep '^stopped '
+    /service-driver start
+    /contact-probe --status udp://127.0.0.1:15346 | grep -F 'WORLD...........: New Dark Hell-Next Generation'
+    runuser -u xpilot-tray-allowed -- env 'XDG_CONFIG_HOME=/tmp/編集 test/config' \
+        'XDG_DATA_HOME=/tmp/編集 test/data' XPILOT_EDITOR_TEST_PORT=15345 \
+        xvfb-run -a /test-desktop /xpilot-infinity-tray editor
+    /contact-probe --status udp://127.0.0.1:15345 | grep -F 'WORLD...........: New Dark Hell-Next Generation'
+    /service-driver stop
     runuser -u xpilot-tray-allowed -- xvfb-run -a /test-desktop /xpilot-infinity-tray map
     /service-driver status | grep '^stopped '
     /service-driver start

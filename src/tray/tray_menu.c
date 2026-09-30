@@ -27,7 +27,7 @@ bool tray_menu_set_maps(tray_menu *menu, const map_catalog *catalog, const char 
             changed = true;
     }
     free(menu->maps); menu->maps = maps; menu->map_count = catalog->count;
-    tray_menu_item *parent = &menu->items[5];
+    tray_menu_item *parent = &menu->items[7];
     const char *label = running ? "Maps (changing map restarts the service)" : "Maps";
     if (parent->id != TRAY_MAP_MENU || parent->enabled != (enabled && catalog->count > 0)
         || strcmp(parent->label, label)) changed = true;
@@ -52,11 +52,14 @@ void tray_menu_update(tray_menu *menu, const tray_status *status, const char *co
         {TRAY_STATUS, false, "", false, false}, {TRAY_MAP, false, "", false, false},
         {TRAY_SEPARATOR, false, "", false, false}, {TRAY_START, status->can_start, "Start server", false, false},
         {TRAY_STOP, status->can_stop, "Stop server", false, false},
-        menu->items[5],
+        menu->items[5], menu->items[6], menu->items[7], menu->items[8],
         {TRAY_DETAILS, true, "Error details / log location", false, false},
         {TRAY_QUIT, true, "Quit tray (server keeps running)", false, false}
     };
-    if (!items[5].id) items[5] = (tray_menu_item){TRAY_MAP_MENU, false, "Maps", false, false};
+    if (!items[5].id) items[5] = (tray_menu_item){TRAY_EDIT, false, "Edit configuration copy...", false, false};
+    if (!items[6].id) items[6] = (tray_menu_item){TRAY_APPLY, false, "Apply saved changes...", false, false};
+    if (!items[7].id) items[7] = (tray_menu_item){TRAY_MAP_MENU, false, "Maps", false, false};
+    if (!items[8].id) items[8] = (tray_menu_item){TRAY_DISCARD, false, "Discard editing copy...", false, false};
     const char *state = status->service.error == XP_SERVICE_UNAVAILABLE
         ? "Service manager unavailable" : states[status->service.state];
     const char *operation = "";
@@ -94,4 +97,29 @@ const tray_menu_item *tray_menu_find(const tray_menu *menu, int id)
         if (menu->maps[i].id == id)
             return &menu->maps[i];
     return NULL;
+}
+
+void tray_menu_set_editor(tray_menu *menu, bool available, editor_state state, bool busy, bool running)
+{
+    bool copy = state != EDITOR_NONE;
+    const char *apply = state == EDITOR_CONFLICT ? "Cannot apply: shared configuration changed"
+        : state == EDITOR_INVALID ? "Cannot apply: saved copy is invalid"
+        : state != EDITOR_CHANGED ? "Apply saved changes (no saved changes)"
+        : running ? "Apply saved changes (restarts service)..." : "Apply saved changes...";
+    tray_menu_item items[] = {
+        {TRAY_EDIT, !busy && (available || copy), "", false, false},
+        {TRAY_APPLY, !busy && available && state == EDITOR_CHANGED, "", false, false},
+        {TRAY_DISCARD, !busy && copy, "Discard editing copy...", false, false}
+    };
+    snprintf(items[0].label, sizeof(items[0].label), "%s", copy ? "Resume configuration copy..." : "Edit configuration copy...");
+    snprintf(items[1].label, sizeof(items[1].label), "%s", apply);
+    size_t positions[] = {5, 6, 8};
+    bool changed = false;
+    for (size_t i = 0; i < 3; i++) {
+        tray_menu_item *row = &menu->items[positions[i]];
+        if (row->id != items[i].id || row->enabled != items[i].enabled || strcmp(row->label, items[i].label)) {
+            *row = items[i]; changed = true;
+        }
+    }
+    if (changed) menu->revision++;
 }

@@ -27,7 +27,8 @@ struct service_native {
     bool manager_armed;
     bool authorize;
     HANDLE helper;
-    HANDLE extra_wait;
+    HANDLE extra_wait[4];
+    unsigned extra_count;
     uint64_t operation;
 };
 
@@ -293,17 +294,20 @@ service_control service_native_control(service_native *native)
     return control;
 }
 
-void service_native_set_wait_handle(service_native *native, void *handle)
+bool service_native_set_wait_handles(service_native *native, void *const *handles, unsigned count)
 {
-    native->extra_wait = handle;
+    if (count > 4) return false;
+    for (unsigned i = 0; i < count; i++) native->extra_wait[i] = handles[i];
+    native->extra_count = count;
+    return true;
 }
 
 void service_native_dispatch(service_native *native, unsigned timeout_ms)
 {
-    HANDLE handles[2];
+    HANDLE handles[5];
     DWORD count = 0;
     if (native->helper) handles[count++] = native->helper;
-    if (native->extra_wait) handles[count++] = native->extra_wait;
+    for (unsigned i = 0; i < native->extra_count; i++) handles[count++] = native->extra_wait[i];
     if (!native->status_ready && !native->manager_ready)
         MsgWaitForMultipleObjectsEx(count, handles, timeout_ms, QS_ALLINPUT,
                                     MWMO_ALERTABLE | MWMO_INPUTAVAILABLE);

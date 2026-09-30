@@ -2,7 +2,7 @@
 # Run only inside a newly created, rootless container with its own system bus.
 set -eu
 
-: "${XPILOT_SYSTEMD_TEST_IMAGE:?Set an image containing systemd, dbus and the built binaries' runtime libraries}"
+: "${XPILOT_SYSTEMD_TEST_IMAGE:?Set an image containing systemd, dbus and runtime libraries for the built binaries}"
 : "${XPILOT_SERVICE_DRIVER:?Set the absolute service-driver path}"
 : "${XPILOT_SERVER_BINARY:?Set the absolute server path}"
 : "${XPILOT_CONTACT_TARGET_PROBE:?Set the absolute contact probe path}"
@@ -45,9 +45,11 @@ podman cp "$XPILOT_TEST_SOURCE_DIR/src/tray/tests/test-strict-map.sh" "$containe
 if test -n "${XPILOT_SETTINGS_HELPER:-}"; then
     : "${XPILOT_AUTH_CANCEL_TEST:?Set the authentication-cancel test path}"
     podman cp "$XPILOT_AUTH_CANCEL_TEST" "$container:/test-auth-cancel"
+    podman cp "$XPILOT_TEST_SOURCE_DIR/src/tray/tests/test-default-editor.sh" "$container:/test-default-editor"
     podman cp "$XPILOT_SETTINGS_HELPER" "$container:/xpilot-settings-helper"
     podman cp "$XPILOT_TEST_SOURCE_DIR/src/tray/data/org.xpilot.infinity.policy" "$container:/usr/share/polkit-1/actions/org.xpilot.infinity.policy"
     podman cp "$XPILOT_TEST_SOURCE_DIR/src/tray/data/org.xpilot.Infinity.ServerSettings1.conf" "$container:/etc/dbus-1/system.d/org.xpilot.Infinity.ServerSettings1.conf"
+    podman cp "$XPILOT_TEST_SOURCE_DIR/src/tray/tests/test-settings-editor.sh" "$container:/test-settings-editor.sh"
     podman cp "$XPILOT_TEST_SOURCE_DIR/src/tray/tests/test-settings-helper.sh" "$container:/test-settings-helper.sh"
 fi
 podman cp "$XPILOT_TEST_SOURCE_DIR/debian/xpilot-infinity-server.service" \
