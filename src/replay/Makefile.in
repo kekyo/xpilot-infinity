@@ -102,8 +102,8 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_xpilot_infinity_replay_OBJECTS = buttons.$(OBJEXT) ppm_image.$(OBJEXT) \
-	xp-replay.$(OBJEXT)
+am_xpilot_infinity_replay_OBJECTS = buttons.$(OBJEXT) \
+	ppm_image.$(OBJEXT) xp-replay.$(OBJEXT)
 xpilot_infinity_replay_OBJECTS = $(am_xpilot_infinity_replay_OBJECTS)
 xpilot_infinity_replay_DEPENDENCIES =  \
 	$(top_builddir)/src/common/libxpcommon.a
@@ -280,6 +280,10 @@ SHELL = @SHELL@
 SOUND_CFLAGS = @SOUND_CFLAGS@
 SOUND_LIBS = @SOUND_LIBS@
 STRIP = @STRIP@
+TRAY_CFLAGS = @TRAY_CFLAGS@
+TRAY_LIBS = @TRAY_LIBS@
+TRAY_POLKIT_CFLAGS = @TRAY_POLKIT_CFLAGS@
+TRAY_POLKIT_LIBS = @TRAY_POLKIT_LIBS@
 VERSION = @VERSION@
 W32_LIBS = @W32_LIBS@
 XMKMF = @XMKMF@

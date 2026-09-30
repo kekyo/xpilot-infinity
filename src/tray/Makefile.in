@@ -89,8 +89,9 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-bin_PROGRAMS = xpilot-infinity-x11$(EXEEXT)
-subdir = src/client/x11
+@COND_WINDOWS_TRUE@am__append_1 = service_win32.c
+@COND_WINDOWS_FALSE@am__append_2 = service_systemd.c
+subdir = src/tray
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -100,20 +101,23 @@ mkinstalldirs = $(SHELL) $(top_srcdir)/config/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am__installdirs = "$(DESTDIR)$(bindir)"
-PROGRAMS = $(bin_PROGRAMS)
-am_xpilot_infinity_x11_OBJECTS = about.$(OBJEXT) bitmaps.$(OBJEXT) \
-	colors.$(OBJEXT) configure.$(OBJEXT) dbuff.$(OBJEXT) \
-	guimap.$(OBJEXT) guiobjects.$(OBJEXT) join.$(OBJEXT) \
-	paintdata.$(OBJEXT) painthud.$(OBJEXT) paintradar.$(OBJEXT) \
-	record.$(OBJEXT) talk.$(OBJEXT) welcome.$(OBJEXT) \
-	widget.$(OBJEXT) xdefault.$(OBJEXT) xevent.$(OBJEXT) \
-	xeventhandlers.$(OBJEXT) x11_text.$(OBJEXT) xinit.$(OBJEXT) \
-	xpaint.$(OBJEXT) xpilot.$(OBJEXT)
-xpilot_infinity_x11_OBJECTS = $(am_xpilot_infinity_x11_OBJECTS)
-xpilot_infinity_x11_DEPENDENCIES =  \
-	$(top_builddir)/src/client/libxpclient.a \
-	$(top_builddir)/src/common/libxpcommon.a
+LIBRARIES = $(noinst_LIBRARIES)
+AR = ar
+ARFLAGS = cru
+AM_V_AR = $(am__v_AR_@AM_V@)
+am__v_AR_ = $(am__v_AR_@AM_DEFAULT_V@)
+am__v_AR_0 = @echo "  AR      " $@;
+am__v_AR_1 =
+libxptray_a_AR = $(AR) $(ARFLAGS)
+libxptray_a_LIBADD =
+am__libxptray_a_SOURCES_DIST = tray_controller.c tray_controller.h \
+	service_control.h service_native.h service_win32.c \
+	service_systemd.c
+@COND_WINDOWS_TRUE@am__objects_1 = service_win32.$(OBJEXT)
+@COND_WINDOWS_FALSE@am__objects_2 = service_systemd.$(OBJEXT)
+am_libxptray_a_OBJECTS = tray_controller.$(OBJEXT) $(am__objects_1) \
+	$(am__objects_2)
+libxptray_a_OBJECTS = $(am_libxptray_a_OBJECTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -129,17 +133,8 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/config/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/about.Po ./$(DEPDIR)/bitmaps.Po \
-	./$(DEPDIR)/colors.Po ./$(DEPDIR)/configure.Po \
-	./$(DEPDIR)/dbuff.Po ./$(DEPDIR)/guimap.Po \
-	./$(DEPDIR)/guiobjects.Po ./$(DEPDIR)/join.Po \
-	./$(DEPDIR)/paintdata.Po ./$(DEPDIR)/painthud.Po \
-	./$(DEPDIR)/paintradar.Po ./$(DEPDIR)/record.Po \
-	./$(DEPDIR)/talk.Po ./$(DEPDIR)/welcome.Po \
-	./$(DEPDIR)/widget.Po ./$(DEPDIR)/x11_text.Po \
-	./$(DEPDIR)/xdefault.Po ./$(DEPDIR)/xevent.Po \
-	./$(DEPDIR)/xeventhandlers.Po ./$(DEPDIR)/xinit.Po \
-	./$(DEPDIR)/xpaint.Po ./$(DEPDIR)/xpilot.Po
+am__depfiles_remade = ./$(DEPDIR)/service_systemd.Po \
+	./$(DEPDIR)/service_win32.Po ./$(DEPDIR)/tray_controller.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -153,13 +148,29 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 =
-SOURCES = $(xpilot_infinity_x11_SOURCES)
-DIST_SOURCES = $(xpilot_infinity_x11_SOURCES)
+SOURCES = $(libxptray_a_SOURCES)
+DIST_SOURCES = $(am__libxptray_a_SOURCES_DIST)
+RECURSIVE_TARGETS = all-recursive check-recursive cscopelist-recursive \
+	ctags-recursive dvi-recursive html-recursive info-recursive \
+	install-data-recursive install-dvi-recursive \
+	install-exec-recursive install-html-recursive \
+	install-info-recursive install-pdf-recursive \
+	install-ps-recursive install-recursive installcheck-recursive \
+	installdirs-recursive pdf-recursive ps-recursive \
+	tags-recursive uninstall-recursive
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
+RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
+  distclean-recursive maintainer-clean-recursive
+am__recursive_targets = \
+  $(RECURSIVE_TARGETS) \
+  $(RECURSIVE_CLEAN_TARGETS) \
+  $(am__extra_recursive_targets)
+AM_RECURSIVE_TARGETS = $(am__recursive_targets:-recursive=) TAGS CTAGS \
+	distdir distdir-am
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 # Read a list of newline-separated strings from the standard input,
 # and print each of them once, without duplicates.  Input order is
@@ -177,9 +188,35 @@ am__define_uniq_tagged_files = \
   unique=`for i in $$list; do \
     if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
   done | $(am__uniquify_input)`
+DIST_SUBDIRS = $(SUBDIRS)
 am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/config/depcomp \
 	$(top_srcdir)/config/mkinstalldirs
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+am__relativize = \
+  dir0=`pwd`; \
+  sed_first='s,^\([^/]*\)/.*$$,\1,'; \
+  sed_rest='s,^[^/]*/*,,'; \
+  sed_last='s,^.*/\([^/]*\)$$,\1,'; \
+  sed_butlast='s,/*[^/]*$$,,'; \
+  while test -n "$$dir1"; do \
+    first=`echo "$$dir1" | sed -e "$$sed_first"`; \
+    if test "$$first" != "."; then \
+      if test "$$first" = ".."; then \
+        dir2=`echo "$$dir0" | sed -e "$$sed_last"`/"$$dir2"; \
+        dir0=`echo "$$dir0" | sed -e "$$sed_butlast"`; \
+      else \
+        first2=`echo "$$dir2" | sed -e "$$sed_first"`; \
+        if test "$$first2" = "$$first"; then \
+          dir2=`echo "$$dir2" | sed -e "$$sed_rest"`; \
+        else \
+          dir2="../$$dir2"; \
+        fi; \
+        dir0="$$dir0"/"$$first"; \
+      fi; \
+    fi; \
+    dir1=`echo "$$dir1" | sed -e "$$sed_rest"`; \
+  done; \
+  reldir="$$dir2"
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
@@ -328,32 +365,16 @@ target_vendor = @target_vendor@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-AM_CPPFLAGS = -DCONF_DATADIR=\"$(pkgdatadir)/\" \
-	-I$(top_builddir)/src/common -I$(top_srcdir)/src/common \
-	-I$(top_srcdir)/src/client \
-	@SDL3_CFLAGS@ @SDL3_TTF_CFLAGS@ @NATIVE_TEXT_CFLAGS@ \
-	@XRENDER_CFLAGS@
+SUBDIRS = . tests
+AM_CFLAGS = -std=c99 -Wall -Wextra -Werror
+noinst_LIBRARIES = libxptray.a
+libxptray_a_SOURCES = tray_controller.c tray_controller.h \
+	service_control.h service_native.h $(am__append_1) \
+	$(am__append_2)
+@COND_WINDOWS_FALSE@AM_CPPFLAGS = $(TRAY_CFLAGS) -DGIO_VERSION_MIN_REQUIRED=GLIB_VERSION_2_60 \
+@COND_WINDOWS_FALSE@    -DGIO_VERSION_MAX_ALLOWED=GLIB_VERSION_2_60
 
-xpilot_infinity_x11_SOURCES = \
-	about.c \
-	bitmaps.c bitmaps.h \
-	colors.c configure.c \
-	dbuff.c dbuff.h \
-	guimap.c guiobjects.c \
-	icon.h \
-	join.c \
-	paintdata.c paintdata.h painthud.c paintradar.c \
-	record.c record.h \
-	talk.c \
-	welcome.c widget.c widget.h \
-	xdefault.c xevent.c xevent.h xeventhandlers.c xeventhandlers.h \
-	x11_text.c x11_text.h \
-	../xhacks.h xinit.c xinit.h xpaint.c xpaint.h xpclient_x11.h xpilot.c
-
-
-#xpilot_CFLAGS = @X_CFLAGS@
-xpilot_infinity_x11_LDADD = $(top_builddir)/src/client/libxpclient.a $(top_builddir)/src/common/libxpcommon.a @X_LIBS@ @X_PRE_LIBS@ @X_EXTENSIONS_LIB@ @X_EXTRA_LIBS@ -lX11 @XRENDER_LIBS@ @SDL3_TTF_LIBS@ @SDL3_LIBS@ @NATIVE_TEXT_LIBS@ @SOUND_LIBS@
-all: all-am
+all: all-recursive
 
 .SUFFIXES:
 .SUFFIXES: .c .o .obj
@@ -366,9 +387,9 @@ $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__confi
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu src/client/x11/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu src/tray/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu src/client/x11/Makefile
+	  $(AUTOMAKE) --gnu src/tray/Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
 	  *config.status*) \
@@ -386,52 +407,14 @@ $(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
-install-binPROGRAMS: $(bin_PROGRAMS)
-	@$(NORMAL_INSTALL)
-	@list='$(bin_PROGRAMS)'; test -n "$(bindir)" || list=; \
-	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(bindir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(bindir)" || exit 1; \
-	fi; \
-	for p in $$list; do echo "$$p $$p"; done | \
-	sed 's/$(EXEEXT)$$//' | \
-	while read p p1; do if test -f $$p \
-	  ; then echo "$$p"; echo "$$p"; else :; fi; \
-	done | \
-	sed -e 'p;s,.*/,,;n;h' \
-	    -e 's|.*|.|' \
-	    -e 'p;x;s,.*/,,;s/$(EXEEXT)$$//;$(transform);s/$$/$(EXEEXT)/' | \
-	sed 'N;N;N;s,\n, ,g' | \
-	$(AWK) 'BEGIN { files["."] = ""; dirs["."] = 1 } \
-	  { d=$$3; if (dirs[d] != 1) { print "d", d; dirs[d] = 1 } \
-	    if ($$2 == $$4) files[d] = files[d] " " $$1; \
-	    else { print "f", $$3 "/" $$4, $$1; } } \
-	  END { for (d in files) print "f", d, files[d] }' | \
-	while read type dir files; do \
-	    if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
-	    test -z "$$files" || { \
-	      echo " $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files '$(DESTDIR)$(bindir)$$dir'"; \
-	      $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files "$(DESTDIR)$(bindir)$$dir" || exit $$?; \
-	    } \
-	; done
 
-uninstall-binPROGRAMS:
-	@$(NORMAL_UNINSTALL)
-	@list='$(bin_PROGRAMS)'; test -n "$(bindir)" || list=; \
-	files=`for p in $$list; do echo "$$p"; done | \
-	  sed -e 'h;s,^.*/,,;s/$(EXEEXT)$$//;$(transform)' \
-	      -e 's/$$/$(EXEEXT)/' \
-	`; \
-	test -n "$$list" || exit 0; \
-	echo " ( cd '$(DESTDIR)$(bindir)' && rm -f" $$files ")"; \
-	cd "$(DESTDIR)$(bindir)" && rm -f $$files
+clean-noinstLIBRARIES:
+	-test -z "$(noinst_LIBRARIES)" || rm -f $(noinst_LIBRARIES)
 
-clean-binPROGRAMS:
-	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
-
-xpilot-infinity-x11$(EXEEXT): $(xpilot_infinity_x11_OBJECTS) $(xpilot_infinity_x11_DEPENDENCIES) $(EXTRA_xpilot_infinity_x11_DEPENDENCIES)
-	@rm -f xpilot-infinity-x11$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(xpilot_infinity_x11_OBJECTS) $(xpilot_infinity_x11_LDADD) $(LIBS)
+libxptray.a: $(libxptray_a_OBJECTS) $(libxptray_a_DEPENDENCIES) $(EXTRA_libxptray_a_DEPENDENCIES)
+	$(AM_V_at)-rm -f libxptray.a
+	$(AM_V_AR)$(libxptray_a_AR) libxptray.a $(libxptray_a_OBJECTS) $(libxptray_a_LIBADD)
+	$(AM_V_at)$(RANLIB) libxptray.a
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -439,28 +422,9 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/about.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bitmaps.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/colors.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/configure.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dbuff.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/guimap.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/guiobjects.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/join.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/paintdata.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/painthud.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/paintradar.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/record.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/talk.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/welcome.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/widget.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/x11_text.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xdefault.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xevent.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xeventhandlers.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xinit.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xpaint.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xpilot.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/service_systemd.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/service_win32.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tray_controller.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -482,14 +446,61 @@ am--depfiles: $(am__depfiles_remade)
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
 
+# This directory's subdirectories are mostly independent; you can cd
+# into them and run 'make' without going through this Makefile.
+# To change the values of 'make' variables: instead of editing Makefiles,
+# (1) if the variable is set in 'config.status', edit 'config.status'
+#     (which will cause the Makefiles to be regenerated when you run 'make');
+# (2) otherwise, pass the desired values on the 'make' command line.
+$(am__recursive_targets):
+	@fail=; \
+	if $(am__make_keepgoing); then \
+	  failcom='fail=yes'; \
+	else \
+	  failcom='exit 1'; \
+	fi; \
+	dot_seen=no; \
+	target=`echo $@ | sed s/-recursive//`; \
+	case "$@" in \
+	  distclean-* | maintainer-clean-*) list='$(DIST_SUBDIRS)' ;; \
+	  *) list='$(SUBDIRS)' ;; \
+	esac; \
+	for subdir in $$list; do \
+	  echo "Making $$target in $$subdir"; \
+	  if test "$$subdir" = "."; then \
+	    dot_seen=yes; \
+	    local_target="$$target-am"; \
+	  else \
+	    local_target="$$target"; \
+	  fi; \
+	  ($(am__cd) $$subdir && $(MAKE) $(AM_MAKEFLAGS) $$local_target) \
+	  || eval $$failcom; \
+	done; \
+	if test "$$dot_seen" = "no"; then \
+	  $(MAKE) $(AM_MAKEFLAGS) "$$target-am" || exit 1; \
+	fi; test -z "$$fail"
+
 ID: $(am__tagged_files)
 	$(am__define_uniq_tagged_files); mkid -fID $$unique
-tags: tags-am
+tags: tags-recursive
 TAGS: tags
 
 tags-am: $(TAGS_DEPENDENCIES) $(am__tagged_files)
 	set x; \
 	here=`pwd`; \
+	if ($(ETAGS) --etags-include --version) >/dev/null 2>&1; then \
+	  include_option=--etags-include; \
+	  empty_fix=.; \
+	else \
+	  include_option=--include; \
+	  empty_fix=; \
+	fi; \
+	list='$(SUBDIRS)'; for subdir in $$list; do \
+	  if test "$$subdir" = .; then :; else \
+	    test ! -f $$subdir/TAGS || \
+	      set "$$@" "$$include_option=$$here/$$subdir/TAGS"; \
+	  fi; \
+	done; \
 	$(am__define_uniq_tagged_files); \
 	shift; \
 	if test -z "$(ETAGS_ARGS)$$*$$unique"; then :; else \
@@ -502,7 +513,7 @@ tags-am: $(TAGS_DEPENDENCIES) $(am__tagged_files)
 	      $$unique; \
 	  fi; \
 	fi
-ctags: ctags-am
+ctags: ctags-recursive
 
 CTAGS: ctags
 ctags-am: $(TAGS_DEPENDENCIES) $(am__tagged_files)
@@ -515,7 +526,7 @@ GTAGS:
 	here=`$(am__cd) $(top_builddir) && pwd` \
 	  && $(am__cd) $(top_srcdir) \
 	  && gtags -i $(GTAGS_ARGS) "$$here"
-cscopelist: cscopelist-am
+cscopelist: cscopelist-recursive
 
 cscopelist-am: $(am__tagged_files)
 	list='$(am__tagged_files)'; \
@@ -566,22 +577,45 @@ distdir-am: $(DISTFILES)
 	    || exit 1; \
 	  fi; \
 	done
-check-am: all-am
-check: check-am
-all-am: Makefile $(PROGRAMS)
-installdirs:
-	for dir in "$(DESTDIR)$(bindir)"; do \
-	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
+	@list='$(DIST_SUBDIRS)'; for subdir in $$list; do \
+	  if test "$$subdir" = .; then :; else \
+	    $(am__make_dryrun) \
+	      || test -d "$(distdir)/$$subdir" \
+	      || $(MKDIR_P) "$(distdir)/$$subdir" \
+	      || exit 1; \
+	    dir1=$$subdir; dir2="$(distdir)/$$subdir"; \
+	    $(am__relativize); \
+	    new_distdir=$$reldir; \
+	    dir1=$$subdir; dir2="$(top_distdir)"; \
+	    $(am__relativize); \
+	    new_top_distdir=$$reldir; \
+	    echo " (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) top_distdir="$$new_top_distdir" distdir="$$new_distdir" \\"; \
+	    echo "     am__remove_distdir=: am__skip_length_check=: am__skip_mode_fix=: distdir)"; \
+	    ($(am__cd) $$subdir && \
+	      $(MAKE) $(AM_MAKEFLAGS) \
+	        top_distdir="$$new_top_distdir" \
+	        distdir="$$new_distdir" \
+		am__remove_distdir=: \
+		am__skip_length_check=: \
+		am__skip_mode_fix=: \
+	        distdir) \
+	      || exit 1; \
+	  fi; \
 	done
-install: install-am
-install-exec: install-exec-am
-install-data: install-data-am
-uninstall: uninstall-am
+check-am: all-am
+check: check-recursive
+all-am: Makefile $(LIBRARIES)
+installdirs: installdirs-recursive
+installdirs-am:
+install: install-recursive
+install-exec: install-exec-recursive
+install-data: install-data-recursive
+uninstall: uninstall-recursive
 
 install-am: all-am
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
 
-installcheck: installcheck-am
+installcheck: installcheck-recursive
 install-strip:
 	if test -z '$(STRIP)'; then \
 	  $(MAKE) $(AM_MAKEFLAGS) INSTALL_PROGRAM="$(INSTALL_STRIP_PROGRAM)" \
@@ -603,136 +637,97 @@ distclean-generic:
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
-clean: clean-am
+clean: clean-recursive
 
-clean-am: clean-binPROGRAMS clean-generic mostlyclean-am
+clean-am: clean-generic clean-noinstLIBRARIES mostlyclean-am
 
-distclean: distclean-am
-		-rm -f ./$(DEPDIR)/about.Po
-	-rm -f ./$(DEPDIR)/bitmaps.Po
-	-rm -f ./$(DEPDIR)/colors.Po
-	-rm -f ./$(DEPDIR)/configure.Po
-	-rm -f ./$(DEPDIR)/dbuff.Po
-	-rm -f ./$(DEPDIR)/guimap.Po
-	-rm -f ./$(DEPDIR)/guiobjects.Po
-	-rm -f ./$(DEPDIR)/join.Po
-	-rm -f ./$(DEPDIR)/paintdata.Po
-	-rm -f ./$(DEPDIR)/painthud.Po
-	-rm -f ./$(DEPDIR)/paintradar.Po
-	-rm -f ./$(DEPDIR)/record.Po
-	-rm -f ./$(DEPDIR)/talk.Po
-	-rm -f ./$(DEPDIR)/welcome.Po
-	-rm -f ./$(DEPDIR)/widget.Po
-	-rm -f ./$(DEPDIR)/x11_text.Po
-	-rm -f ./$(DEPDIR)/xdefault.Po
-	-rm -f ./$(DEPDIR)/xevent.Po
-	-rm -f ./$(DEPDIR)/xeventhandlers.Po
-	-rm -f ./$(DEPDIR)/xinit.Po
-	-rm -f ./$(DEPDIR)/xpaint.Po
-	-rm -f ./$(DEPDIR)/xpilot.Po
+distclean: distclean-recursive
+		-rm -f ./$(DEPDIR)/service_systemd.Po
+	-rm -f ./$(DEPDIR)/service_win32.Po
+	-rm -f ./$(DEPDIR)/tray_controller.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
 
-dvi: dvi-am
+dvi: dvi-recursive
 
 dvi-am:
 
-html: html-am
+html: html-recursive
 
 html-am:
 
-info: info-am
+info: info-recursive
 
 info-am:
 
 install-data-am:
 
-install-dvi: install-dvi-am
+install-dvi: install-dvi-recursive
 
 install-dvi-am:
 
-install-exec-am: install-binPROGRAMS
+install-exec-am:
 
-install-html: install-html-am
+install-html: install-html-recursive
 
 install-html-am:
 
-install-info: install-info-am
+install-info: install-info-recursive
 
 install-info-am:
 
 install-man:
 
-install-pdf: install-pdf-am
+install-pdf: install-pdf-recursive
 
 install-pdf-am:
 
-install-ps: install-ps-am
+install-ps: install-ps-recursive
 
 install-ps-am:
 
 installcheck-am:
 
-maintainer-clean: maintainer-clean-am
-		-rm -f ./$(DEPDIR)/about.Po
-	-rm -f ./$(DEPDIR)/bitmaps.Po
-	-rm -f ./$(DEPDIR)/colors.Po
-	-rm -f ./$(DEPDIR)/configure.Po
-	-rm -f ./$(DEPDIR)/dbuff.Po
-	-rm -f ./$(DEPDIR)/guimap.Po
-	-rm -f ./$(DEPDIR)/guiobjects.Po
-	-rm -f ./$(DEPDIR)/join.Po
-	-rm -f ./$(DEPDIR)/paintdata.Po
-	-rm -f ./$(DEPDIR)/painthud.Po
-	-rm -f ./$(DEPDIR)/paintradar.Po
-	-rm -f ./$(DEPDIR)/record.Po
-	-rm -f ./$(DEPDIR)/talk.Po
-	-rm -f ./$(DEPDIR)/welcome.Po
-	-rm -f ./$(DEPDIR)/widget.Po
-	-rm -f ./$(DEPDIR)/x11_text.Po
-	-rm -f ./$(DEPDIR)/xdefault.Po
-	-rm -f ./$(DEPDIR)/xevent.Po
-	-rm -f ./$(DEPDIR)/xeventhandlers.Po
-	-rm -f ./$(DEPDIR)/xinit.Po
-	-rm -f ./$(DEPDIR)/xpaint.Po
-	-rm -f ./$(DEPDIR)/xpilot.Po
+maintainer-clean: maintainer-clean-recursive
+		-rm -f ./$(DEPDIR)/service_systemd.Po
+	-rm -f ./$(DEPDIR)/service_win32.Po
+	-rm -f ./$(DEPDIR)/tray_controller.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
-mostlyclean: mostlyclean-am
+mostlyclean: mostlyclean-recursive
 
 mostlyclean-am: mostlyclean-compile mostlyclean-generic
 
-pdf: pdf-am
+pdf: pdf-recursive
 
 pdf-am:
 
-ps: ps-am
+ps: ps-recursive
 
 ps-am:
 
-uninstall-am: uninstall-binPROGRAMS
+uninstall-am:
 
-.MAKE: install-am install-strip
+.MAKE: $(am__recursive_targets) install-am install-strip
 
-.PHONY: CTAGS GTAGS TAGS all all-am am--depfiles check check-am clean \
-	clean-binPROGRAMS clean-generic cscopelist-am ctags ctags-am \
-	distclean distclean-compile distclean-generic distclean-tags \
-	distdir dvi dvi-am html html-am info info-am install \
-	install-am install-binPROGRAMS install-data install-data-am \
-	install-dvi install-dvi-am install-exec install-exec-am \
-	install-html install-html-am install-info install-info-am \
-	install-man install-pdf install-pdf-am install-ps \
-	install-ps-am install-strip installcheck installcheck-am \
-	installdirs maintainer-clean maintainer-clean-generic \
-	mostlyclean mostlyclean-compile mostlyclean-generic pdf pdf-am \
-	ps ps-am tags tags-am uninstall uninstall-am \
-	uninstall-binPROGRAMS
+.PHONY: $(am__recursive_targets) CTAGS GTAGS TAGS all all-am \
+	am--depfiles check check-am clean clean-generic \
+	clean-noinstLIBRARIES cscopelist-am ctags ctags-am distclean \
+	distclean-compile distclean-generic distclean-tags distdir dvi \
+	dvi-am html html-am info info-am install install-am \
+	install-data install-data-am install-dvi install-dvi-am \
+	install-exec install-exec-am install-html install-html-am \
+	install-info install-info-am install-man install-pdf \
+	install-pdf-am install-ps install-ps-am install-strip \
+	installcheck installcheck-am installdirs installdirs-am \
+	maintainer-clean maintainer-clean-generic mostlyclean \
+	mostlyclean-compile mostlyclean-generic pdf pdf-am ps ps-am \
+	tags tags-am uninstall uninstall-am
 
 .PRECIOUS: Makefile
 
-#EXTRA_xpilot_SOURCES = debugaudio.c
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

@@ -136,35 +136,37 @@ am__xpilot_infinity_sdl_SOURCES_DIST = asteroid_data.h DT_drawtext.c \
 	sdlgui.c sdlinit.c sdlkeys.c sdlkeys.h sdlgameframe.c \
 	sdlgameframe.h sdlmetaframe.c sdlmetaframe.h sdlrenderer.c \
 	sdlrenderer.h sdl_server_browser.c sdl_server_browser.h \
-	sdluiimage.c sdluiimage.h sdlpaint.c \
-	surface_primitives.c surface_primitives.h surface_rgba8.c \
-	surface_rgba8.h sdlpaint.h sdlwindow.c sdlwindow.h text.c \
-	text.h text_atlas.c text_atlas.h text_geometry.c \
-	text_geometry.h text_renderer.c text_renderer.h \
-	unicode_text_renderer.c unicode_text_renderer.h \
-	text_ttf_atlas.c text_ttf_atlas.h todo.c sdlmeta.h sdlmeta.c \
-	sdlinit.h xpclient_sdl.h win32hacks.c
+	sdluiimage.c sdluiimage.h sdlpaint.c surface_primitives.c \
+	surface_primitives.h surface_rgba8.c surface_rgba8.h \
+	sdlpaint.h sdlwindow.c sdlwindow.h text.c text.h text_atlas.c \
+	text_atlas.h text_geometry.c text_geometry.h text_renderer.c \
+	text_renderer.h unicode_text_renderer.c \
+	unicode_text_renderer.h text_ttf_atlas.c text_ttf_atlas.h \
+	todo.c sdlmeta.h sdlmeta.c sdlinit.h xpclient_sdl.h \
+	win32hacks.c
 @COND_WINDOWS_TRUE@am__objects_1 = win32hacks.$(OBJEXT)
-am_xpilot_infinity_sdl_OBJECTS = DT_drawtext.$(OBJEXT) SDL_console.$(OBJEXT) \
-	console.$(OBJEXT) glwidgets.$(OBJEXT) gameinput.$(OBJEXT) \
-	gameloop.$(OBJEXT) gl_diagnostics.$(OBJEXT) \
-	image_geometry.$(OBJEXT) images.$(OBJEXT) main.$(OBJEXT) \
-	radar.$(OBJEXT) paint_transform.$(OBJEXT) \
-	polygon_geometry.$(OBJEXT) renderer.$(OBJEXT) \
-	renderer_gl_core.$(OBJEXT) score_font.$(OBJEXT) \
-	sdlclipboard.$(OBJEXT) sdlcompat.$(OBJEXT) sdlevent.$(OBJEXT) \
-	sdlgui.$(OBJEXT) sdlinit.$(OBJEXT) sdlkeys.$(OBJEXT) \
-	sdlgameframe.$(OBJEXT) sdlmetaframe.$(OBJEXT) \
-	sdlrenderer.$(OBJEXT) sdl_server_browser.$(OBJEXT) \
-	sdluiimage.$(OBJEXT) sdlpaint.$(OBJEXT) \
-	surface_primitives.$(OBJEXT) surface_rgba8.$(OBJEXT) \
-	sdlwindow.$(OBJEXT) text.$(OBJEXT) text_atlas.$(OBJEXT) \
-	text_geometry.$(OBJEXT) text_renderer.$(OBJEXT) \
-	unicode_text_renderer.$(OBJEXT) text_ttf_atlas.$(OBJEXT) \
-	todo.$(OBJEXT) sdlmeta.$(OBJEXT) $(am__objects_1)
+am_xpilot_infinity_sdl_OBJECTS = DT_drawtext.$(OBJEXT) \
+	SDL_console.$(OBJEXT) console.$(OBJEXT) glwidgets.$(OBJEXT) \
+	gameinput.$(OBJEXT) gameloop.$(OBJEXT) \
+	gl_diagnostics.$(OBJEXT) image_geometry.$(OBJEXT) \
+	images.$(OBJEXT) main.$(OBJEXT) radar.$(OBJEXT) \
+	paint_transform.$(OBJEXT) polygon_geometry.$(OBJEXT) \
+	renderer.$(OBJEXT) renderer_gl_core.$(OBJEXT) \
+	score_font.$(OBJEXT) sdlclipboard.$(OBJEXT) \
+	sdlcompat.$(OBJEXT) sdlevent.$(OBJEXT) sdlgui.$(OBJEXT) \
+	sdlinit.$(OBJEXT) sdlkeys.$(OBJEXT) sdlgameframe.$(OBJEXT) \
+	sdlmetaframe.$(OBJEXT) sdlrenderer.$(OBJEXT) \
+	sdl_server_browser.$(OBJEXT) sdluiimage.$(OBJEXT) \
+	sdlpaint.$(OBJEXT) surface_primitives.$(OBJEXT) \
+	surface_rgba8.$(OBJEXT) sdlwindow.$(OBJEXT) text.$(OBJEXT) \
+	text_atlas.$(OBJEXT) text_geometry.$(OBJEXT) \
+	text_renderer.$(OBJEXT) unicode_text_renderer.$(OBJEXT) \
+	text_ttf_atlas.$(OBJEXT) todo.$(OBJEXT) sdlmeta.$(OBJEXT) \
+	$(am__objects_1)
 xpilot_infinity_sdl_OBJECTS = $(am_xpilot_infinity_sdl_OBJECTS)
 am__DEPENDENCIES_1 =
-xpilot_infinity_sdl_DEPENDENCIES = $(top_builddir)/src/client/libxpclient.a \
+xpilot_infinity_sdl_DEPENDENCIES =  \
+	$(top_builddir)/src/client/libxpclient.a \
 	$(top_builddir)/src/common/libxpcommon.a libxp_libtess2.a \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
@@ -199,18 +201,17 @@ am__depfiles_remade = $(top_builddir)/vendor/libtess2/Source/$(DEPDIR)/bucketall
 	./$(DEPDIR)/radar.Po ./$(DEPDIR)/renderer.Po \
 	./$(DEPDIR)/renderer_gl_core.Po ./$(DEPDIR)/score_font.Po \
 	./$(DEPDIR)/sdl_server_browser.Po ./$(DEPDIR)/sdlclipboard.Po \
-	./$(DEPDIR)/sdlcompat.Po \
-	./$(DEPDIR)/sdlevent.Po ./$(DEPDIR)/sdlgameframe.Po \
-	./$(DEPDIR)/sdlgui.Po ./$(DEPDIR)/sdlinit.Po \
-	./$(DEPDIR)/sdlkeys.Po ./$(DEPDIR)/sdlmeta.Po \
-	./$(DEPDIR)/sdlmetaframe.Po ./$(DEPDIR)/sdlpaint.Po \
-	./$(DEPDIR)/sdlrenderer.Po ./$(DEPDIR)/sdluiimage.Po \
-	./$(DEPDIR)/sdlwindow.Po ./$(DEPDIR)/surface_primitives.Po \
-	./$(DEPDIR)/surface_rgba8.Po ./$(DEPDIR)/text.Po \
-	./$(DEPDIR)/text_atlas.Po ./$(DEPDIR)/text_geometry.Po \
-	./$(DEPDIR)/text_renderer.Po ./$(DEPDIR)/text_ttf_atlas.Po \
-	./$(DEPDIR)/todo.Po ./$(DEPDIR)/unicode_text_renderer.Po \
-	./$(DEPDIR)/win32hacks.Po
+	./$(DEPDIR)/sdlcompat.Po ./$(DEPDIR)/sdlevent.Po \
+	./$(DEPDIR)/sdlgameframe.Po ./$(DEPDIR)/sdlgui.Po \
+	./$(DEPDIR)/sdlinit.Po ./$(DEPDIR)/sdlkeys.Po \
+	./$(DEPDIR)/sdlmeta.Po ./$(DEPDIR)/sdlmetaframe.Po \
+	./$(DEPDIR)/sdlpaint.Po ./$(DEPDIR)/sdlrenderer.Po \
+	./$(DEPDIR)/sdluiimage.Po ./$(DEPDIR)/sdlwindow.Po \
+	./$(DEPDIR)/surface_primitives.Po ./$(DEPDIR)/surface_rgba8.Po \
+	./$(DEPDIR)/text.Po ./$(DEPDIR)/text_atlas.Po \
+	./$(DEPDIR)/text_geometry.Po ./$(DEPDIR)/text_renderer.Po \
+	./$(DEPDIR)/text_ttf_atlas.Po ./$(DEPDIR)/todo.Po \
+	./$(DEPDIR)/unicode_text_renderer.Po ./$(DEPDIR)/win32hacks.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -326,6 +327,10 @@ SHELL = @SHELL@
 SOUND_CFLAGS = @SOUND_CFLAGS@
 SOUND_LIBS = @SOUND_LIBS@
 STRIP = @STRIP@
+TRAY_CFLAGS = @TRAY_CFLAGS@
+TRAY_LIBS = @TRAY_LIBS@
+TRAY_POLKIT_CFLAGS = @TRAY_POLKIT_CFLAGS@
+TRAY_POLKIT_LIBS = @TRAY_POLKIT_LIBS@
 VERSION = @VERSION@
 W32_LIBS = @W32_LIBS@
 XMKMF = @XMKMF@
@@ -437,10 +442,10 @@ libxp_libtess2_a_SOURCES = \
 	$(top_srcdir)/vendor/libtess2/Source/tess.c \
 	$(top_srcdir)/vendor/libtess2/Source/tess.h
 
-xpilot_infinity_sdl_SOURCES = asteroid_data.h DT_drawtext.c DT_drawtext.h \
-	SDL_console.c SDL_console.h console.c console.h glwidgets.c \
-	glwidgets.h gameinput.c gameinput.h gameloop.c gameloop.h \
-	gl_diagnostics.c gl_diagnostics.h image_geometry.c \
+xpilot_infinity_sdl_SOURCES = asteroid_data.h DT_drawtext.c \
+	DT_drawtext.h SDL_console.c SDL_console.h console.c console.h \
+	glwidgets.c glwidgets.h gameinput.c gameinput.h gameloop.c \
+	gameloop.h gl_diagnostics.c gl_diagnostics.h image_geometry.c \
 	image_geometry.h images.c images.h images_test_support.h \
 	main.c radar.c radar.h paint_transform.c paint_transform.h \
 	polygon_geometry.c polygon_geometry.h renderer.c renderer.h \
@@ -450,14 +455,14 @@ xpilot_infinity_sdl_SOURCES = asteroid_data.h DT_drawtext.c DT_drawtext.h \
 	sdlgui.c sdlinit.c sdlkeys.c sdlkeys.h sdlgameframe.c \
 	sdlgameframe.h sdlmetaframe.c sdlmetaframe.h sdlrenderer.c \
 	sdlrenderer.h sdl_server_browser.c sdl_server_browser.h \
-	sdluiimage.c sdluiimage.h sdlpaint.c \
-	surface_primitives.c surface_primitives.h surface_rgba8.c \
-	surface_rgba8.h sdlpaint.h sdlwindow.c sdlwindow.h text.c \
-	text.h text_atlas.c text_atlas.h text_geometry.c \
-	text_geometry.h text_renderer.c text_renderer.h \
-	unicode_text_renderer.c unicode_text_renderer.h \
-	text_ttf_atlas.c text_ttf_atlas.h todo.c sdlmeta.h sdlmeta.c \
-	sdlinit.h xpclient_sdl.h $(am__append_1)
+	sdluiimage.c sdluiimage.h sdlpaint.c surface_primitives.c \
+	surface_primitives.h surface_rgba8.c surface_rgba8.h \
+	sdlpaint.h sdlwindow.c sdlwindow.h text.c text.h text_atlas.c \
+	text_atlas.h text_geometry.c text_geometry.h text_renderer.c \
+	text_renderer.h unicode_text_renderer.c \
+	unicode_text_renderer.h text_ttf_atlas.c text_ttf_atlas.h \
+	todo.c sdlmeta.h sdlmeta.c sdlinit.h xpclient_sdl.h \
+	$(am__append_1)
 xpilot_infinity_sdl_LDADD = $(top_builddir)/src/client/libxpclient.a \
 	$(top_builddir)/src/common/libxpcommon.a \
 	libxp_libtess2.a \

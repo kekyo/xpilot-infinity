@@ -695,6 +695,12 @@ CPP
 XMKMF
 W32_LIBS
 CMAKE
+COND_SERVER_TRAY_FALSE
+COND_SERVER_TRAY_TRUE
+TRAY_POLKIT_LIBS
+TRAY_POLKIT_CFLAGS
+TRAY_LIBS
+TRAY_CFLAGS
 PKG_CONFIG_LIBDIR
 PKG_CONFIG_PATH
 PKG_CONFIG
@@ -834,6 +840,7 @@ with_mingw_toolchain_file
 with_mingw_deps_build_type
 enable_sound
 enable_dependency_tracking
+enable_server_tray
 with_x
 '
       ac_precious_vars='build_alias
@@ -847,6 +854,10 @@ CPPFLAGS
 PKG_CONFIG
 PKG_CONFIG_PATH
 PKG_CONFIG_LIBDIR
+TRAY_CFLAGS
+TRAY_LIBS
+TRAY_POLKIT_CFLAGS
+TRAY_POLKIT_LIBS
 XMKMF
 CPP
 SDL3_CFLAGS
@@ -1517,6 +1528,9 @@ Optional Features:
                           do not reject slow dependency extractors
   --disable-dependency-tracking
                           speeds up one-time build
+  --enable-server-tray=auto|yes|no
+                          build the independent desktop service controller
+                          (default: auto)
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -1542,6 +1556,12 @@ Some influential environment variables:
               directories to add to pkg-config's search path
   PKG_CONFIG_LIBDIR
               path overriding pkg-config's built-in search path
+  TRAY_CFLAGS C compiler flags for TRAY, overriding pkg-config
+  TRAY_LIBS   linker flags for TRAY, overriding pkg-config
+  TRAY_POLKIT_CFLAGS
+              C compiler flags for TRAY_POLKIT, overriding pkg-config
+  TRAY_POLKIT_LIBS
+              linker flags for TRAY_POLKIT, overriding pkg-config
   XMKMF       Path to xmkmf, Makefile generator for X Window System
   CPP         C preprocessor
   SDL3_CFLAGS C compiler flags for SDL3, overriding pkg-config
@@ -5328,6 +5348,184 @@ printf "%s\n" "no" >&6; }
 	fi
 fi
 
+# Check whether --enable-server-tray was given.
+if test ${enable_server_tray+y}
+then :
+  enableval=$enable_server_tray;
+else $as_nop
+  enable_server_tray=auto
+fi
+
+case "$enable_server_tray" in
+    auto|yes|no) ;;
+    *) as_fn_error $? "--enable-server-tray accepts auto, yes or no" "$LINENO" 5 ;;
+esac
+server_tray=no
+if test x$enable_server_tray != xno; then
+    if test x$windows_target = xyes; then
+        server_tray=yes
+    else
+        case "$host_os" in
+            linux*)
+
+pkg_failed=no
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for gtk+-3.0 >= 3.22 gio-2.0 >= 2.60 gdk-x11-3.0 x11" >&5
+printf %s "checking for gtk+-3.0 >= 3.22 gio-2.0 >= 2.60 gdk-x11-3.0 x11... " >&6; }
+
+if test -n "$TRAY_CFLAGS"; then
+    pkg_cv_TRAY_CFLAGS="$TRAY_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"gtk+-3.0 >= 3.22 gio-2.0 >= 2.60 gdk-x11-3.0 x11\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "gtk+-3.0 >= 3.22 gio-2.0 >= 2.60 gdk-x11-3.0 x11") 2>&5
+  ac_status=$?
+  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_TRAY_CFLAGS=`$PKG_CONFIG --cflags "gtk+-3.0 >= 3.22 gio-2.0 >= 2.60 gdk-x11-3.0 x11" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$TRAY_LIBS"; then
+    pkg_cv_TRAY_LIBS="$TRAY_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"gtk+-3.0 >= 3.22 gio-2.0 >= 2.60 gdk-x11-3.0 x11\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "gtk+-3.0 >= 3.22 gio-2.0 >= 2.60 gdk-x11-3.0 x11") 2>&5
+  ac_status=$?
+  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_TRAY_LIBS=`$PKG_CONFIG --libs "gtk+-3.0 >= 3.22 gio-2.0 >= 2.60 gdk-x11-3.0 x11" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+                TRAY_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "gtk+-3.0 >= 3.22 gio-2.0 >= 2.60 gdk-x11-3.0 x11" 2>&1`
+        else
+                TRAY_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "gtk+-3.0 >= 3.22 gio-2.0 >= 2.60 gdk-x11-3.0 x11" 2>&1`
+        fi
+        # Put the nasty error message in config.log where it belongs
+        echo "$TRAY_PKG_ERRORS" >&5
+
+        server_tray=no
+elif test $pkg_failed = untried; then
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+        server_tray=no
+else
+        TRAY_CFLAGS=$pkg_cv_TRAY_CFLAGS
+        TRAY_LIBS=$pkg_cv_TRAY_LIBS
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+
+pkg_failed=no
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for polkit-gobject-1" >&5
+printf %s "checking for polkit-gobject-1... " >&6; }
+
+if test -n "$TRAY_POLKIT_CFLAGS"; then
+    pkg_cv_TRAY_POLKIT_CFLAGS="$TRAY_POLKIT_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"polkit-gobject-1\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "polkit-gobject-1") 2>&5
+  ac_status=$?
+  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_TRAY_POLKIT_CFLAGS=`$PKG_CONFIG --cflags "polkit-gobject-1" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$TRAY_POLKIT_LIBS"; then
+    pkg_cv_TRAY_POLKIT_LIBS="$TRAY_POLKIT_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"polkit-gobject-1\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "polkit-gobject-1") 2>&5
+  ac_status=$?
+  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_TRAY_POLKIT_LIBS=`$PKG_CONFIG --libs "polkit-gobject-1" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+                TRAY_POLKIT_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "polkit-gobject-1" 2>&1`
+        else
+                TRAY_POLKIT_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "polkit-gobject-1" 2>&1`
+        fi
+        # Put the nasty error message in config.log where it belongs
+        echo "$TRAY_POLKIT_PKG_ERRORS" >&5
+
+        server_tray=no
+elif test $pkg_failed = untried; then
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+        server_tray=no
+else
+        TRAY_POLKIT_CFLAGS=$pkg_cv_TRAY_POLKIT_CFLAGS
+        TRAY_POLKIT_LIBS=$pkg_cv_TRAY_POLKIT_LIBS
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+        server_tray=yes
+fi
+fi
+                ;;
+        esac
+    fi
+fi
+if test x$enable_server_tray = xyes && test x$server_tray != xyes; then
+    as_fn_error $? "server tray requires Linux GTK >= 3.22, GIO >= 2.60, GDK X11, Xlib and polkit development packages, or a supported MinGW host" "$LINENO" 5
+fi
+ if test x$server_tray = xyes; then
+  COND_SERVER_TRAY_TRUE=
+  COND_SERVER_TRAY_FALSE='#'
+else
+  COND_SERVER_TRAY_TRUE='#'
+  COND_SERVER_TRAY_FALSE=
+fi
+
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: Server tray support: $server_tray (requested: $enable_server_tray)" >&5
+printf "%s\n" "$as_me: Server tray support: $server_tray (requested: $enable_server_tray)" >&6;}
+
 if test x$mingw_vendored_deps = xyes; then
 	# Extract the first word of "cmake", so it can be a program name with args.
 set dummy cmake; ac_word=$2
@@ -8531,7 +8729,7 @@ if test x$mingw_vendored_deps = xyes; then
 	LIBS="-lexpat -lz -lm $LIBS"
 fi
 
-ac_config_files="$ac_config_files Makefile contrib/Makefile contrib/xpicc/Makefile doc/Makefile doc/man/Makefile lib/Makefile lib/fonts/Makefile lib/maps/Makefile lib/textures/Makefile lib/sound/Makefile src/Makefile src/common/Makefile src/common/version.h.template:src/common/version.h.in src/client/Makefile src/client/items/Makefile src/client/sdl/Makefile src/client/x11/Makefile src/server/Makefile src/replay/Makefile src/replay/tools/Makefile src/mapedit/Makefile tests/Makefile vendor/mingw/Makefile"
+ac_config_files="$ac_config_files Makefile contrib/Makefile contrib/xpicc/Makefile doc/Makefile doc/man/Makefile lib/Makefile lib/fonts/Makefile lib/maps/Makefile lib/textures/Makefile lib/sound/Makefile src/Makefile src/common/Makefile src/common/version.h.template:src/common/version.h.in src/client/Makefile src/client/items/Makefile src/client/sdl/Makefile src/client/x11/Makefile src/server/Makefile src/tray/Makefile src/tray/tests/Makefile src/replay/Makefile src/replay/tools/Makefile src/mapedit/Makefile tests/Makefile vendor/mingw/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -8667,6 +8865,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${am__fastdepCC_TRUE}" && test -z "${am__fastdepCC_FALSE}"; then
   as_fn_error $? "conditional \"am__fastdepCC\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${COND_SERVER_TRAY_TRUE}" && test -z "${COND_SERVER_TRAY_FALSE}"; then
+  as_fn_error $? "conditional \"COND_SERVER_TRAY\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${COND_CLIENT_TRUE}" && test -z "${COND_CLIENT_FALSE}"; then
@@ -9308,6 +9510,8 @@ do
     "src/client/sdl/Makefile") CONFIG_FILES="$CONFIG_FILES src/client/sdl/Makefile" ;;
     "src/client/x11/Makefile") CONFIG_FILES="$CONFIG_FILES src/client/x11/Makefile" ;;
     "src/server/Makefile") CONFIG_FILES="$CONFIG_FILES src/server/Makefile" ;;
+    "src/tray/Makefile") CONFIG_FILES="$CONFIG_FILES src/tray/Makefile" ;;
+    "src/tray/tests/Makefile") CONFIG_FILES="$CONFIG_FILES src/tray/tests/Makefile" ;;
     "src/replay/Makefile") CONFIG_FILES="$CONFIG_FILES src/replay/Makefile" ;;
     "src/replay/tools/Makefile") CONFIG_FILES="$CONFIG_FILES src/replay/tools/Makefile" ;;
     "src/mapedit/Makefile") CONFIG_FILES="$CONFIG_FILES src/mapedit/Makefile" ;;

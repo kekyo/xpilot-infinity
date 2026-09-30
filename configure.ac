@@ -262,6 +262,35 @@ AC_PROG_RANLIB
 AC_PROG_INSTALL
 PKG_PROG_PKG_CONFIG
 
+AC_ARG_ENABLE([server-tray],
+    AS_HELP_STRING([--enable-server-tray=auto|yes|no],
+        [build the independent desktop service controller (default: auto)]),
+    [], [enable_server_tray=auto])
+case "$enable_server_tray" in
+    auto|yes|no) ;;
+    *) AC_MSG_ERROR([--enable-server-tray accepts auto, yes or no]) ;;
+esac
+server_tray=no
+if test x$enable_server_tray != xno; then
+    if test x$windows_target = xyes; then
+        server_tray=yes
+    else
+        case "$host_os" in
+            linux*)
+                PKG_CHECK_MODULES([TRAY], [gtk+-3.0 >= 3.22 gio-2.0 >= 2.60 gdk-x11-3.0 x11],
+                    [PKG_CHECK_MODULES([TRAY_POLKIT], [polkit-gobject-1],
+                        [server_tray=yes], [server_tray=no])],
+                    [server_tray=no])
+                ;;
+        esac
+    fi
+fi
+if test x$enable_server_tray = xyes && test x$server_tray != xyes; then
+    AC_MSG_ERROR([server tray requires Linux GTK >= 3.22, GIO >= 2.60, GDK X11, Xlib and polkit development packages, or a supported MinGW host])
+fi
+AM_CONDITIONAL([COND_SERVER_TRAY], [test x$server_tray = xyes])
+AC_MSG_NOTICE([Server tray support: $server_tray (requested: $enable_server_tray)])
+
 if test x$mingw_vendored_deps = xyes; then
 	AC_PATH_PROG([CMAKE], [cmake])
 	test -n "$CMAKE" \
@@ -673,6 +702,8 @@ AC_CONFIG_FILES([ \
 	src/client/sdl/Makefile \
 	src/client/x11/Makefile \
 	src/server/Makefile \
+	src/tray/Makefile \
+	src/tray/tests/Makefile \
 	src/replay/Makefile \
 	src/replay/tools/Makefile \
 	src/mapedit/Makefile \

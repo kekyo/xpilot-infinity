@@ -102,12 +102,13 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_xpilot_infinity_xp_mapedit_OBJECTS = events.$(OBJEXT) expose.$(OBJEXT) \
-	file.$(OBJEXT) forms.$(OBJEXT) grow.$(OBJEXT) help.$(OBJEXT) \
-	main.$(OBJEXT) round.$(OBJEXT) T_Form.$(OBJEXT) \
+am_xpilot_infinity_xp_mapedit_OBJECTS = events.$(OBJEXT) \
+	expose.$(OBJEXT) file.$(OBJEXT) forms.$(OBJEXT) grow.$(OBJEXT) \
+	help.$(OBJEXT) main.$(OBJEXT) round.$(OBJEXT) T_Form.$(OBJEXT) \
 	T_Handler.$(OBJEXT) tools.$(OBJEXT) T_Popup.$(OBJEXT) \
 	T_Toolkit.$(OBJEXT)
-xpilot_infinity_xp_mapedit_OBJECTS = $(am_xpilot_infinity_xp_mapedit_OBJECTS)
+xpilot_infinity_xp_mapedit_OBJECTS =  \
+	$(am_xpilot_infinity_xp_mapedit_OBJECTS)
 xpilot_infinity_xp_mapedit_DEPENDENCIES =  \
 	$(top_builddir)/src/common/libxpcommon.a
 AM_V_P = $(am__v_P_@AM_V@)
@@ -245,6 +246,10 @@ SHELL = @SHELL@
 SOUND_CFLAGS = @SOUND_CFLAGS@
 SOUND_LIBS = @SOUND_LIBS@
 STRIP = @STRIP@
+TRAY_CFLAGS = @TRAY_CFLAGS@
+TRAY_LIBS = @TRAY_LIBS@
+TRAY_POLKIT_CFLAGS = @TRAY_POLKIT_CFLAGS@
+TRAY_POLKIT_LIBS = @TRAY_POLKIT_LIBS@
 VERSION = @VERSION@
 W32_LIBS = @W32_LIBS@
 XMKMF = @XMKMF@

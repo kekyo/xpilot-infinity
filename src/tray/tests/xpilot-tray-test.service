@@ -1,0 +1,13 @@
+[Unit]
+Description=Isolated XPilot service controller test
+Requires=dbus.service
+After=dbus.service
+OnSuccess=poweroff.target
+OnFailure=poweroff.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh /run-systemd-inside.sh
+TimeoutStartSec=10min
+StandardOutput=journal+console
+StandardError=journal+console
