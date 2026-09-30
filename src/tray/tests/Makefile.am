@@ -13,6 +13,15 @@ else
 AM_CPPFLAGS += $(TRAY_CFLAGS)
 service_driver_LDADD += $(TRAY_LIBS)
 check_PROGRAMS += test-sni
+check_PROGRAMS += test-sni-hosts
+test_sni_hosts_SOURCES = test_sni_hosts.c
+test_sni_hosts_CPPFLAGS = $(AM_CPPFLAGS) -DXPILOT_TEST_ICON=\"$(abs_top_srcdir)/images/icon-1254.png\"
+test_sni_hosts_LDADD = ../libxptray.a $(TRAY_LIBS)
+check_PROGRAMS += test-xembed
+test_xembed_SOURCES = test_xembed.c
+test_xembed_CPPFLAGS = $(AM_CPPFLAGS) -DXPILOT_TEST_ICON=\"$(abs_top_srcdir)/images/icon-1254.png\"
+test_xembed_LDADD = ../libxptray.a $(TRAY_LIBS) -lXtst
+LOG_COMPILER = $(SHELL) $(srcdir)/run-test.sh
 check_PROGRAMS += test-catalog test-settings-file test-editor
 test_editor_SOURCES = test_editor.c ../config_editor.c ../service_config.c
 check_PROGRAMS += test-utf8-files
@@ -30,7 +39,8 @@ test_desktop_LDADD = $(TRAY_LIBS) -lXtst
 test_sni_SOURCES = test_sni.c
 test_sni_CPPFLAGS = $(AM_CPPFLAGS) -DXPILOT_TEST_ICON=\"$(abs_top_srcdir)/images/icon-1254.png\"
 test_sni_LDADD = ../libxptray.a $(TRAY_LIBS)
-TESTS = test-controller test-menu test-service-config test-sni test-catalog test-settings-file test-utf8-files test-editor
+TESTS = test-controller test-menu test-service-config test-sni test-catalog test-settings-file test-utf8-files test-editor test-xembed
+TESTS += test-sni-hosts
 
 .PHONY: integration-check
 integration-check: service-driver test-desktop test-auth-cancel
@@ -46,3 +56,5 @@ integration-check: service-driver test-desktop test-auth-cancel
 	$(SHELL) $(srcdir)/run-systemd.sh
 endif
 EXTRA_DIST = run-systemd.sh run-systemd-inside.sh xpilot-tray-test.service Containerfile test-strict-map.sh test-settings-helper.sh test-settings-editor.sh test-default-editor.sh
+EXTRA_DIST += run-test.sh record-xembed.sh
+CLEANFILES = test-xembed.mkv

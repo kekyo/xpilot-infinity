@@ -26,6 +26,7 @@ test "$(systemctl is-enabled xpilot-infinity-server || true)" = disabled
 pid=$(systemctl show -p MainPID --value xpilot-infinity-server)
 test "$pid" -gt 0
 /service-driver status | grep '^running '
+XPILOT_SERVICE_TEST_TIMEOUT_MS=15000 /service-driver reconnect
 test "$pid" = "$(systemctl show -p MainPID --value xpilot-infinity-server)"
 /contact-probe udp://127.0.0.1:15345 udp://127.0.0.1:15345
 

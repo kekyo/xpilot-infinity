@@ -46,7 +46,22 @@ typedef struct {
     char *applying_snapshot;
     editor_state editing_state;
     bool map_supported;
+    UINT taskbar_created;
 } windows_tray;
+
+static void register_icon(windows_tray *tray)
+{
+    if (tray->visible_icon) Shell_NotifyIconW(NIM_DELETE, &tray->notification);
+    tray->visible_icon = tray->window && Shell_NotifyIconW(NIM_ADD, &tray->notification);
+    if (tray->visible_icon) {
+        tray->notification.uVersion = NOTIFYICON_VERSION_4;
+        if (!Shell_NotifyIconW(NIM_SETVERSION, &tray->notification)) {
+            Shell_NotifyIconW(NIM_DELETE, &tray->notification);
+            tray->visible_icon = false;
+        }
+    }
+    ShowWindow(tray->window, tray->visible_icon ? SW_HIDE : SW_SHOW);
+}
 
 static wchar_t *wide(const char *text)
 {
@@ -244,7 +259,10 @@ static void update(windows_tray *tray)
         wcsncpy(tray->notification.szTip, title, 127);
         tray->notification.szTip[127] = 0;
         free(title);
-        if (tray->visible_icon) Shell_NotifyIconW(NIM_MODIFY, &tray->notification);
+        if (tray->visible_icon && !Shell_NotifyIconW(NIM_MODIFY, &tray->notification)) {
+            tray->visible_icon = false;
+            ShowWindow(tray->window, SW_SHOW);
+        }
     }
 }
 
@@ -414,6 +432,7 @@ static void popup(windows_tray *tray, POINT point)
     PostMessageW(tray->window, WM_NULL, 0, 0);
     DestroyMenu(menu);
     if (id) activate(tray, id);
+    if (tray->visible_icon) Shell_NotifyIconW(NIM_SETFOCUS, &tray->notification);
 }
 
 static LRESULT CALLBACK window_proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
@@ -425,6 +444,10 @@ static LRESULT CALLBACK window_proc(HWND window, UINT message, WPARAM wparam, LP
         return TRUE;
     }
     if (!tray) return DefWindowProcW(window, message, wparam, lparam);
+    if (tray->taskbar_created && message == tray->taskbar_created) {
+        register_icon(tray);
+        return 0;
+    }
     switch (message) {
     case WM_COMMAND:
         activate(tray, LOWORD(wparam));
@@ -477,6 +500,7 @@ int tray_platform_run(int argc, char **argv)
 {
     (void)argc; (void)argv;
     windows_tray tray = {0};
+    tray.taskbar_created = RegisterWindowMessageW(L"TaskbarCreated");
     tray.mutex = instance_mutex();
     if (!tray.mutex) return 0;
     tray.native = service_native_create();
@@ -519,6 +543,7 @@ int tray_platform_run(int argc, char **argv)
         WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 560, 510,
         NULL, NULL, instance, &tray);
     if (!tray.window) tray.done = true;
+    service_native_set_dialog(tray.native, tray.window);
     for (size_t i = 0; tray.window && i < sizeof(tray.menu.items) / sizeof(tray.menu.items[0]); i++) {
         const tray_menu_item *item = &tray.menu.items[i];
         wchar_t *label = wide(item->label);
@@ -537,15 +562,7 @@ int tray_platform_run(int argc, char **argv)
     tray.notification.uCallbackMessage = TRAY_EVENT;
     tray.notification.hIcon = tray.icon;
     wcscpy(tray.notification.szTip, L"XPilot Infinity Server");
-    tray.visible_icon = tray.window && Shell_NotifyIconW(NIM_ADD, &tray.notification);
-    if (tray.visible_icon) {
-        tray.notification.uVersion = NOTIFYICON_VERSION_4;
-        if (!Shell_NotifyIconW(NIM_SETVERSION, &tray.notification)) {
-            Shell_NotifyIconW(NIM_DELETE, &tray.notification);
-            tray.visible_icon = false;
-        }
-    }
-    if (!tray.visible_icon) ShowWindow(tray.window, SW_SHOW);
+    register_icon(&tray);
     update(&tray);
     while (!tray.done) {
         HANDLE handles[4];
@@ -569,6 +586,7 @@ int tray_platform_run(int argc, char **argv)
         update(&tray);
     }
     if (tray.visible_icon) Shell_NotifyIconW(NIM_DELETE, &tray.notification);
+    service_native_set_dialog(tray.native, NULL);
     if (tray.window) DestroyWindow(tray.window);
     if (tray.icon) DestroyIcon(tray.icon);
     tray_controller_destroy(tray.controller);

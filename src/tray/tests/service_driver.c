@@ -11,7 +11,7 @@
 #include <windows.h>
 static uint64_t now_ms(void) { return GetTickCount64(); }
 #else
-#include <glib.h>
+#include <gio/gio.h>
 static uint64_t now_ms(void) { return (uint64_t)(g_get_monotonic_time() / 1000); }
 #endif
 
@@ -26,8 +26,12 @@ int main(int argc, char **argv)
 {
     if (argc != 2 || (strcmp(argv[1], "status") && strcmp(argv[1], "start")
         && strcmp(argv[1], "stop") && strcmp(argv[1], "watch")
-        && strcmp(argv[1], "wait-running") && strcmp(argv[1], "wait-stopped"))) {
-        fprintf(stderr, "Usage: %s status|start|stop|watch|wait-running|wait-stopped\n", argv[0]);
+        && strcmp(argv[1], "wait-running") && strcmp(argv[1], "wait-stopped")
+#ifndef _WIN32
+        && strcmp(argv[1], "reconnect")
+#endif
+        )) {
+        fprintf(stderr, "Usage: %s status|start|stop|watch|wait-running|wait-stopped|reconnect\n", argv[0]);
         return 2;
     }
     service_native *native = service_native_create();
@@ -42,6 +46,10 @@ int main(int argc, char **argv)
     bool start = strcmp(argv[1], "start") == 0;
     bool stop = strcmp(argv[1], "stop") == 0;
     bool submitted = false;
+#ifndef _WIN32
+    bool reconnect = !strcmp(argv[1], "reconnect"), disconnected = false;
+    service_state expected = XP_SERVICE_UNKNOWN;
+#endif
     bool printed = false;
     tray_status previous = {0};
     unsigned timeout = 120000;
@@ -61,6 +69,22 @@ int main(int argc, char **argv)
             previous = *status;
             printed = true;
         }
+#ifndef _WIN32
+        if (reconnect) {
+            if (status->service.error == XP_SERVICE_UNAVAILABLE) disconnected = true;
+            if (disconnected && status->service.state == expected) { exit_code = 0; break; }
+            if (!submitted && status->service.state != XP_SERVICE_UNKNOWN) {
+                expected = status->service.state;
+                GDBusConnection *bus = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, NULL);
+                if (!bus) break;
+                g_dbus_connection_close_sync(bus, NULL, NULL);
+                g_object_unref(bus);
+                submitted = true;
+            }
+            service_native_dispatch(native, 1000);
+            continue;
+        }
+#endif
         if (status->service.error != XP_SERVICE_OK || status->operation_error != XP_SERVICE_OK)
             break;
         if (status->service.state != XP_SERVICE_UNKNOWN) {

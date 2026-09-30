@@ -27,6 +27,8 @@ typedef struct {
     guint properties;
     guint manager_signals;
     gulong closed;
+    guint retry;
+    unsigned retry_delay;
     char *owner;
     char *unit_path;
     char *job;
@@ -43,6 +45,7 @@ typedef struct {
 } systemd_call;
 
 static void refresh(systemd_session *session);
+static void bus_ready(GObject *object, GAsyncResult *result, void *data);
 
 static systemd_session *retain(systemd_session *session)
 {
@@ -314,11 +317,47 @@ static void vanished(GDBusConnection *bus, const char *name, void *data)
     publish(session, &snapshot);
 }
 
+static void detach_bus(systemd_session *session)
+{
+    if (session->watch) g_bus_unwatch_name(session->watch);
+    if (session->properties) g_dbus_connection_signal_unsubscribe(session->bus, session->properties);
+    if (session->manager_signals) g_dbus_connection_signal_unsubscribe(session->bus, session->manager_signals);
+    if (session->closed) g_signal_handler_disconnect(session->bus, session->closed);
+    session->watch = session->properties = session->manager_signals = 0;
+    session->closed = 0;
+    session->loading = false;
+    g_clear_object(&session->bus);
+    g_clear_pointer(&session->owner, g_free);
+    g_clear_pointer(&session->unit_path, g_free);
+    g_clear_pointer(&session->job, g_free);
+    g_hash_table_remove_all(session->early_jobs);
+}
+
+static gboolean reconnect_bus(void *data)
+{
+    systemd_session *session = data;
+    session->retry = 0;
+    if (session->alive) g_bus_get(G_BUS_TYPE_SYSTEM, session->cancel, bus_ready, retain(session));
+    return G_SOURCE_REMOVE;
+}
+
+static void retry_bus(systemd_session *session)
+{
+    if (!session->alive || session->retry) return;
+    /* Back off only failed connections; service state is always event driven. */
+    session->retry_delay = MIN(session->retry_delay ? session->retry_delay * 2 : 250, 30000);
+    session->retry = g_timeout_add_full(G_PRIORITY_DEFAULT, session->retry_delay,
+        reconnect_bus, retain(session), release);
+}
+
 static void bus_closed(GDBusConnection *bus, gboolean remote, GError *error, void *data)
 {
     (void)remote;
     (void)error;
-    vanished(bus, MANAGER, data);
+    systemd_session *session = data;
+    vanished(bus, MANAGER, session);
+    detach_bus(session);
+    retry_bus(session);
 }
 
 static void bus_ready(GObject *object, GAsyncResult *result, void *data)
@@ -330,7 +369,9 @@ static void bus_ready(GObject *object, GAsyncResult *result, void *data)
     if (session->alive) {
         if (!bus) {
             publish_error(session, error);
+            retry_bus(session);
         } else {
+            session->retry_delay = 0;
             session->bus = g_object_ref(bus);
             g_dbus_connection_set_exit_on_close(bus, FALSE);
             session->closed = g_signal_connect(bus, "closed", G_CALLBACK(bus_closed), session);
@@ -358,14 +399,8 @@ static void disconnect_service(void *context)
     native->session = NULL;
     session->alive = false;
     g_cancellable_cancel(session->cancel);
-    if (session->watch)
-        g_bus_unwatch_name(session->watch);
-    if (session->properties)
-        g_dbus_connection_signal_unsubscribe(session->bus, session->properties);
-    if (session->manager_signals)
-        g_dbus_connection_signal_unsubscribe(session->bus, session->manager_signals);
-    if (session->closed)
-        g_signal_handler_disconnect(session->bus, session->closed);
+    if (session->retry) { g_source_remove(session->retry); session->retry = 0; }
+    detach_bus(session);
     release(session);
 }
 

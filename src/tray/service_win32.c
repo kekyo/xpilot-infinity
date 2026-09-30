@@ -29,6 +29,9 @@ struct service_native {
     HANDLE helper;
     HANDLE extra_wait[4];
     unsigned extra_count;
+    HWND dialog;
+    ULONGLONG retry_at;
+    unsigned retry_delay;
     uint64_t operation;
 };
 
@@ -70,6 +73,11 @@ static void publish_error(service_native *native, DWORD code)
     }
     describe_error(code, snapshot.detail, sizeof(snapshot.detail));
     publish(native, &snapshot);
+    if (native->attached && snapshot.state != XP_SERVICE_NOT_INSTALLED && !native->retry_at) {
+        native->retry_delay = native->retry_delay ? native->retry_delay * 2 : 250;
+        if (native->retry_delay > 30000) native->retry_delay = 30000;
+        native->retry_at = GetTickCount64() + native->retry_delay;
+    }
 }
 
 /* SCM callbacks are APCs. Only record completion here: RPC calls (including
@@ -180,20 +188,13 @@ static void read_status(service_native *native)
     publish(native, &snapshot);
 }
 
-static void disconnect_service(void *context)
+static void detach_monitors(service_native *native)
 {
-    service_native *native = context;
-    native->attached = false;
     if (native->service)
         CloseServiceHandle(native->service);
     if (native->manager)
         CloseServiceHandle(native->manager);
     native->service = native->manager = NULL;
-    if (native->helper) {
-        /* Closing our handle does not terminate an accepted helper operation. */
-        CloseHandle(native->helper);
-        native->helper = NULL;
-    }
     /* Closing prevents new APCs; drain already queued APCs while the buffers
      * and callback context still exist. This does not wait for service exit. */
     SleepEx(0, TRUE);
@@ -205,6 +206,28 @@ static void disconnect_service(void *context)
     }
 }
 
+static void disconnect_service(void *context)
+{
+    service_native *native = context;
+    native->attached = false;
+    detach_monitors(native);
+    native->retry_at = native->retry_delay = 0;
+    if (native->helper) {
+        /* Closing our handle does not terminate an accepted helper operation. */
+        CloseHandle(native->helper);
+        native->helper = NULL;
+    }
+}
+
+static void attach_monitors(service_native *native)
+{
+    native->manager = OpenSCManagerW(NULL, NULL, SC_MANAGER_CONNECT | SC_MANAGER_ENUMERATE_SERVICE);
+    if (!native->manager) { publish_error(native, GetLastError()); return; }
+    arm_manager(native);
+    read_status(native);
+    if (!native->retry_at) native->retry_delay = 0;
+}
+
 static void connect_service(void *context, uint64_t generation, service_receiver receiver)
 {
     service_native *native = context;
@@ -213,14 +236,7 @@ static void connect_service(void *context, uint64_t generation, service_receiver
     native->generation = generation;
     native->revision = 0;
     native->attached = true;
-    native->manager = OpenSCManagerW(NULL, NULL,
-        SC_MANAGER_CONNECT | SC_MANAGER_ENUMERATE_SERVICE);
-    if (!native->manager) {
-        publish_error(native, GetLastError());
-        return;
-    }
-    arm_manager(native);
-    read_status(native);
+    attach_monitors(native);
 }
 
 static void request_service(void *context, uint64_t operation, service_action action)
@@ -302,8 +318,15 @@ bool service_native_set_wait_handles(service_native *native, void *const *handle
     return true;
 }
 
+void service_native_set_dialog(service_native *native, void *window) { native->dialog = window; }
+
 void service_native_dispatch(service_native *native, unsigned timeout_ms)
 {
+    if (native->retry_at) {
+        ULONGLONG now = GetTickCount64();
+        unsigned remaining = native->retry_at > now ? (unsigned)(native->retry_at - now) : 0;
+        if (remaining < timeout_ms) timeout_ms = remaining;
+    }
     HANDLE handles[5];
     DWORD count = 0;
     if (native->helper) handles[count++] = native->helper;
@@ -311,6 +334,11 @@ void service_native_dispatch(service_native *native, unsigned timeout_ms)
     if (!native->status_ready && !native->manager_ready)
         MsgWaitForMultipleObjectsEx(count, handles, timeout_ms, QS_ALLINPUT,
                                     MWMO_ALERTABLE | MWMO_INPUTAVAILABLE);
+    if (native->retry_at && GetTickCount64() >= native->retry_at) {
+        native->retry_at = 0;
+        detach_monitors(native);
+        attach_monitors(native);
+    }
     if (native->helper && WaitForSingleObject(native->helper, 0) == WAIT_OBJECT_0) {
         DWORD exit_code = ERROR_SUCCESS;
         if (!GetExitCodeProcess(native->helper, &exit_code)) exit_code = GetLastError();
@@ -324,9 +352,12 @@ void service_native_dispatch(service_native *native, unsigned timeout_ms)
     }
     if (native->manager_ready) {
         native->manager_ready = false;
-        arm_manager(native);
-        if (!native->service)
-            read_status(native);
+        if (native->manager_notice.dwNotificationStatus != ERROR_SUCCESS)
+            publish_error(native, native->manager_notice.dwNotificationStatus);
+        else {
+            arm_manager(native);
+            if (!native->service) read_status(native);
+        }
     }
     if (native->status_ready) {
         native->status_ready = false;
@@ -344,6 +375,7 @@ void service_native_dispatch(service_native *native, unsigned timeout_ms)
     }
     MSG message;
     while (PeekMessageW(&message, NULL, 0, 0, PM_REMOVE)) {
+        if (native->dialog && IsWindowVisible(native->dialog) && IsDialogMessageW(native->dialog, &message)) continue;
         TranslateMessage(&message);
         DispatchMessageW(&message);
     }

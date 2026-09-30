@@ -31,6 +31,11 @@ void service_native_dispatch(service_native *native, unsigned timeout_ms);
  * @return true on success; false if count exceeds four.
  */
 bool service_native_set_wait_handles(service_native *native, void *const *handles, unsigned count);
+/** Route dialog navigation keys for the fallback control window.
+ * @param native Live backend.
+ * @param window Borrowed HWND, or NULL to detach before destroying the window.
+ */
+void service_native_set_dialog(service_native *native, void *window);
 #endif
 /** Release subscriptions without stopping the service.
  * @param native Owned backend; NULL is permitted.

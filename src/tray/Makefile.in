@@ -106,7 +106,7 @@ bin_PROGRAMS = xpilot-infinity-tray$(EXEEXT) $(am__EXEEXT_1)
 @COND_WINDOWS_FALSE@	-DGTK_VERSION_MAX_ALLOWED=GTK_VERSION_3_22 \
 @COND_WINDOWS_FALSE@	-DXPILOT_TRAY_ICON=\"$(pkgdatadir)/icon-1254.png\" \
 @COND_WINDOWS_FALSE@	-DXPILOT_MAP_DIRECTORY=\"$(pkgdatadir)/maps\"
-@COND_WINDOWS_FALSE@am__append_6 = service_systemd.c tray_sni.c tray_sni.h
+@COND_WINDOWS_FALSE@am__append_6 = service_systemd.c tray_sni.c tray_sni.h tray_xembed.c tray_xembed.h
 @COND_WINDOWS_FALSE@am__append_7 = tray_linux.c
 @COND_WINDOWS_FALSE@am__append_8 = $(TRAY_LIBS)
 @COND_WINDOWS_FALSE@libexec_PROGRAMS =  \
@@ -146,14 +146,14 @@ am__libxptray_a_SOURCES_DIST = tray_controller.c tray_controller.h \
 	settings_file_win32.c settings_file_win32.h \
 	settings_transfer_win32.c settings_transfer_win32.h \
 	$(top_srcdir)/src/common/utf8_files.c service_systemd.c \
-	tray_sni.c tray_sni.h
+	tray_sni.c tray_sni.h tray_xembed.c tray_xembed.h
 @COND_WINDOWS_TRUE@am__objects_1 = service_win32.$(OBJEXT) \
 @COND_WINDOWS_TRUE@	service_paths_win32.$(OBJEXT) \
 @COND_WINDOWS_TRUE@	settings_file_win32.$(OBJEXT) \
 @COND_WINDOWS_TRUE@	settings_transfer_win32.$(OBJEXT) \
 @COND_WINDOWS_TRUE@	utf8_files.$(OBJEXT)
 @COND_WINDOWS_FALSE@am__objects_2 = service_systemd.$(OBJEXT) \
-@COND_WINDOWS_FALSE@	tray_sni.$(OBJEXT)
+@COND_WINDOWS_FALSE@	tray_sni.$(OBJEXT) tray_xembed.$(OBJEXT)
 am_libxptray_a_OBJECTS = tray_controller.$(OBJEXT) tray_menu.$(OBJEXT) \
 	service_config.$(OBJEXT) map_catalog.$(OBJEXT) \
 	config_editor.$(OBJEXT) $(am__objects_1) $(am__objects_2)
@@ -215,7 +215,8 @@ am__depfiles_remade = ./$(DEPDIR)/config_editor.Po ./$(DEPDIR)/main.Po \
 	./$(DEPDIR)/settings_transfer_win32.Po \
 	./$(DEPDIR)/tray_controller.Po ./$(DEPDIR)/tray_linux.Po \
 	./$(DEPDIR)/tray_menu.Po ./$(DEPDIR)/tray_sni.Po \
-	./$(DEPDIR)/tray_win32.Po ./$(DEPDIR)/utf8_files.Po \
+	./$(DEPDIR)/tray_win32.Po ./$(DEPDIR)/tray_xembed.Po \
+	./$(DEPDIR)/utf8_files.Po \
 	./$(DEPDIR)/xpilot_infinity_settings_helper-service_helper_linux.Po \
 	./$(DEPDIR)/xpilot_infinity_settings_helper-settings_file_linux.Po
 am__mv = mv -f
@@ -684,6 +685,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tray_menu.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tray_sni.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tray_win32.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tray_xembed.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/utf8_files.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xpilot_infinity_settings_helper-service_helper_linux.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xpilot_infinity_settings_helper-settings_file_linux.Po@am__quote@ # am--include-marker
@@ -1050,6 +1052,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/tray_menu.Po
 	-rm -f ./$(DEPDIR)/tray_sni.Po
 	-rm -f ./$(DEPDIR)/tray_win32.Po
+	-rm -f ./$(DEPDIR)/tray_xembed.Po
 	-rm -f ./$(DEPDIR)/utf8_files.Po
 	-rm -f ./$(DEPDIR)/xpilot_infinity_settings_helper-service_helper_linux.Po
 	-rm -f ./$(DEPDIR)/xpilot_infinity_settings_helper-settings_file_linux.Po
@@ -1114,6 +1117,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/tray_menu.Po
 	-rm -f ./$(DEPDIR)/tray_sni.Po
 	-rm -f ./$(DEPDIR)/tray_win32.Po
+	-rm -f ./$(DEPDIR)/tray_xembed.Po
 	-rm -f ./$(DEPDIR)/utf8_files.Po
 	-rm -f ./$(DEPDIR)/xpilot_infinity_settings_helper-service_helper_linux.Po
 	-rm -f ./$(DEPDIR)/xpilot_infinity_settings_helper-settings_file_linux.Po

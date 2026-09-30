@@ -33,7 +33,7 @@ AM_CPPFLAGS += $(TRAY_CFLAGS) -DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_60 \
     -DGTK_VERSION_MIN_REQUIRED=GTK_VERSION_3_22 -DGTK_VERSION_MAX_ALLOWED=GTK_VERSION_3_22 \
     -DXPILOT_TRAY_ICON=\"$(pkgdatadir)/icon-1254.png\"
 AM_CPPFLAGS += -DXPILOT_MAP_DIRECTORY=\"$(pkgdatadir)/maps\"
-libxptray_a_SOURCES += service_systemd.c tray_sni.c tray_sni.h
+libxptray_a_SOURCES += service_systemd.c tray_sni.c tray_sni.h tray_xembed.c tray_xembed.h
 xpilot_infinity_tray_SOURCES += tray_linux.c
 xpilot_infinity_tray_LDADD += $(TRAY_LIBS)
 dist_pkgdata_DATA = $(top_srcdir)/images/icon-1254.png

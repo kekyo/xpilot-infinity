@@ -277,7 +277,7 @@ if test x$enable_server_tray != xno; then
     else
         case "$host_os" in
             linux*)
-                PKG_CHECK_MODULES([TRAY], [gtk+-3.0 >= 3.22 gio-2.0 >= 2.60 gdk-x11-3.0 x11],
+                PKG_CHECK_MODULES([TRAY], [gtk+-3.0 >= 3.22 gio-2.0 >= 2.60 gdk-x11-3.0 x11 xfixes],
                     [PKG_CHECK_MODULES([TRAY_POLKIT], [polkit-gobject-1],
                         [server_tray=yes], [server_tray=no])],
                     [server_tray=no])

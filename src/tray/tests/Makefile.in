@@ -95,9 +95,9 @@ noinst_PROGRAMS = service-driver$(EXEEXT) $(am__EXEEXT_2)
 @COND_WINDOWS_TRUE@am__append_1 = -ladvapi32 -luser32 -lshell32 -lole32 -luuid
 @COND_WINDOWS_FALSE@am__append_2 = $(TRAY_CFLAGS)
 @COND_WINDOWS_FALSE@am__append_3 = $(TRAY_LIBS)
-@COND_WINDOWS_FALSE@am__append_4 = test-sni test-catalog \
-@COND_WINDOWS_FALSE@	test-settings-file test-editor \
-@COND_WINDOWS_FALSE@	test-utf8-files
+@COND_WINDOWS_FALSE@am__append_4 = test-sni test-sni-hosts test-xembed \
+@COND_WINDOWS_FALSE@	test-catalog test-settings-file \
+@COND_WINDOWS_FALSE@	test-editor test-utf8-files
 @COND_WINDOWS_FALSE@am__append_5 = test-desktop test-auth-cancel
 @COND_WINDOWS_FALSE@TESTS = test-controller$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-menu$(EXEEXT) \
@@ -105,7 +105,8 @@ noinst_PROGRAMS = service-driver$(EXEEXT) $(am__EXEEXT_2)
 @COND_WINDOWS_FALSE@	test-sni$(EXEEXT) test-catalog$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-settings-file$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-utf8-files$(EXEEXT) \
-@COND_WINDOWS_FALSE@	test-editor$(EXEEXT)
+@COND_WINDOWS_FALSE@	test-editor$(EXEEXT) test-xembed$(EXEEXT) \
+@COND_WINDOWS_FALSE@	test-sni-hosts$(EXEEXT)
 subdir = src/tray/tests
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -117,7 +118,8 @@ CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 @COND_WINDOWS_FALSE@am__EXEEXT_1 = test-sni$(EXEEXT) \
-@COND_WINDOWS_FALSE@	test-catalog$(EXEEXT) \
+@COND_WINDOWS_FALSE@	test-sni-hosts$(EXEEXT) \
+@COND_WINDOWS_FALSE@	test-xembed$(EXEEXT) test-catalog$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-settings-file$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-editor$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-utf8-files$(EXEEXT)
@@ -178,6 +180,12 @@ am__test_sni_SOURCES_DIST = test_sni.c
 test_sni_OBJECTS = $(am_test_sni_OBJECTS)
 @COND_WINDOWS_FALSE@test_sni_DEPENDENCIES = ../libxptray.a \
 @COND_WINDOWS_FALSE@	$(am__DEPENDENCIES_1)
+am__test_sni_hosts_SOURCES_DIST = test_sni_hosts.c
+@COND_WINDOWS_FALSE@am_test_sni_hosts_OBJECTS =  \
+@COND_WINDOWS_FALSE@	test_sni_hosts-test_sni_hosts.$(OBJEXT)
+test_sni_hosts_OBJECTS = $(am_test_sni_hosts_OBJECTS)
+@COND_WINDOWS_FALSE@test_sni_hosts_DEPENDENCIES = ../libxptray.a \
+@COND_WINDOWS_FALSE@	$(am__DEPENDENCIES_1)
 am__test_utf8_files_SOURCES_DIST = test_utf8_files.c \
 	$(top_srcdir)/src/common/utf8_files.c
 @COND_WINDOWS_FALSE@am_test_utf8_files_OBJECTS =  \
@@ -185,6 +193,12 @@ am__test_utf8_files_SOURCES_DIST = test_utf8_files.c \
 @COND_WINDOWS_FALSE@	test_utf8_files-utf8_files.$(OBJEXT)
 test_utf8_files_OBJECTS = $(am_test_utf8_files_OBJECTS)
 test_utf8_files_LDADD = $(LDADD)
+am__test_xembed_SOURCES_DIST = test_xembed.c
+@COND_WINDOWS_FALSE@am_test_xembed_OBJECTS =  \
+@COND_WINDOWS_FALSE@	test_xembed-test_xembed.$(OBJEXT)
+test_xembed_OBJECTS = $(am_test_xembed_OBJECTS)
+@COND_WINDOWS_FALSE@test_xembed_DEPENDENCIES = ../libxptray.a \
+@COND_WINDOWS_FALSE@	$(am__DEPENDENCIES_1)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -210,8 +224,10 @@ am__depfiles_remade = ./$(DEPDIR)/config_editor.Po \
 	./$(DEPDIR)/test_menu.Po ./$(DEPDIR)/test_service_config.Po \
 	./$(DEPDIR)/test_settings_file.Po \
 	./$(DEPDIR)/test_sni-test_sni.Po \
+	./$(DEPDIR)/test_sni_hosts-test_sni_hosts.Po \
 	./$(DEPDIR)/test_utf8_files-test_utf8_files.Po \
 	./$(DEPDIR)/test_utf8_files-utf8_files.Po \
+	./$(DEPDIR)/test_xembed-test_xembed.Po \
 	./$(DEPDIR)/tray_controller.Po ./$(DEPDIR)/tray_menu.Po
 am__mv = mv -f
 AM_V_lt = $(am__v_lt_@AM_V@)
@@ -235,7 +251,8 @@ SOURCES = $(service_driver_SOURCES) $(test_auth_cancel_SOURCES) \
 	$(test_desktop_SOURCES) $(test_editor_SOURCES) \
 	$(test_menu_SOURCES) $(test_service_config_SOURCES) \
 	$(test_settings_file_SOURCES) $(test_sni_SOURCES) \
-	$(test_utf8_files_SOURCES)
+	$(test_sni_hosts_SOURCES) $(test_utf8_files_SOURCES) \
+	$(test_xembed_SOURCES)
 DIST_SOURCES = $(service_driver_SOURCES) \
 	$(am__test_auth_cancel_SOURCES_DIST) \
 	$(am__test_catalog_SOURCES_DIST) $(test_controller_SOURCES) \
@@ -244,7 +261,9 @@ DIST_SOURCES = $(service_driver_SOURCES) \
 	$(test_service_config_SOURCES) \
 	$(am__test_settings_file_SOURCES_DIST) \
 	$(am__test_sni_SOURCES_DIST) \
-	$(am__test_utf8_files_SOURCES_DIST)
+	$(am__test_sni_hosts_SOURCES_DIST) \
+	$(am__test_utf8_files_SOURCES_DIST) \
+	$(am__test_xembed_SOURCES_DIST)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -632,6 +651,13 @@ test_menu_SOURCES = test_menu.c ../tray_menu.c
 test_service_config_SOURCES = test_service_config.c ../service_config.c
 service_driver_SOURCES = service_driver.c
 service_driver_LDADD = ../libxptray.a $(am__append_1) $(am__append_3)
+@COND_WINDOWS_FALSE@test_sni_hosts_SOURCES = test_sni_hosts.c
+@COND_WINDOWS_FALSE@test_sni_hosts_CPPFLAGS = $(AM_CPPFLAGS) -DXPILOT_TEST_ICON=\"$(abs_top_srcdir)/images/icon-1254.png\"
+@COND_WINDOWS_FALSE@test_sni_hosts_LDADD = ../libxptray.a $(TRAY_LIBS)
+@COND_WINDOWS_FALSE@test_xembed_SOURCES = test_xembed.c
+@COND_WINDOWS_FALSE@test_xembed_CPPFLAGS = $(AM_CPPFLAGS) -DXPILOT_TEST_ICON=\"$(abs_top_srcdir)/images/icon-1254.png\"
+@COND_WINDOWS_FALSE@test_xembed_LDADD = ../libxptray.a $(TRAY_LIBS) -lXtst
+@COND_WINDOWS_FALSE@LOG_COMPILER = $(SHELL) $(srcdir)/run-test.sh
 @COND_WINDOWS_FALSE@test_editor_SOURCES = test_editor.c ../config_editor.c ../service_config.c
 @COND_WINDOWS_FALSE@test_utf8_files_SOURCES = test_utf8_files.c $(top_srcdir)/src/common/utf8_files.c
 @COND_WINDOWS_FALSE@test_utf8_files_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/src/common
@@ -646,7 +672,11 @@ service_driver_LDADD = ../libxptray.a $(am__append_1) $(am__append_3)
 @COND_WINDOWS_FALSE@test_sni_SOURCES = test_sni.c
 @COND_WINDOWS_FALSE@test_sni_CPPFLAGS = $(AM_CPPFLAGS) -DXPILOT_TEST_ICON=\"$(abs_top_srcdir)/images/icon-1254.png\"
 @COND_WINDOWS_FALSE@test_sni_LDADD = ../libxptray.a $(TRAY_LIBS)
-EXTRA_DIST = run-systemd.sh run-systemd-inside.sh xpilot-tray-test.service Containerfile test-strict-map.sh test-settings-helper.sh test-settings-editor.sh test-default-editor.sh
+EXTRA_DIST = run-systemd.sh run-systemd-inside.sh \
+	xpilot-tray-test.service Containerfile test-strict-map.sh \
+	test-settings-helper.sh test-settings-editor.sh \
+	test-default-editor.sh run-test.sh record-xembed.sh
+CLEANFILES = test-xembed.mkv
 all: all-am
 
 .SUFFIXES:
@@ -727,9 +757,17 @@ test-sni$(EXEEXT): $(test_sni_OBJECTS) $(test_sni_DEPENDENCIES) $(EXTRA_test_sni
 	@rm -f test-sni$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_sni_OBJECTS) $(test_sni_LDADD) $(LIBS)
 
+test-sni-hosts$(EXEEXT): $(test_sni_hosts_OBJECTS) $(test_sni_hosts_DEPENDENCIES) $(EXTRA_test_sni_hosts_DEPENDENCIES)
+	@rm -f test-sni-hosts$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_sni_hosts_OBJECTS) $(test_sni_hosts_LDADD) $(LIBS)
+
 test-utf8-files$(EXEEXT): $(test_utf8_files_OBJECTS) $(test_utf8_files_DEPENDENCIES) $(EXTRA_test_utf8_files_DEPENDENCIES)
 	@rm -f test-utf8-files$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_utf8_files_OBJECTS) $(test_utf8_files_LDADD) $(LIBS)
+
+test-xembed$(EXEEXT): $(test_xembed_OBJECTS) $(test_xembed_DEPENDENCIES) $(EXTRA_test_xembed_DEPENDENCIES)
+	@rm -f test-xembed$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_xembed_OBJECTS) $(test_xembed_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -751,8 +789,10 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_service_config.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_settings_file.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_sni-test_sni.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_sni_hosts-test_sni_hosts.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_utf8_files-test_utf8_files.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_utf8_files-utf8_files.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_xembed-test_xembed.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tray_controller.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tray_menu.Po@am__quote@ # am--include-marker
 
@@ -888,6 +928,20 @@ test_sni-test_sni.obj: test_sni.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_sni_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o test_sni-test_sni.obj `if test -f 'test_sni.c'; then $(CYGPATH_W) 'test_sni.c'; else $(CYGPATH_W) '$(srcdir)/test_sni.c'; fi`
 
+test_sni_hosts-test_sni_hosts.o: test_sni_hosts.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_sni_hosts_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT test_sni_hosts-test_sni_hosts.o -MD -MP -MF $(DEPDIR)/test_sni_hosts-test_sni_hosts.Tpo -c -o test_sni_hosts-test_sni_hosts.o `test -f 'test_sni_hosts.c' || echo '$(srcdir)/'`test_sni_hosts.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_sni_hosts-test_sni_hosts.Tpo $(DEPDIR)/test_sni_hosts-test_sni_hosts.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='test_sni_hosts.c' object='test_sni_hosts-test_sni_hosts.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_sni_hosts_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o test_sni_hosts-test_sni_hosts.o `test -f 'test_sni_hosts.c' || echo '$(srcdir)/'`test_sni_hosts.c
+
+test_sni_hosts-test_sni_hosts.obj: test_sni_hosts.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_sni_hosts_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT test_sni_hosts-test_sni_hosts.obj -MD -MP -MF $(DEPDIR)/test_sni_hosts-test_sni_hosts.Tpo -c -o test_sni_hosts-test_sni_hosts.obj `if test -f 'test_sni_hosts.c'; then $(CYGPATH_W) 'test_sni_hosts.c'; else $(CYGPATH_W) '$(srcdir)/test_sni_hosts.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_sni_hosts-test_sni_hosts.Tpo $(DEPDIR)/test_sni_hosts-test_sni_hosts.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='test_sni_hosts.c' object='test_sni_hosts-test_sni_hosts.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_sni_hosts_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o test_sni_hosts-test_sni_hosts.obj `if test -f 'test_sni_hosts.c'; then $(CYGPATH_W) 'test_sni_hosts.c'; else $(CYGPATH_W) '$(srcdir)/test_sni_hosts.c'; fi`
+
 test_utf8_files-test_utf8_files.o: test_utf8_files.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_utf8_files_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT test_utf8_files-test_utf8_files.o -MD -MP -MF $(DEPDIR)/test_utf8_files-test_utf8_files.Tpo -c -o test_utf8_files-test_utf8_files.o `test -f 'test_utf8_files.c' || echo '$(srcdir)/'`test_utf8_files.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_utf8_files-test_utf8_files.Tpo $(DEPDIR)/test_utf8_files-test_utf8_files.Po
@@ -915,6 +969,20 @@ test_utf8_files-utf8_files.obj: $(top_srcdir)/src/common/utf8_files.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$(top_srcdir)/src/common/utf8_files.c' object='test_utf8_files-utf8_files.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_utf8_files_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o test_utf8_files-utf8_files.obj `if test -f '$(top_srcdir)/src/common/utf8_files.c'; then $(CYGPATH_W) '$(top_srcdir)/src/common/utf8_files.c'; else $(CYGPATH_W) '$(srcdir)/$(top_srcdir)/src/common/utf8_files.c'; fi`
+
+test_xembed-test_xembed.o: test_xembed.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_xembed_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT test_xembed-test_xembed.o -MD -MP -MF $(DEPDIR)/test_xembed-test_xembed.Tpo -c -o test_xembed-test_xembed.o `test -f 'test_xembed.c' || echo '$(srcdir)/'`test_xembed.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_xembed-test_xembed.Tpo $(DEPDIR)/test_xembed-test_xembed.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='test_xembed.c' object='test_xembed-test_xembed.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_xembed_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o test_xembed-test_xembed.o `test -f 'test_xembed.c' || echo '$(srcdir)/'`test_xembed.c
+
+test_xembed-test_xembed.obj: test_xembed.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_xembed_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT test_xembed-test_xembed.obj -MD -MP -MF $(DEPDIR)/test_xembed-test_xembed.Tpo -c -o test_xembed-test_xembed.obj `if test -f 'test_xembed.c'; then $(CYGPATH_W) 'test_xembed.c'; else $(CYGPATH_W) '$(srcdir)/test_xembed.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_xembed-test_xembed.Tpo $(DEPDIR)/test_xembed-test_xembed.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='test_xembed.c' object='test_xembed-test_xembed.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_xembed_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o test_xembed-test_xembed.obj `if test -f 'test_xembed.c'; then $(CYGPATH_W) 'test_xembed.c'; else $(CYGPATH_W) '$(srcdir)/test_xembed.c'; fi`
 
 ID: $(am__tagged_files)
 	$(am__define_uniq_tagged_files); mkid -fID $$unique
@@ -1165,6 +1233,20 @@ test-editor.log: test-editor$(EXEEXT)
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
+test-xembed.log: test-xembed$(EXEEXT)
+	@p='test-xembed$(EXEEXT)'; \
+	b='test-xembed'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+test-sni-hosts.log: test-sni-hosts$(EXEEXT)
+	@p='test-sni-hosts$(EXEEXT)'; \
+	b='test-sni-hosts'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
 .test.log:
 	@p='$<'; \
 	$(am__set_b); \
@@ -1243,6 +1325,7 @@ mostlyclean-generic:
 	-test -z "$(TEST_SUITE_LOG)" || rm -f $(TEST_SUITE_LOG)
 
 clean-generic:
+	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
 
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
@@ -1271,8 +1354,10 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/test_service_config.Po
 	-rm -f ./$(DEPDIR)/test_settings_file.Po
 	-rm -f ./$(DEPDIR)/test_sni-test_sni.Po
+	-rm -f ./$(DEPDIR)/test_sni_hosts-test_sni_hosts.Po
 	-rm -f ./$(DEPDIR)/test_utf8_files-test_utf8_files.Po
 	-rm -f ./$(DEPDIR)/test_utf8_files-utf8_files.Po
+	-rm -f ./$(DEPDIR)/test_xembed-test_xembed.Po
 	-rm -f ./$(DEPDIR)/tray_controller.Po
 	-rm -f ./$(DEPDIR)/tray_menu.Po
 	-rm -f Makefile
@@ -1334,8 +1419,10 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/test_service_config.Po
 	-rm -f ./$(DEPDIR)/test_settings_file.Po
 	-rm -f ./$(DEPDIR)/test_sni-test_sni.Po
+	-rm -f ./$(DEPDIR)/test_sni_hosts-test_sni_hosts.Po
 	-rm -f ./$(DEPDIR)/test_utf8_files-test_utf8_files.Po
 	-rm -f ./$(DEPDIR)/test_utf8_files-utf8_files.Po
+	-rm -f ./$(DEPDIR)/test_xembed-test_xembed.Po
 	-rm -f ./$(DEPDIR)/tray_controller.Po
 	-rm -f ./$(DEPDIR)/tray_menu.Po
 	-rm -f Makefile

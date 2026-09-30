@@ -3,6 +3,7 @@
 #include "service_config.h"
 #include "settings_protocol.h"
 #include "tray_sni.h"
+#include "tray_xembed.h"
 #include <gtk/gtk.h>
 #include <stdlib.h>
 
@@ -13,6 +14,9 @@ typedef struct {
     tray_controller *controller;
     tray_menu menu;
     tray_sni *sni;
+    tray_xembed *xembed;
+    bool sni_available;
+    bool xembed_available;
     GApplication *application;
     GtkWidget *window;
     GtkWidget *rows[11];
@@ -26,6 +30,9 @@ typedef struct {
     bool editor_changed;
     bool editor_launching;
     GDBusConnection *settings_bus;
+    gulong settings_closed;
+    guint settings_retry;
+    unsigned settings_retry_delay;
     GCancellable *settings_cancel;
     unsigned settings_pending;
     bool settings_available;
@@ -44,6 +51,7 @@ typedef struct {
 
 static void inspect_settings(linux_tray *tray);
 static void update(linux_tray *tray);
+static void settings_bus_ready(GObject *object, GAsyncResult *result, void *context);
 
 static void show_details(linux_tray *tray)
 {
@@ -247,6 +255,7 @@ static void activate(void *context, int id)
     if (id == -1) {
         tray->config_changed = tray->maps_changed = true;
         inspect_settings(tray);
+        update(tray);
         return;
     }
     if (!id) {
@@ -269,14 +278,28 @@ static void activate(void *context, int id)
     }
 }
 
-static void available(void *context, bool usable)
+static void host_changed(linux_tray *tray)
 {
-    linux_tray *tray = context;
-    tray->host_available = usable;
-    if (usable)
+    tray->host_available = tray->sni_available || tray->xembed_available;
+    if (tray->host_available)
         gtk_widget_hide(tray->window);
     else
         gtk_widget_show_all(tray->window);
+}
+
+static void xembed_available(void *context, bool usable)
+{
+    linux_tray *tray = context;
+    tray->xembed_available = usable;
+    host_changed(tray);
+}
+
+static void available(void *context, bool usable)
+{
+    linux_tray *tray = context;
+    tray->sni_available = usable;
+    tray_xembed_enable(tray->xembed, !usable);
+    host_changed(tray);
 }
 
 static void clicked(GtkButton *button, void *context)
@@ -346,6 +369,35 @@ static void inspect_settings(linux_tray *tray)
         10000, tray->settings_cancel, settings_inspected, tray);
 }
 
+static gboolean reconnect_settings(void *context)
+{
+    linux_tray *tray = context;
+    tray->settings_retry = 0;
+    if (!tray->done) {
+        tray->settings_pending++;
+        g_bus_get(G_BUS_TYPE_SYSTEM, tray->settings_cancel, settings_bus_ready, tray);
+    }
+    return G_SOURCE_REMOVE;
+}
+
+static void retry_settings(linux_tray *tray)
+{
+    if (tray->done || tray->settings_retry) return;
+    tray->settings_retry_delay = MIN(tray->settings_retry_delay ? tray->settings_retry_delay * 2 : 250, 30000);
+    tray->settings_retry = g_timeout_add(tray->settings_retry_delay, reconnect_settings, tray);
+}
+
+static void settings_bus_closed(GDBusConnection *bus, gboolean remote, GError *error, void *context)
+{
+    (void)remote; (void)error;
+    linux_tray *tray = context;
+    tray->settings_available = false;
+    g_signal_handler_disconnect(bus, tray->settings_closed);
+    tray->settings_closed = 0;
+    g_clear_object(&tray->settings_bus);
+    retry_settings(tray);
+}
+
 static void settings_bus_ready(GObject *object, GAsyncResult *result, void *context)
 {
     (void)object;
@@ -354,8 +406,15 @@ static void settings_bus_ready(GObject *object, GAsyncResult *result, void *cont
     tray->settings_bus = g_bus_get_finish(result, &error);
     tray->settings_pending--;
     if (!tray->done) {
-        if (error) tray->settings_detail = g_strdup(error->message);
-        else inspect_settings(tray);
+        if (error) {
+            g_free(tray->settings_detail); tray->settings_detail = g_strdup(error->message);
+            retry_settings(tray);
+        } else {
+            tray->settings_retry_delay = 0;
+            g_dbus_connection_set_exit_on_close(tray->settings_bus, FALSE);
+            tray->settings_closed = g_signal_connect(tray->settings_bus, "closed", G_CALLBACK(settings_bus_closed), tray);
+            inspect_settings(tray);
+        }
     }
     g_clear_error(&error);
 }
@@ -529,6 +588,8 @@ int tray_platform_run(int argc, char **argv)
     tray.settings_pending++;
     g_bus_get(G_BUS_TYPE_SYSTEM, tray.settings_cancel, settings_bus_ready, &tray);
     update(&tray);
+    tray.xembed = tray_xembed_create(gdk_display_get_default(), &tray.menu, XPILOT_TRAY_ICON,
+        activate, xembed_available, &tray);
     GDBusConnection *bus = g_application_get_dbus_connection(tray.application);
     if (bus)
         tray.sni = tray_sni_create(bus, &tray.menu, XPILOT_TRAY_ICON,
@@ -543,6 +604,9 @@ int tray_platform_run(int argc, char **argv)
         update(&tray);
     }
     tray_sni_destroy(tray.sni);
+    tray_xembed_destroy(tray.xembed);
+    if (tray.settings_retry) g_source_remove(tray.settings_retry);
+    if (tray.settings_closed) g_signal_handler_disconnect(tray.settings_bus, tray.settings_closed);
     g_cancellable_cancel(tray.settings_cancel);
     while (tray.settings_pending) g_main_context_iteration(NULL, TRUE);
     g_clear_object(&tray.settings_cancel);
