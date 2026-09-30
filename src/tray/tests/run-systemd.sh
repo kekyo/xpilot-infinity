@@ -34,6 +34,12 @@ container=$(podman create --privileged --network=none --systemd=always \
 podman cp "$XPILOT_SERVICE_DRIVER" "$container:/service-driver"
 podman cp "$XPILOT_CONTACT_TARGET_PROBE" "$container:/contact-probe"
 podman cp "$XPILOT_SERVER_BINARY" "$container:/usr/games/xpilot-infinity-server"
+if test -n "${XPILOT_TRAY_BINARY:-}"; then
+    : "${XPILOT_DESKTOP_TEST:?Set the desktop test path}"
+    podman cp "$XPILOT_TRAY_BINARY" "$container:/xpilot-infinity-tray"
+    podman cp "$XPILOT_DESKTOP_TEST" "$container:/test-desktop"
+    podman cp "$XPILOT_TEST_SOURCE_DIR/images/icon-1254.png" "$container:/xpilot-test-icon.png"
+fi
 podman cp "$XPILOT_TEST_SOURCE_DIR/lib" "$container:/xpilot-test-data"
 podman cp "$XPILOT_TEST_SOURCE_DIR/debian/xpilot-infinity-server.service" \
     "$container:/xpilot-test-server.service"

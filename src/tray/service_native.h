@@ -8,6 +8,11 @@ typedef struct service_native service_native;
  * @return Owned backend, or NULL on allocation failure.
  */
 service_native *service_native_create(void);
+/** Enable normal-user desktop authorization for future requests.
+ * @param native Live backend. Windows delegates calls to the installed helper;
+ * Linux already uses systemd's interactive authorization protocol.
+ */
+void service_native_enable_authorization(service_native *native);
 /** Obtain a borrowed controller interface.
  * @param native Live backend.
  * @return Function table valid until native is destroyed.

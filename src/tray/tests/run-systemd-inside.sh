@@ -41,6 +41,35 @@ systemctl mask xpilot-infinity-server
 if /service-driver start; then echo 'Masked service started' >&2; exit 1; fi
 systemctl unmask xpilot-infinity-server
 
+if test -x /test-desktop; then
+    cp /xpilot-test-icon.png "$data_directory/icon-1254.png"
+    useradd --create-home xpilot-tray-allowed
+    useradd --create-home xpilot-tray-denied
+    useradd --create-home xpilot-tray-no-agent
+    mkdir -p /etc/polkit-1/rules.d
+    cat > /etc/polkit-1/rules.d/00-xpilot-test.rules <<'EOF'
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.freedesktop.systemd1.manage-units" &&
+        action.lookup("unit") == "xpilot-infinity-server.service") {
+        if (subject.user == "xpilot-tray-allowed") return polkit.Result.YES;
+        if (subject.user == "xpilot-tray-denied") return polkit.Result.NO;
+        if (subject.user == "xpilot-tray-no-agent") return polkit.Result.AUTH_ADMIN;
+    }
+});
+EOF
+    runuser -u xpilot-tray-denied -- xvfb-run -a /test-desktop /xpilot-infinity-tray denied
+    /service-driver status | grep '^stopped '
+    runuser -u xpilot-tray-no-agent -- xvfb-run -a /test-desktop /xpilot-infinity-tray denied
+    /service-driver status | grep '^stopped '
+    runuser -u xpilot-tray-allowed -- xvfb-run -a /test-desktop /xpilot-infinity-tray start
+    /service-driver status | grep '^running '
+    /contact-probe udp://127.0.0.1:15345 udp://127.0.0.1:15345
+    runuser -u xpilot-tray-allowed -- xvfb-run -a /test-desktop /xpilot-infinity-tray fallback
+    /service-driver status | grep '^running '
+    runuser -u xpilot-tray-allowed -- xvfb-run -a /test-desktop /xpilot-infinity-tray stop
+    /service-driver status | grep '^stopped '
+fi
+
 # Request acceptance must not hide failure to execute the actual server.
 mkdir -p /etc/systemd/system/xpilot-infinity-server.service.d
 printf '%s\n' '[Service]' 'ExecStart=' 'ExecStart=/missing-xpilot-server' 'Restart=no' \

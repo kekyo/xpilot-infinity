@@ -327,6 +327,7 @@ fi
 W32_LIBS=
 if test x$windows_target = xyes; then
 	W32_LIBS="-lmingw32 -lws2_32 -ladvapi32"
+	AC_CHECK_TOOL([WINDRES], [windres])
 	AC_DEFINE([_WINDOWS], 1, [compiling for windows target])
 
 	enable_select_sched=yes

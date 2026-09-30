@@ -433,6 +433,11 @@ service_native *service_native_create(void)
     return g_new0(service_native, 1);
 }
 
+void service_native_enable_authorization(service_native *native)
+{
+    (void)native;
+}
+
 service_control service_native_control(service_native *native)
 {
     service_control control = {native, connect_service, request_service, disconnect_service};

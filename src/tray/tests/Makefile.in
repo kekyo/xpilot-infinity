@@ -89,12 +89,18 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-check_PROGRAMS = test-controller$(EXEEXT)
-noinst_PROGRAMS = service-driver$(EXEEXT)
-@COND_WINDOWS_TRUE@am__append_1 = -ladvapi32 -luser32
+check_PROGRAMS = test-controller$(EXEEXT) test-menu$(EXEEXT) \
+	test-service-config$(EXEEXT) $(am__EXEEXT_1)
+noinst_PROGRAMS = service-driver$(EXEEXT) $(am__EXEEXT_2)
+@COND_WINDOWS_TRUE@am__append_1 = -ladvapi32 -luser32 -lshell32
 @COND_WINDOWS_FALSE@am__append_2 = $(TRAY_CFLAGS)
 @COND_WINDOWS_FALSE@am__append_3 = $(TRAY_LIBS)
-@COND_WINDOWS_FALSE@TESTS = test-controller$(EXEEXT)
+@COND_WINDOWS_FALSE@am__append_4 = test-sni
+@COND_WINDOWS_FALSE@am__append_5 = test-desktop
+@COND_WINDOWS_FALSE@TESTS = test-controller$(EXEEXT) \
+@COND_WINDOWS_FALSE@	test-menu$(EXEEXT) \
+@COND_WINDOWS_FALSE@	test-service-config$(EXEEXT) \
+@COND_WINDOWS_FALSE@	test-sni$(EXEEXT)
 subdir = src/tray/tests
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -105,6 +111,8 @@ mkinstalldirs = $(SHELL) $(top_srcdir)/config/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
+@COND_WINDOWS_FALSE@am__EXEEXT_1 = test-sni$(EXEEXT)
+@COND_WINDOWS_FALSE@am__EXEEXT_2 = test-desktop$(EXEEXT)
 PROGRAMS = $(noinst_PROGRAMS)
 am_service_driver_OBJECTS = service_driver.$(OBJEXT)
 service_driver_OBJECTS = $(am_service_driver_OBJECTS)
@@ -116,6 +124,22 @@ am_test_controller_OBJECTS = test_controller.$(OBJEXT) \
 	tray_controller.$(OBJEXT)
 test_controller_OBJECTS = $(am_test_controller_OBJECTS)
 test_controller_LDADD = $(LDADD)
+am__test_desktop_SOURCES_DIST = test_desktop.c
+@COND_WINDOWS_FALSE@am_test_desktop_OBJECTS = test_desktop.$(OBJEXT)
+test_desktop_OBJECTS = $(am_test_desktop_OBJECTS)
+@COND_WINDOWS_FALSE@test_desktop_DEPENDENCIES = $(am__DEPENDENCIES_1)
+am_test_menu_OBJECTS = test_menu.$(OBJEXT) tray_menu.$(OBJEXT)
+test_menu_OBJECTS = $(am_test_menu_OBJECTS)
+test_menu_LDADD = $(LDADD)
+am_test_service_config_OBJECTS = test_service_config.$(OBJEXT) \
+	service_config.$(OBJEXT)
+test_service_config_OBJECTS = $(am_test_service_config_OBJECTS)
+test_service_config_LDADD = $(LDADD)
+am__test_sni_SOURCES_DIST = test_sni.c
+@COND_WINDOWS_FALSE@am_test_sni_OBJECTS = test_sni-test_sni.$(OBJEXT)
+test_sni_OBJECTS = $(am_test_sni_OBJECTS)
+@COND_WINDOWS_FALSE@test_sni_DEPENDENCIES = ../libxptray.a \
+@COND_WINDOWS_FALSE@	$(am__DEPENDENCIES_1)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -131,8 +155,12 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/config/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/service_driver.Po \
-	./$(DEPDIR)/test_controller.Po ./$(DEPDIR)/tray_controller.Po
+am__depfiles_remade = ./$(DEPDIR)/service_config.Po \
+	./$(DEPDIR)/service_driver.Po ./$(DEPDIR)/test_controller.Po \
+	./$(DEPDIR)/test_desktop.Po ./$(DEPDIR)/test_menu.Po \
+	./$(DEPDIR)/test_service_config.Po \
+	./$(DEPDIR)/test_sni-test_sni.Po \
+	./$(DEPDIR)/tray_controller.Po ./$(DEPDIR)/tray_menu.Po
 am__mv = mv -f
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -150,8 +178,12 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 =
-SOURCES = $(service_driver_SOURCES) $(test_controller_SOURCES)
-DIST_SOURCES = $(service_driver_SOURCES) $(test_controller_SOURCES)
+SOURCES = $(service_driver_SOURCES) $(test_controller_SOURCES) \
+	$(test_desktop_SOURCES) $(test_menu_SOURCES) \
+	$(test_service_config_SOURCES) $(test_sni_SOURCES)
+DIST_SOURCES = $(service_driver_SOURCES) $(test_controller_SOURCES) \
+	$(am__test_desktop_SOURCES_DIST) $(test_menu_SOURCES) \
+	$(test_service_config_SOURCES) $(am__test_sni_SOURCES_DIST)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -463,6 +495,7 @@ TRAY_POLKIT_CFLAGS = @TRAY_POLKIT_CFLAGS@
 TRAY_POLKIT_LIBS = @TRAY_POLKIT_LIBS@
 VERSION = @VERSION@
 W32_LIBS = @W32_LIBS@
+WINDRES = @WINDRES@
 XMKMF = @XMKMF@
 XP_AUTHORS = @XP_AUTHORS@
 XP_COPYRIGHT = @XP_COPYRIGHT@
@@ -534,9 +567,16 @@ top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I$(srcdir)/.. $(am__append_2)
 AM_CFLAGS = -std=c99 -Wall -Wextra -Werror
 test_controller_SOURCES = test_controller.c ../tray_controller.c
+test_menu_SOURCES = test_menu.c ../tray_menu.c
+test_service_config_SOURCES = test_service_config.c ../service_config.c
 service_driver_SOURCES = service_driver.c
 service_driver_LDADD = ../libxptray.a $(am__append_1) $(am__append_3)
-EXTRA_DIST = run-systemd.sh run-systemd-inside.sh xpilot-tray-test.service
+@COND_WINDOWS_FALSE@test_desktop_SOURCES = test_desktop.c
+@COND_WINDOWS_FALSE@test_desktop_LDADD = $(TRAY_LIBS)
+@COND_WINDOWS_FALSE@test_sni_SOURCES = test_sni.c
+@COND_WINDOWS_FALSE@test_sni_CPPFLAGS = $(AM_CPPFLAGS) -DXPILOT_TEST_ICON=\"$(abs_top_srcdir)/images/icon-1254.png\"
+@COND_WINDOWS_FALSE@test_sni_LDADD = ../libxptray.a $(TRAY_LIBS)
+EXTRA_DIST = run-systemd.sh run-systemd-inside.sh xpilot-tray-test.service Containerfile
 all: all-am
 
 .SUFFIXES:
@@ -585,15 +625,37 @@ test-controller$(EXEEXT): $(test_controller_OBJECTS) $(test_controller_DEPENDENC
 	@rm -f test-controller$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_controller_OBJECTS) $(test_controller_LDADD) $(LIBS)
 
+test-desktop$(EXEEXT): $(test_desktop_OBJECTS) $(test_desktop_DEPENDENCIES) $(EXTRA_test_desktop_DEPENDENCIES)
+	@rm -f test-desktop$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_desktop_OBJECTS) $(test_desktop_LDADD) $(LIBS)
+
+test-menu$(EXEEXT): $(test_menu_OBJECTS) $(test_menu_DEPENDENCIES) $(EXTRA_test_menu_DEPENDENCIES)
+	@rm -f test-menu$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_menu_OBJECTS) $(test_menu_LDADD) $(LIBS)
+
+test-service-config$(EXEEXT): $(test_service_config_OBJECTS) $(test_service_config_DEPENDENCIES) $(EXTRA_test_service_config_DEPENDENCIES)
+	@rm -f test-service-config$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_service_config_OBJECTS) $(test_service_config_LDADD) $(LIBS)
+
+test-sni$(EXEEXT): $(test_sni_OBJECTS) $(test_sni_DEPENDENCIES) $(EXTRA_test_sni_DEPENDENCIES)
+	@rm -f test-sni$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_sni_OBJECTS) $(test_sni_LDADD) $(LIBS)
+
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
 
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/service_config.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/service_driver.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_controller.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_desktop.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_menu.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_service_config.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_sni-test_sni.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tray_controller.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tray_menu.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -628,6 +690,48 @@ tray_controller.obj: ../tray_controller.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='../tray_controller.c' object='tray_controller.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o tray_controller.obj `if test -f '../tray_controller.c'; then $(CYGPATH_W) '../tray_controller.c'; else $(CYGPATH_W) '$(srcdir)/../tray_controller.c'; fi`
+
+tray_menu.o: ../tray_menu.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT tray_menu.o -MD -MP -MF $(DEPDIR)/tray_menu.Tpo -c -o tray_menu.o `test -f '../tray_menu.c' || echo '$(srcdir)/'`../tray_menu.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/tray_menu.Tpo $(DEPDIR)/tray_menu.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='../tray_menu.c' object='tray_menu.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o tray_menu.o `test -f '../tray_menu.c' || echo '$(srcdir)/'`../tray_menu.c
+
+tray_menu.obj: ../tray_menu.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT tray_menu.obj -MD -MP -MF $(DEPDIR)/tray_menu.Tpo -c -o tray_menu.obj `if test -f '../tray_menu.c'; then $(CYGPATH_W) '../tray_menu.c'; else $(CYGPATH_W) '$(srcdir)/../tray_menu.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/tray_menu.Tpo $(DEPDIR)/tray_menu.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='../tray_menu.c' object='tray_menu.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o tray_menu.obj `if test -f '../tray_menu.c'; then $(CYGPATH_W) '../tray_menu.c'; else $(CYGPATH_W) '$(srcdir)/../tray_menu.c'; fi`
+
+service_config.o: ../service_config.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT service_config.o -MD -MP -MF $(DEPDIR)/service_config.Tpo -c -o service_config.o `test -f '../service_config.c' || echo '$(srcdir)/'`../service_config.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/service_config.Tpo $(DEPDIR)/service_config.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='../service_config.c' object='service_config.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o service_config.o `test -f '../service_config.c' || echo '$(srcdir)/'`../service_config.c
+
+service_config.obj: ../service_config.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT service_config.obj -MD -MP -MF $(DEPDIR)/service_config.Tpo -c -o service_config.obj `if test -f '../service_config.c'; then $(CYGPATH_W) '../service_config.c'; else $(CYGPATH_W) '$(srcdir)/../service_config.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/service_config.Tpo $(DEPDIR)/service_config.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='../service_config.c' object='service_config.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o service_config.obj `if test -f '../service_config.c'; then $(CYGPATH_W) '../service_config.c'; else $(CYGPATH_W) '$(srcdir)/../service_config.c'; fi`
+
+test_sni-test_sni.o: test_sni.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_sni_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT test_sni-test_sni.o -MD -MP -MF $(DEPDIR)/test_sni-test_sni.Tpo -c -o test_sni-test_sni.o `test -f 'test_sni.c' || echo '$(srcdir)/'`test_sni.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_sni-test_sni.Tpo $(DEPDIR)/test_sni-test_sni.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='test_sni.c' object='test_sni-test_sni.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_sni_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o test_sni-test_sni.o `test -f 'test_sni.c' || echo '$(srcdir)/'`test_sni.c
+
+test_sni-test_sni.obj: test_sni.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_sni_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT test_sni-test_sni.obj -MD -MP -MF $(DEPDIR)/test_sni-test_sni.Tpo -c -o test_sni-test_sni.obj `if test -f 'test_sni.c'; then $(CYGPATH_W) 'test_sni.c'; else $(CYGPATH_W) '$(srcdir)/test_sni.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_sni-test_sni.Tpo $(DEPDIR)/test_sni-test_sni.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='test_sni.c' object='test_sni-test_sni.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_sni_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o test_sni-test_sni.obj `if test -f 'test_sni.c'; then $(CYGPATH_W) 'test_sni.c'; else $(CYGPATH_W) '$(srcdir)/test_sni.c'; fi`
 
 ID: $(am__tagged_files)
 	$(am__define_uniq_tagged_files); mkid -fID $$unique
@@ -829,6 +933,27 @@ test-controller.log: test-controller$(EXEEXT)
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
+test-menu.log: test-menu$(EXEEXT)
+	@p='test-menu$(EXEEXT)'; \
+	b='test-menu'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+test-service-config.log: test-service-config$(EXEEXT)
+	@p='test-service-config$(EXEEXT)'; \
+	b='test-service-config'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+test-sni.log: test-sni$(EXEEXT)
+	@p='test-sni$(EXEEXT)'; \
+	b='test-sni'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
 .test.log:
 	@p='$<'; \
 	$(am__set_b); \
@@ -921,9 +1046,15 @@ clean-am: clean-checkPROGRAMS clean-generic clean-noinstPROGRAMS \
 	mostlyclean-am
 
 distclean: distclean-am
-		-rm -f ./$(DEPDIR)/service_driver.Po
+		-rm -f ./$(DEPDIR)/service_config.Po
+	-rm -f ./$(DEPDIR)/service_driver.Po
 	-rm -f ./$(DEPDIR)/test_controller.Po
+	-rm -f ./$(DEPDIR)/test_desktop.Po
+	-rm -f ./$(DEPDIR)/test_menu.Po
+	-rm -f ./$(DEPDIR)/test_service_config.Po
+	-rm -f ./$(DEPDIR)/test_sni-test_sni.Po
 	-rm -f ./$(DEPDIR)/tray_controller.Po
+	-rm -f ./$(DEPDIR)/tray_menu.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -969,9 +1100,15 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-		-rm -f ./$(DEPDIR)/service_driver.Po
+		-rm -f ./$(DEPDIR)/service_config.Po
+	-rm -f ./$(DEPDIR)/service_driver.Po
 	-rm -f ./$(DEPDIR)/test_controller.Po
+	-rm -f ./$(DEPDIR)/test_desktop.Po
+	-rm -f ./$(DEPDIR)/test_menu.Po
+	-rm -f ./$(DEPDIR)/test_service_config.Po
+	-rm -f ./$(DEPDIR)/test_sni-test_sni.Po
 	-rm -f ./$(DEPDIR)/tray_controller.Po
+	-rm -f ./$(DEPDIR)/tray_menu.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
@@ -1009,12 +1146,14 @@ uninstall-am:
 
 
 @COND_WINDOWS_FALSE@.PHONY: integration-check
-@COND_WINDOWS_FALSE@integration-check: service-driver
+@COND_WINDOWS_FALSE@integration-check: service-driver test-desktop
 @COND_WINDOWS_FALSE@	XPILOT_SERVICE_DRIVER='$(abs_builddir)/service-driver' \
 @COND_WINDOWS_FALSE@	XPILOT_SERVER_BINARY='$(abs_top_builddir)/src/server/xpilot-infinity-server' \
 @COND_WINDOWS_FALSE@	XPILOT_CONTACT_TARGET_PROBE='$(abs_top_builddir)/tests/test-contact-target-probe' \
 @COND_WINDOWS_FALSE@	XPILOT_TEST_SOURCE_DIR='$(abs_top_srcdir)' \
 @COND_WINDOWS_FALSE@	XPILOT_TEST_PKGDATADIR='$(pkgdatadir)' \
+@COND_WINDOWS_FALSE@	XPILOT_TRAY_BINARY='$(abs_top_builddir)/src/tray/xpilot-infinity-tray' \
+@COND_WINDOWS_FALSE@	XPILOT_DESKTOP_TEST='$(abs_builddir)/test-desktop' \
 @COND_WINDOWS_FALSE@	$(SHELL) $(srcdir)/run-systemd.sh
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.

@@ -1,0 +1,7 @@
+ARG BASE_IMAGE=docker.io/library/ubuntu:24.04
+FROM ${BASE_IMAGE}
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    systemd systemd-sysv dbus dbus-x11 libgtk-3-0t64 libexpat1 zlib1g \
+    xvfb xauth polkitd pkexec
+STOPSIGNAL SIGRTMIN+3
+ENTRYPOINT ["/sbin/init"]

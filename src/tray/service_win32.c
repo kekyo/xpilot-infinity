@@ -1,6 +1,7 @@
 #define _WIN32_WINNT 0x0600
 #include <windows.h>
 #include "service_native.h"
+#include "service_paths_win32.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,6 +25,9 @@ struct service_native {
     bool manager_ready;
     bool status_armed;
     bool manager_armed;
+    bool authorize;
+    HANDLE helper;
+    uint64_t operation;
 };
 
 static service_error classify_error(DWORD code)
@@ -183,6 +187,11 @@ static void disconnect_service(void *context)
     if (native->manager)
         CloseServiceHandle(native->manager);
     native->service = native->manager = NULL;
+    if (native->helper) {
+        /* Closing our handle does not terminate an accepted helper operation. */
+        CloseHandle(native->helper);
+        native->helper = NULL;
+    }
     /* Closing prevents new APCs; drain already queued APCs while the buffers
      * and callback context still exist. This does not wait for service exit. */
     SleepEx(0, TRUE);
@@ -216,6 +225,36 @@ static void request_service(void *context, uint64_t operation, service_action ac
 {
     service_native *native = context;
     DWORD error = ERROR_SUCCESS;
+    if (native->authorize) {
+        wchar_t *path = NULL;
+        error = service_helper_path_win32(&path);
+        if (!error) {
+            size_t length = wcslen(path) + 32;
+            wchar_t *command = calloc(length, sizeof(wchar_t));
+            if (!command) error = ERROR_NOT_ENOUGH_MEMORY;
+            else {
+                swprintf(command, length, L"\"%ls\" %ls", path,
+                    action == XP_SERVICE_START ? L"--start" : L"--stop");
+                STARTUPINFOW startup = {0};
+                PROCESS_INFORMATION process;
+                startup.cb = sizeof(startup);
+                if (CreateProcessW(path, command, NULL, NULL, FALSE, CREATE_NO_WINDOW,
+                                    NULL, NULL, &startup, &process)) {
+                    native->helper = process.hProcess;
+                    native->operation = operation;
+                    CloseHandle(process.hThread);
+                } else error = GetLastError();
+                free(command);
+            }
+            free(path);
+        }
+        if (!error) return;
+        char detail[256];
+        describe_error(error, detail, sizeof(detail));
+        native->receiver.result(native->receiver.context, native->generation, operation,
+                                classify_error(error), detail);
+        return;
+    }
     SC_HANDLE service = OpenServiceW(native->manager, PRODUCT_SERVICE,
         action == XP_SERVICE_START ? SERVICE_START : SERVICE_STOP);
     if (!service) {
@@ -242,6 +281,11 @@ service_native *service_native_create(void)
     return calloc(1, sizeof(service_native));
 }
 
+void service_native_enable_authorization(service_native *native)
+{
+    native->authorize = true;
+}
+
 service_control service_native_control(service_native *native)
 {
     service_control control = {native, connect_service, request_service, disconnect_service};
@@ -251,8 +295,20 @@ service_control service_native_control(service_native *native)
 void service_native_dispatch(service_native *native, unsigned timeout_ms)
 {
     if (!native->status_ready && !native->manager_ready)
-        MsgWaitForMultipleObjectsEx(0, NULL, timeout_ms, QS_ALLINPUT,
+        MsgWaitForMultipleObjectsEx(native->helper ? 1 : 0,
+                                    native->helper ? &native->helper : NULL, timeout_ms, QS_ALLINPUT,
                                     MWMO_ALERTABLE | MWMO_INPUTAVAILABLE);
+    if (native->helper && WaitForSingleObject(native->helper, 0) == WAIT_OBJECT_0) {
+        DWORD exit_code = ERROR_SUCCESS;
+        if (!GetExitCodeProcess(native->helper, &exit_code)) exit_code = GetLastError();
+        CloseHandle(native->helper);
+        native->helper = NULL;
+        char detail[256] = "Service request accepted";
+        if (exit_code) describe_error(exit_code, detail, sizeof(detail));
+        native->receiver.result(native->receiver.context, native->generation, native->operation,
+            exit_code ? classify_error(exit_code) : XP_SERVICE_OK, detail);
+        read_status(native);
+    }
     if (native->manager_ready) {
         native->manager_ready = false;
         arm_manager(native);
