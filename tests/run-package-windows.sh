@@ -36,7 +36,7 @@ package_dir="$build_dir/package"
 
 mkdir -p "$source_dir/lib/maps" "$source_dir/lib/sound" \
     "$source_dir/vendor/openal-soft" "$source_dir/vendor/freealut" \
-    "$build_dir/src/server" "$build_dir/src/client/sdl" \
+    "$build_dir/src/server" "$build_dir/src/client/sdl" "$build_dir/src/tray" \
     "$dependency_prefix/bin"
 
 for data_file in defaults.txt password.txt robots.txt shipshapes.txt; do
@@ -49,6 +49,10 @@ printf 'fixture OpenAL license\n' > "$source_dir/vendor/openal-soft/COPYING"
 printf 'fixture freealut license\n' > "$source_dir/vendor/freealut/COPYING"
 printf 'fixture server\n' > "$build_dir/src/server/xpilot-infinity-server.exe"
 printf 'fixture client\n' > "$build_dir/src/client/sdl/xpilot-infinity-sdl.exe"
+printf 'fixture tray\n' > "$build_dir/src/tray/xpilot-infinity-tray.exe"
+printf 'fixture helper\n' > "$build_dir/src/tray/xpilot-infinity-service-helper.exe"
+printf 'fixture usage\n' > "$source_dir/README.md"
+printf 'fixture usage ja\n' > "$source_dir/README_ja.md"
 printf 'fixture OpenAL\n' > "$dependency_prefix/bin/OpenAL32.dll"
 printf 'fixture freealut\n' > "$dependency_prefix/bin/alut.dll"
 
@@ -61,6 +65,9 @@ printf 'fixture freealut\n' > "$dependency_prefix/bin/alut.dll"
 for expected_file in \
     "$package_dir/xpilot-infinity-server.exe" \
     "$package_dir/xpilot-infinity-sdl.exe" \
+    "$package_dir/xpilot-infinity-tray.exe" \
+    "$package_dir/xpilot-infinity-service-helper.exe" \
+    "$package_dir/README.md" "$package_dir/README_ja.md" \
     "$package_dir/OpenAL32.dll" \
     "$package_dir/alut.dll" \
     "$package_dir/licenses/OpenAL-Soft-COPYING" \

@@ -444,14 +444,26 @@ bool Parser(int argc, char **argv)
      * Else read a default map.
      */
     if (!(fname = Option_get_value("mapData", NULL))) {
+	const char *strict_value = Option_get_value("strictMap", NULL);
+	bool strict_map = strict_value && ON(strict_value);
 	if ((fname = Option_get_value("mapFileName", NULL)) != NULL) {
 	    if (!parseMapFile(fname)) {
+		if (strict_map) {
+		    xpprintf("Unable to read required map %s\n", fname);
+		    Options_free();
+		    return false;
+		}
 		xpprintf("Unable to read %s, trying to open %s\n",
 			 fname, Conf_default_map());
 		if (!parseMapFile(Conf_default_map()))
 		    xpprintf("Unable to read %s\n", Conf_default_map());
 	    }
 	} else {
+	    if (strict_map) {
+		xpprintf("A map must be specified when strictMap is enabled\n");
+		Options_free();
+		return false;
+	    }
 	    xpprintf("Map not specified, trying to open %s\n",
 		     Conf_default_map());
 	    if (!parseMapFile(Conf_default_map()))

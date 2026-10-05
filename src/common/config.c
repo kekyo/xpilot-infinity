@@ -26,8 +26,15 @@
 #include "xpcommon.h"
 
 #ifdef _WINDOWS
+#include "utf8_files.h"
 
-#define WINDOWS_CONF_PATH_SIZE (MAX_PATH + sizeof(CONF_SOUNDFILE))
+#define WINDOWS_CONF_PATH_SIZE (32768 * 4 + sizeof(CONF_SOUNDFILE))
+static bool utf8_paths = false;
+
+void Conf_use_utf8_paths(void)
+{
+    utf8_paths = true;
+}
 
 static void Conf_windows_path(char *path, size_t path_size,
 			      const char *relative_path)
@@ -38,6 +45,22 @@ static void Conf_windows_path(char *path, size_t path_size,
     char *last_separator;
     DWORD executable_path_length;
     int written;
+
+    if (utf8_paths) {
+        wchar_t *wide_path = malloc(32768 * sizeof(wchar_t));
+        DWORD length = wide_path ? GetModuleFileNameW(NULL, wide_path, 32768) : 0;
+        wchar_t *separator = length && length < 32768 ? wcsrchr(wide_path, L'\\') : NULL;
+        char *utf8 = NULL;
+        if (separator) {
+            separator[1] = L'\0';
+            utf8 = Xp_utf8(wide_path);
+        }
+        written = snprintf(path, path_size, "%s%s", utf8 ? utf8 : "", relative_path);
+        free(utf8); free(wide_path);
+        if (written < 0 || (size_t)written >= path_size)
+            strlcpy(path, relative_path, path_size);
+        return;
+    }
 
     executable_path_length = GetModuleFileNameA(NULL, executable_path,
 						NELEM(executable_path));

@@ -409,7 +409,7 @@ static robot_type_t robot_types[NELEM(robot_type_setups)];
 void Parse_robot_file(void)
 {
     if (options.robotFile && *options.robotFile) {
-	FILE *fp = fopen(options.robotFile, "r");
+	FILE *fp = Xp_fopen(options.robotFile, "r");
 
 	if (fp) {
 	    char buf[1024];
@@ -518,7 +518,7 @@ void Parse_robot_file(void)
 #ifdef DEVELOPMENT
     if (getenv("XPILOTS_DUMP_ROBOTS_TO_ROBOT_FILE") != NULL) {
 	if (options.robotFile && *options.robotFile) {
-	    FILE *fp = fopen(options.robotFile, "w");
+	    FILE *fp = Xp_fopen(options.robotFile, "w");
 	    if (fp) {
 		int i;
 		for (i = 0; i < MAX_ROBOTS; i++) {

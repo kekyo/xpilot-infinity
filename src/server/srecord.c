@@ -246,7 +246,7 @@ void Init_recording(void)
 	oldMode = options.recordMode + 10;
 	if (options.recordMode == 1) {
 	    record = rrecord = 1;
-	    recf1 = fopen(options.recordFileName, "wb");
+	    recf1 = Xp_fopen(options.recordFileName, "wb");
 	    if (!recf1) {
 		error("Opening record file failed");
 		exit(1);
@@ -263,7 +263,7 @@ void Init_recording(void)
 		*bufs[i].curp = bufs[i].start;
 		bufs[i].num_read = 0;
 	    }
-	    recf1 = fopen(options.recordFileName, "rb");
+	    recf1 = Xp_fopen(options.recordFileName, "rb");
 	    if (!recf1) {
 		error("Opening record file failed");
 		exit(1);

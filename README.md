@@ -303,6 +303,53 @@ to override the install directory, NSIS requires it to be the final argument:
 xpilot-infinity-setup.exe /S /SERVER_SERVICE=1 /D=C:\Games\XPilotInfinity
 ```
 
+### Controlling the server from the desktop
+
+Launch XPilot Infinity Server Tray from the application menu, or run
+`xpilot-infinity-tray`. It runs as your normal desktop user and connects to
+an existing local service. On Linux, install the Debian package containing
+`xpilot-infinity-server.service`. On Windows, select the optional server
+service component in the installer. The tray does not register a service or
+start it automatically. A ZIP copy of the tray can connect to a registered
+service; install the matching server and authorization helper in a protected
+installation directory first.
+
+Use Start server and Stop server to control the service. Administrative
+approval through polkit (Linux) or UAC (Windows) is requested when needed.
+Selecting a map changes the shared server configuration; changing it while
+the server is running restarts the service and disconnects players. The
+configured map shown in the menu does not certify which map a running game
+has loaded. Installed maps are found independently of the working directory.
+
+Edit configuration opens a private copy in your default plain-text editor.
+Save the copy as UTF-8 without a byte-order mark, then choose Apply saved
+changes in the tray and confirm the operation. Saving in the editor alone
+does not change the service. Applying while stopped only saves settings;
+applying while running also restarts the service. The editor runs with your
+normal permissions. Free configuration editing requires separate approval
+from map selection.
+
+Unsaved editor changes are not applied. Saved, unapplied changes survive tray
+restarts: reopen the copy to continue or choose Discard editing copy to start
+over. If another session changes shared settings, applying the old copy
+reports a conflict and preserves your work. Copy any changes you want to keep
+before discarding it. Authentication cancellation and failed saves also keep
+the editing copy. A successful save followed by a failed restart is reported
+separately; use the details action and service logs to investigate.
+
+Shared settings are stored in `/etc/default/xpilot-infinity-server` on Linux
+and `%ProgramData%\XPilot Infinity\server\xpilot-infinity-server.conf` on
+Windows. Linux logs are available through
+`journalctl -u xpilot-infinity-server.service`; Windows service logs are in
+`%ProgramData%\XPilot Infinity\server`. The details action shows the paths
+used by your installation. The tray controls the system service, so the
+separate Podman user service described below is outside its scope.
+
+On X11 and Wayland, a compatible StatusNotifierItem host displays the icon;
+X11 also supports XEmbed trays. If no tray host is available, a control
+window provides the same operations. Exiting the tray, closing that window,
+or logging out leaves the server running. Choose Stop server to shut it down.
+
 ### Running the server with Podman
 
 The repository contains a multi-stage [`Dockerfile`](Dockerfile) for the

@@ -48,6 +48,7 @@ libxpcommon_a_SOURCES = \
 	arraylist.c arraylist.h astershape.h audio.h \
 	bit.h \
 	checknames.c checknames.h click.h commonproto.h config.c const.h \
+	utf8_files.c utf8_files.h \
 	error.c error.h \
 	game_transport.c game_transport.h \
 	item.h \

@@ -30,6 +30,7 @@
 
 #define SERVER
 #include "xpcommon.h"
+#include "utf8_files.h"
 
 #ifdef HAVE_LIBEXPAT
 #  include <expat.h>

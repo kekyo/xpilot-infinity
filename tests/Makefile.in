@@ -241,14 +241,14 @@ target_triplet = @target@
 @COND_WINDOWS_FALSE@	run-build-metadata.sh run-build-wrapper.sh \
 @COND_WINDOWS_FALSE@	run-build-package.sh \
 @COND_WINDOWS_FALSE@	run-package-windows.sh \
-@COND_WINDOWS_FALSE@	run-windows-archive.sh run-macos-info-plist.sh \
+@COND_WINDOWS_FALSE@	run-windows-archive.sh \
+@COND_WINDOWS_FALSE@	run-macos-info-plist.sh \
 @COND_WINDOWS_FALSE@	run-source-encoding.sh \
 @COND_WINDOWS_FALSE@	run-c23-server-build.sh \
 @COND_WINDOWS_FALSE@	run-vendored-zlib.sh \
 @COND_WINDOWS_FALSE@	run-container-publish.sh \
 @COND_WINDOWS_FALSE@	run-container-image.sh run-quadlet.sh \
-@COND_WINDOWS_FALSE@	run-e2e.sh \
-@COND_WINDOWS_FALSE@	$(am__EXEEXT_1) $(am__append_4)
+@COND_WINDOWS_FALSE@	run-e2e.sh $(am__EXEEXT_1) $(am__append_4)
 @COND_WINDOWS_TRUE@TESTS = $(am__EXEEXT_1) $(am__append_4)
 @COND_SOUND_TRUE@@COND_WINDOWS_FALSE@am__append_1 = test-audio-device
 @COND_SOUND_TRUE@@COND_WINDOWS_FALSE@am__append_2 = test-audio-device
@@ -865,9 +865,8 @@ SOURCES = $(test_audio_device_SOURCES) $(test_checknames_SOURCES) \
 	$(test_sdl_renderer_core_context_SOURCES) \
 	$(test_sdl_renderer_scissor_SOURCES) \
 	$(test_sdl_server_browser_SOURCES) $(test_sdl_surface_SOURCES) \
-	$(test_sdl_ui_image_SOURCES) \
-	$(test_sdl_versions_SOURCES) $(test_sdl_window_SOURCES) \
-	$(test_sdlgui_appearing_SOURCES) \
+	$(test_sdl_ui_image_SOURCES) $(test_sdl_versions_SOURCES) \
+	$(test_sdl_window_SOURCES) $(test_sdlgui_appearing_SOURCES) \
 	$(test_sdlgui_asteroids_SOURCES) \
 	$(test_sdlgui_hud_primitives_SOURCES) \
 	$(test_sdlgui_polygons_SOURCES) $(test_sdlgui_ships_SOURCES) \
@@ -911,9 +910,8 @@ DIST_SOURCES = $(test_audio_device_SOURCES) $(test_checknames_SOURCES) \
 	$(test_sdl_renderer_core_context_SOURCES) \
 	$(test_sdl_renderer_scissor_SOURCES) \
 	$(test_sdl_server_browser_SOURCES) $(test_sdl_surface_SOURCES) \
-	$(test_sdl_ui_image_SOURCES) \
-	$(test_sdl_versions_SOURCES) $(test_sdl_window_SOURCES) \
-	$(test_sdlgui_appearing_SOURCES) \
+	$(test_sdl_ui_image_SOURCES) $(test_sdl_versions_SOURCES) \
+	$(test_sdl_window_SOURCES) $(test_sdlgui_appearing_SOURCES) \
 	$(test_sdlgui_asteroids_SOURCES) \
 	$(test_sdlgui_hud_primitives_SOURCES) \
 	$(test_sdlgui_polygons_SOURCES) $(test_sdlgui_ships_SOURCES) \
@@ -1232,8 +1230,15 @@ SHELL = @SHELL@
 SOUND_CFLAGS = @SOUND_CFLAGS@
 SOUND_LIBS = @SOUND_LIBS@
 STRIP = @STRIP@
+TRAY_CFLAGS = @TRAY_CFLAGS@
+TRAY_LIBS = @TRAY_LIBS@
+TRAY_POLKIT_CFLAGS = @TRAY_POLKIT_CFLAGS@
+TRAY_POLKIT_LIBS = @TRAY_POLKIT_LIBS@
+TRAY_TEST_CFLAGS = @TRAY_TEST_CFLAGS@
+TRAY_TEST_LIBS = @TRAY_TEST_LIBS@
 VERSION = @VERSION@
 W32_LIBS = @W32_LIBS@
+WINDRES = @WINDRES@
 XMKMF = @XMKMF@
 XP_AUTHORS = @XP_AUTHORS@
 XP_COPYRIGHT = @XP_COPYRIGHT@
@@ -1395,9 +1400,11 @@ test_meta_environment_CFLAGS = $(AM_CFLAGS) \
 test_meta_environment_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections
 test_sdl_server_browser_SOURCES = test_sdl_server_browser.c \
 	$(top_srcdir)/src/client/sdl/sdl_server_browser.c
+
 test_sdl_server_browser_LDADD = \
 	$(top_builddir)/src/client/libxpclient.a \
 	$(top_builddir)/src/common/libxpcommon.a
+
 test_sdl_versions_SOURCES = test_sdl_versions.c
 test_sdl_versions_LDADD = $(XP_SDL3_IMAGE_LIBS) $(XP_SDL3_TTF_LIBS) $(XP_SDL3_LIBS)
 test_score_font_SOURCES = test_score_font.c \

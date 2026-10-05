@@ -48,6 +48,8 @@ libfontconfig1-dev
 libfreetype-dev
 libgl-dev
 libglib2.0-dev
+libgtk-3-dev
+libpolkit-gobject-1-dev
 libgraphite2-dev
 libharfbuzz-dev
 libice-dev
@@ -64,6 +66,8 @@ libxrender-dev
 libxss-dev
 libxtst-dev
 pkg-config
+nodejs
+npm
 zlib1g-dev
 EOF
 }
@@ -87,6 +91,11 @@ EOF
         done
         cat <<'EOF'
     && rm -rf /var/lib/apt/lists/*
+
+# Ubuntu 22.04 ships Node 12; the build-time template CLI requires Node 16+.
+# Use distro Node on the other targets, including Debian's 32-bit builds.
+RUN node -e 'process.exit(Number(process.versions.node.split(".")[0]) >= 16 ? 0 : 1)' \
+    || npm install --global node@22
 EOF
     } > "$containerfile"
 }

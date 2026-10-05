@@ -102,28 +102,29 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_xpilot_infinity_server_OBJECTS = alliance.$(OBJEXT) asteroid.$(OBJEXT) \
-	cannon.$(OBJEXT) cell.$(OBJEXT) cmdline.$(OBJEXT) \
-	collision.$(OBJEXT) command.$(OBJEXT) contact.$(OBJEXT) \
-	contact_stream.$(OBJEXT) event.$(OBJEXT) fileparser.$(OBJEXT) \
-	frame.$(OBJEXT) gravity.$(OBJEXT) id.$(OBJEXT) item.$(OBJEXT) \
-	laser.$(OBJEXT) map.$(OBJEXT) metaserver.$(OBJEXT) \
-	modifiers.$(OBJEXT) netserver.$(OBJEXT) object.$(OBJEXT) \
-	objpos.$(OBJEXT) option.$(OBJEXT) parser.$(OBJEXT) \
-	player.$(OBJEXT) polygon.$(OBJEXT) race.$(OBJEXT) \
-	rank.$(OBJEXT) recwrap.$(OBJEXT) robot.$(OBJEXT) \
-	robotdef.$(OBJEXT) rules.$(OBJEXT) saudio.$(OBJEXT) \
-	sched.$(OBJEXT) score.$(OBJEXT) server.$(OBJEXT) \
-	session_acceptor.$(OBJEXT) ship.$(OBJEXT) shot.$(OBJEXT) \
-	showtime.$(OBJEXT) srecord.$(OBJEXT) suibotdef.$(OBJEXT) \
-	tag.$(OBJEXT) target.$(OBJEXT) teamcup.$(OBJEXT) \
-	tuner.$(OBJEXT) treasure.$(OBJEXT) update.$(OBJEXT) \
-	walls.$(OBJEXT) wormhole.$(OBJEXT) windows_service.$(OBJEXT) \
-	xp2map.$(OBJEXT) \
-	xpmap.$(OBJEXT)
+am_xpilot_infinity_server_OBJECTS = alliance.$(OBJEXT) \
+	asteroid.$(OBJEXT) cannon.$(OBJEXT) cell.$(OBJEXT) \
+	cmdline.$(OBJEXT) collision.$(OBJEXT) command.$(OBJEXT) \
+	contact.$(OBJEXT) contact_stream.$(OBJEXT) event.$(OBJEXT) \
+	fileparser.$(OBJEXT) frame.$(OBJEXT) gravity.$(OBJEXT) \
+	id.$(OBJEXT) item.$(OBJEXT) laser.$(OBJEXT) map.$(OBJEXT) \
+	metaserver.$(OBJEXT) modifiers.$(OBJEXT) netserver.$(OBJEXT) \
+	object.$(OBJEXT) objpos.$(OBJEXT) option.$(OBJEXT) \
+	parser.$(OBJEXT) player.$(OBJEXT) polygon.$(OBJEXT) \
+	race.$(OBJEXT) rank.$(OBJEXT) recwrap.$(OBJEXT) \
+	robot.$(OBJEXT) robotdef.$(OBJEXT) rules.$(OBJEXT) \
+	saudio.$(OBJEXT) sched.$(OBJEXT) score.$(OBJEXT) \
+	server.$(OBJEXT) session_acceptor.$(OBJEXT) ship.$(OBJEXT) \
+	shot.$(OBJEXT) showtime.$(OBJEXT) srecord.$(OBJEXT) \
+	suibotdef.$(OBJEXT) tag.$(OBJEXT) target.$(OBJEXT) \
+	teamcup.$(OBJEXT) tuner.$(OBJEXT) treasure.$(OBJEXT) \
+	update.$(OBJEXT) walls.$(OBJEXT) wormhole.$(OBJEXT) \
+	windows_service.$(OBJEXT) xp2map.$(OBJEXT) xpmap.$(OBJEXT)
 xpilot_infinity_server_OBJECTS = $(am_xpilot_infinity_server_OBJECTS)
 xpilot_infinity_server_DEPENDENCIES =  \
 	$(top_builddir)/src/common/libxpcommon.a
+xpilot_infinity_server_LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(xpilot_infinity_server_LDFLAGS) $(LDFLAGS) -o $@
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -162,9 +163,9 @@ am__depfiles_remade = ./$(DEPDIR)/alliance.Po ./$(DEPDIR)/asteroid.Po \
 	./$(DEPDIR)/tag.Po ./$(DEPDIR)/target.Po \
 	./$(DEPDIR)/teamcup.Po ./$(DEPDIR)/treasure.Po \
 	./$(DEPDIR)/tuner.Po ./$(DEPDIR)/update.Po \
-	./$(DEPDIR)/walls.Po ./$(DEPDIR)/wormhole.Po \
-	./$(DEPDIR)/windows_service.Po \
-	./$(DEPDIR)/xp2map.Po ./$(DEPDIR)/xpmap.Po
+	./$(DEPDIR)/walls.Po ./$(DEPDIR)/windows_service.Po \
+	./$(DEPDIR)/wormhole.Po ./$(DEPDIR)/xp2map.Po \
+	./$(DEPDIR)/xpmap.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -279,8 +280,15 @@ SHELL = @SHELL@
 SOUND_CFLAGS = @SOUND_CFLAGS@
 SOUND_LIBS = @SOUND_LIBS@
 STRIP = @STRIP@
+TRAY_CFLAGS = @TRAY_CFLAGS@
+TRAY_LIBS = @TRAY_LIBS@
+TRAY_POLKIT_CFLAGS = @TRAY_POLKIT_CFLAGS@
+TRAY_POLKIT_LIBS = @TRAY_POLKIT_LIBS@
+TRAY_TEST_CFLAGS = @TRAY_TEST_CFLAGS@
+TRAY_TEST_LIBS = @TRAY_TEST_LIBS@
 VERSION = @VERSION@
 W32_LIBS = @W32_LIBS@
+WINDRES = @WINDRES@
 XMKMF = @XMKMF@
 XP_AUTHORS = @XP_AUTHORS@
 XP_COPYRIGHT = @XP_COPYRIGHT@
@@ -378,6 +386,7 @@ xpilot_infinity_server_SOURCES = \
 	windows_service.c windows_service.h xp2map.c xpmap.c xpserver.h
 
 xpilot_infinity_server_LDADD = $(top_builddir)/src/common/libxpcommon.a @X_EXTRA_LIBS@ @W32_LIBS@
+@COND_WINDOWS_TRUE@xpilot_infinity_server_LDFLAGS = -municode
 all: all-am
 
 .SUFFIXES:
@@ -456,7 +465,7 @@ clean-binPROGRAMS:
 
 xpilot-infinity-server$(EXEEXT): $(xpilot_infinity_server_OBJECTS) $(xpilot_infinity_server_DEPENDENCIES) $(EXTRA_xpilot_infinity_server_DEPENDENCIES)
 	@rm -f xpilot-infinity-server$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(xpilot_infinity_server_OBJECTS) $(xpilot_infinity_server_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(xpilot_infinity_server_LINK) $(xpilot_infinity_server_OBJECTS) $(xpilot_infinity_server_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -513,8 +522,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tuner.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/update.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/walls.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wormhole.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/windows_service.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wormhole.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xp2map.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xpmap.Po@am__quote@ # am--include-marker
 
@@ -713,8 +722,8 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/tuner.Po
 	-rm -f ./$(DEPDIR)/update.Po
 	-rm -f ./$(DEPDIR)/walls.Po
-	-rm -f ./$(DEPDIR)/wormhole.Po
 	-rm -f ./$(DEPDIR)/windows_service.Po
+	-rm -f ./$(DEPDIR)/wormhole.Po
 	-rm -f ./$(DEPDIR)/xp2map.Po
 	-rm -f ./$(DEPDIR)/xpmap.Po
 	-rm -f Makefile
@@ -811,8 +820,8 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/tuner.Po
 	-rm -f ./$(DEPDIR)/update.Po
 	-rm -f ./$(DEPDIR)/walls.Po
-	-rm -f ./$(DEPDIR)/wormhole.Po
 	-rm -f ./$(DEPDIR)/windows_service.Po
+	-rm -f ./$(DEPDIR)/wormhole.Po
 	-rm -f ./$(DEPDIR)/xp2map.Po
 	-rm -f ./$(DEPDIR)/xpmap.Po
 	-rm -f Makefile
