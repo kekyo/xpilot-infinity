@@ -166,7 +166,7 @@ am__xpilot_infinity_service_helper_SOURCES_DIST =  \
 xpilot_infinity_service_helper_OBJECTS =  \
 	$(am_xpilot_infinity_service_helper_OBJECTS)
 @COND_WINDOWS_TRUE@xpilot_infinity_service_helper_DEPENDENCIES =  \
-@COND_WINDOWS_TRUE@	libxptray.a
+@COND_WINDOWS_TRUE@	libxptray.a tray-res.o
 xpilot_infinity_service_helper_LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(xpilot_infinity_service_helper_LDFLAGS) $(LDFLAGS) -o $@
 am__xpilot_infinity_settings_helper_SOURCES_DIST =  \
@@ -514,7 +514,7 @@ AM_CPPFLAGS = -I$(top_builddir)/src/common -I$(top_srcdir)/src/common \
 	$(am__append_5)
 @COND_WINDOWS_TRUE@xpilot_infinity_tray_LDFLAGS = -mwindows
 @COND_WINDOWS_TRUE@xpilot_infinity_service_helper_SOURCES = service_helper_win32.c
-@COND_WINDOWS_TRUE@xpilot_infinity_service_helper_LDADD = libxptray.a -ladvapi32 -lshell32 -luser32 -lole32 -luuid -lbcrypt
+@COND_WINDOWS_TRUE@xpilot_infinity_service_helper_LDADD = libxptray.a tray-res.o -ladvapi32 -lshell32 -luser32 -lole32 -luuid -lbcrypt
 @COND_WINDOWS_TRUE@xpilot_infinity_service_helper_LDFLAGS = -municode -mwindows
 @COND_WINDOWS_FALSE@CLEANFILES = org.xpilot.Infinity.ServerSettings1.service \
 @COND_WINDOWS_FALSE@	org.xpilot.Infinity.ServerSettings1.service.tmp \
@@ -536,7 +536,7 @@ AM_CPPFLAGS = -I$(top_builddir)/src/common -I$(top_srcdir)/src/common \
 @COND_WINDOWS_FALSE@FUNCITY = npm exec --yes --package=commander@11.1.0 --package=funcity-cli@1.5.0 -- funcity
 @COND_WINDOWS_FALSE@applicationsdir = $(datarootdir)/applications
 @COND_WINDOWS_FALSE@applications_DATA = xpilot-infinity-tray.desktop
-EXTRA_DIST = tray.rc data/org.xpilot.Infinity.ServerSettings1.service.fc data/xpilot-infinity-tray.desktop.fc
+EXTRA_DIST = tray.rc tray.manifest data/org.xpilot.Infinity.ServerSettings1.service.fc data/xpilot-infinity-tray.desktop.fc
 all: all-recursive
 
 .SUFFIXES:
@@ -1203,7 +1203,7 @@ uninstall-am: uninstall-applicationsDATA uninstall-binPROGRAMS \
 main.$(OBJEXT): $(top_builddir)/src/common/version.h
 $(top_builddir)/src/common/version.h:
 	$(MAKE) -C $(top_builddir)/src/common version.h
-@COND_WINDOWS_TRUE@tray-res.o: $(srcdir)/tray.rc $(top_srcdir)/images/icon.ico
+@COND_WINDOWS_TRUE@tray-res.o: $(srcdir)/tray.rc $(srcdir)/tray.manifest $(top_srcdir)/images/icon.ico
 @COND_WINDOWS_TRUE@	$(WINDRES) -I$(top_srcdir) $(srcdir)/tray.rc $@
 @COND_WINDOWS_FALSE@org.xpilot.Infinity.ServerSettings1.service: $(srcdir)/data/org.xpilot.Infinity.ServerSettings1.service.fc Makefile
 @COND_WINDOWS_FALSE@	$(FUNCITY) --no-rc run -D 'libexecdir=$(libexecdir)' -i $< > $@.tmp

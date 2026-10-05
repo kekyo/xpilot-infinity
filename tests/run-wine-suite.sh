@@ -161,7 +161,7 @@ if test "$inside_xvfb" = false; then
         test-native-text.exe \
         test-native-socket-handle.exe
     "$make_program" -C "$build_dir/src/tray/tests" "-j$jobs" \
-        test-service-win32.exe
+        test-service-win32.exe test-settings-acl-win32.exe test-settings-replace-win32.exe
 
     mkdir -p "$(dirname -- "$wine_prefix")"
     export WINEPREFIX=$wine_prefix
@@ -1023,6 +1023,14 @@ echo "===== test: Windows service state reporting for $architecture ====="
 timeout 30s "$wine_program" "$build_dir/src/tray/tests/test-service-win32.exe" \
     >"$runtime_dir/test-service-win32.log" 2>&1 \
     || fail "Windows service state reporting failed"
+echo "===== test: Windows settings permissions for $architecture ====="
+timeout 30s "$wine_program" "$build_dir/src/tray/tests/test-settings-acl-win32.exe" \
+    >"$runtime_dir/test-settings-acl-win32.log" 2>&1 \
+    || fail "Windows settings permissions failed"
+echo "===== test: Windows settings replacement for $architecture ====="
+timeout 30s "$wine_program" "$build_dir/src/tray/tests/test-settings-replace-win32.exe" \
+    >"$runtime_dir/test-settings-replace-win32.log" 2>&1 \
+    || fail "Windows settings replacement failed"
 
 for unit_test in test-framed-stream test-websocket-transport \
     test-game-transport test-connect-target \

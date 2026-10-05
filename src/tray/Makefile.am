@@ -21,10 +21,10 @@ xpilot_infinity_tray_LDADD += tray-res.o -ladvapi32 -luser32 -lshell32 -lgdi32 -
 xpilot_infinity_tray_LDFLAGS = -mwindows
 bin_PROGRAMS += xpilot-infinity-service-helper
 xpilot_infinity_service_helper_SOURCES = service_helper_win32.c
-xpilot_infinity_service_helper_LDADD = libxptray.a -ladvapi32 -lshell32 -luser32 -lole32 -luuid -lbcrypt
+xpilot_infinity_service_helper_LDADD = libxptray.a tray-res.o -ladvapi32 -lshell32 -luser32 -lole32 -luuid -lbcrypt
 xpilot_infinity_service_helper_LDFLAGS = -municode -mwindows
 WINDRES = @WINDRES@
-tray-res.o: $(srcdir)/tray.rc $(top_srcdir)/images/icon.ico
+tray-res.o: $(srcdir)/tray.rc $(srcdir)/tray.manifest $(top_srcdir)/images/icon.ico
 	$(WINDRES) -I$(top_srcdir) $(srcdir)/tray.rc $@
 CLEANFILES = tray-res.o
 else
@@ -61,4 +61,4 @@ xpilot-infinity-tray.desktop: $(srcdir)/data/xpilot-infinity-tray.desktop.fc Mak
 	mv $@.tmp $@
 CLEANFILES += xpilot-infinity-tray.desktop xpilot-infinity-tray.desktop.tmp
 endif
-EXTRA_DIST = tray.rc data/org.xpilot.Infinity.ServerSettings1.service.fc data/xpilot-infinity-tray.desktop.fc
+EXTRA_DIST = tray.rc tray.manifest data/org.xpilot.Infinity.ServerSettings1.service.fc data/xpilot-infinity-tray.desktop.fc

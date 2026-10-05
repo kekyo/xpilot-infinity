@@ -9,9 +9,15 @@ service_driver_SOURCES = service_driver.c
 service_driver_LDADD = ../libxptray.a
 if COND_WINDOWS
 service_driver_LDADD += -ladvapi32 -luser32 -lshell32 -lole32 -luuid
-check_PROGRAMS += test-service-win32
+check_PROGRAMS += test-service-win32 test-settings-acl-win32 test-settings-replace-win32
 test_service_win32_SOURCES = test_service_win32.c ../service_paths_win32.c
 test_service_win32_LDADD = -ladvapi32 -luser32 -lshell32 -lole32 -luuid
+test_settings_acl_win32_SOURCES = test_settings_acl_win32.c
+test_settings_acl_win32_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/src/common
+test_settings_acl_win32_LDADD = ../libxptray.a -ladvapi32 -lshell32 -lole32 -luuid -lbcrypt
+test_settings_replace_win32_SOURCES = test_settings_replace_win32.c
+test_settings_replace_win32_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/src/common
+test_settings_replace_win32_LDADD = ../libxptray.a -ladvapi32 -lshell32 -lole32 -luuid -lbcrypt
 else
 AM_CPPFLAGS += $(TRAY_CFLAGS)
 service_driver_LDADD += $(TRAY_LIBS)
@@ -62,4 +68,5 @@ integration-check: service-driver test-desktop test-auth-cancel
 endif
 EXTRA_DIST = run-systemd.sh run-systemd-inside.sh xpilot-tray-test.service Containerfile test-strict-map.sh test-settings-helper.sh test-settings-editor.sh test-default-editor.sh
 EXTRA_DIST += run-test.sh record-xembed.sh
+EXTRA_DIST += test-installed-settings.ps1
 CLEANFILES = test-xembed.mkv

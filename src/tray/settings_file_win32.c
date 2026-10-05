@@ -5,6 +5,7 @@
 #include "map_catalog.h"
 #include "utf8_files.h"
 #include <aclapi.h>
+#include <sddl.h>
 #include <bcrypt.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -91,9 +92,18 @@ DWORD settings_win32_read(const wchar_t *path, char **text, char generation[65])
 
 static bool trusted_sid(PSID sid, bool local_service)
 {
-    return sid && (IsWellKnownSid(sid, WinLocalSystemSid)
+    if (!sid) return false;
+    if (IsWellKnownSid(sid, WinLocalSystemSid)
         || IsWellKnownSid(sid, WinBuiltinAdministratorsSid)
-        || (local_service && IsWellKnownSid(sid, WinLocalServiceSid)));
+        || (local_service && IsWellKnownSid(sid, WinLocalServiceSid))) return true;
+    /* Program Files inherits full control for Windows Modules Installer.
+     * Its fixed service SID is also returned by sc.exe showsid TrustedInstaller. */
+    PSID installer = NULL;
+    if (!ConvertStringSidToSidW(
+        L"S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464", &installer)) return false;
+    bool trusted = EqualSid(sid, installer) != FALSE;
+    LocalFree(installer);
+    return trusted;
 }
 
 static DWORD protected_handle(HANDLE handle, bool local_service)
@@ -242,7 +252,8 @@ static DWORD replace(settings_file_win32 *file, const char *text, bool record)
     }
     if (!error) {
         size_t target_length = wcslen(file->path) + (record ? 7 : 0);
-        size_t bytes = offsetof(FILE_RENAME_INFO, FileName) + target_length * sizeof(wchar_t);
+        /* FileName is NUL-terminated; FileNameLength excludes the terminator. */
+        size_t bytes = offsetof(FILE_RENAME_INFO, FileName) + (target_length + 1) * sizeof(wchar_t);
         FILE_RENAME_INFO *rename = calloc(1, bytes);
         if (!rename) error = ERROR_NOT_ENOUGH_MEMORY;
         else {
@@ -250,6 +261,15 @@ static DWORD replace(settings_file_win32 *file, const char *text, bool record)
             rename->FileNameLength = (DWORD)(target_length * sizeof(wchar_t));
             memcpy(rename->FileName, file->path, wcslen(file->path) * sizeof(wchar_t));
             if (record) memcpy(rename->FileName + wcslen(file->path), L".result", 7 * sizeof(wchar_t));
+            if (!record) {
+                /* Windows cannot replace a destination with open readers.
+                 * Validation is complete; keep the update lock and all parent
+                 * guards while releasing our configuration read handles. */
+                CloseHandle(current);
+                current = INVALID_HANDLE_VALUE;
+                if (file->source != INVALID_HANDLE_VALUE) CloseHandle(file->source);
+                file->source = INVALID_HANDLE_VALUE;
+            }
             if (!SetFileInformationByHandle(temporary, FileRenameInfo, rename, (DWORD)bytes)) error = GetLastError();
             free(rename);
         }
