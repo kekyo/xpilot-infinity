@@ -22,6 +22,14 @@ require_command()
         || fail "required command was not found: $1"
 }
 
+require_tray_dependencies()
+{
+    pkg-config --print-errors --exists \
+        'gtk+-3.0 >= 3.22' 'gio-2.0 >= 2.60' \
+        gdk-x11-3.0 x11 xfixes polkit-gobject-1 \
+        || fail "the package image is missing server tray development dependencies. Run ./prereq.sh on the host to update the images, then retry."
+}
+
 assert_file()
 {
     test -f "$1" || fail "missing expected file: $1"
@@ -279,6 +287,9 @@ require_command gzip
 require_command make
 require_command pkg-config
 require_command "${STRIP:-strip}"
+
+# Check the reusable image before compiling the vendored dependencies.
+require_tray_dependencies
 
 test -x ./configure || fail "configure is unavailable; run ./bootstrap first"
 test -x ./vendor/sdl3/build.sh \

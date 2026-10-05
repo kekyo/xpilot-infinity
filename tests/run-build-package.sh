@@ -551,7 +551,7 @@ cat > "$fixture_tools/prereq-container-engine" <<'EOF'
 set -eu
 
 if test "${1:-}" = image && test "${2:-}" = exists; then
-    exit 1
+    exit "${XPILOT_PREREQ_IMAGE_EXISTS:-1}"
 fi
 test "${1:-}" = build || exit 2
 
@@ -587,5 +587,54 @@ assert_contains "$prereq_log" "libgl-dev"
 assert_contains "$prereq_log" "libopenal-dev"
 assert_contains "$prereq_log" "libxrender-dev"
 assert_contains "$prereq_log" "libxtst-dev"
+
+# Existing image tags must not hide changes to the dependency recipe.
+: > "$prereq_log"
+XPILOT_PREREQ_IMAGE_EXISTS=0 \
+XPILOT_PREREQ_TEST_LOG=$prereq_log \
+XPILOT_PREREQ_PROJECT_ROOT=$prereq_project \
+CONTAINER_ENGINE="$fixture_tools/prereq-container-engine" \
+    "$prereq_script" --distro debian --release trixie \
+    --arch arm64 --jobs 1
+assert_contains "$prereq_log" "build "
+assert_contains "$prereq_log" "--platform linux/arm64"
+assert_not_contains "$prereq_log" "--no-cache"
+
+XPILOT_PREREQ_IMAGE_EXISTS=0 \
+XPILOT_PREREQ_TEST_LOG=$prereq_log \
+XPILOT_PREREQ_PROJECT_ROOT=$prereq_project \
+CONTAINER_ENGINE="$fixture_tools/prereq-container-engine" \
+    "$prereq_script" --distro debian --release trixie \
+    --arch arm64 --jobs 1 --force
+assert_contains "$prereq_log" "--no-cache"
+
+# Missing tray dependencies must give an actionable prerequisite diagnostic.
+cat > "$fixture_tools/pkg-config" <<'EOF'
+#!/bin/sh
+exit "$XPILOT_TRAY_DEPS_STATUS"
+EOF
+chmod +x "$fixture_tools/pkg-config"
+for deps_status in 1 0; do
+    preflight_status=0
+    if (
+        BUILD_LINUX_DIST_SOURCE_ONLY=1
+        export BUILD_LINUX_DIST_SOURCE_ONLY
+        . "$linux_dist_script"
+        XPILOT_TRAY_DEPS_STATUS=$deps_status
+        export XPILOT_TRAY_DEPS_STATUS
+        require_tray_dependencies
+    ) > "$test_root/preflight.log" 2>&1; then
+        :
+    else
+        preflight_status=$?
+    fi
+    if test "$deps_status" = 1; then
+        test "$preflight_status" -ne 0 \
+            || fail "missing tray dependencies were accepted"
+        assert_contains "$test_root/preflight.log" "./prereq.sh"
+    else
+        assert_equal 0 "$preflight_status" "valid tray dependencies were rejected"
+    fi
+done
 
 echo "Package build orchestration smoke passed"

@@ -24,7 +24,7 @@ Options:
   --release LIST  Comma-separated release filter
   --arch LIST     Comma-separated architecture filter
   --jobs NUMBER   Concurrent image builds (default: auto, up to 4)
-  --force         Rebuild images that already exist
+  --force         Rebuild without using cached layers
   --help          Show this help
 EOF
 }
@@ -111,13 +111,6 @@ build_prereq_image()
     work_dir="$TMP_ROOT/deb/$distro/$release/$arch"
     containerfile="$work_dir/Containerfile"
 
-    if test "$FORCE" -eq 0 \
-        && "$CONTAINER_ENGINE_BIN" image exists "$prereq_image" >/dev/null 2>&1
-    then
-        printf '%s\n' "[prereq:deb] exists $prereq_image"
-        return 0
-    fi
-
     printf '%s\n' \
         "[prereq:deb] build $prereq_image ($platform, $base_image)"
     rm -rf "$work_dir"
@@ -129,6 +122,7 @@ build_prereq_image()
     else
         set --
     fi
+    # Let the build cache reuse unchanged layers, not an outdated image tag.
     "$CONTAINER_ENGINE_BIN" build "$@" \
         --platform "$platform" \
         --pull=missing \
