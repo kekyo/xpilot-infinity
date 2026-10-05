@@ -160,6 +160,8 @@ if test "$inside_xvfb" = false; then
         test-score-font.exe \
         test-native-text.exe \
         test-native-socket-handle.exe
+    "$make_program" -C "$build_dir/src/tray/tests" "-j$jobs" \
+        test-service-win32.exe
 
     mkdir -p "$(dirname -- "$wine_prefix")"
     export WINEPREFIX=$wine_prefix
@@ -1016,6 +1018,11 @@ timeout 30s "$wineserver_program" -w >>"$runtime_dir/wineboot.log" 2>&1 \
     || fail "Wine prefix initialization did not settle"
 
 run_windows_installer_cases
+
+echo "===== test: Windows service state reporting for $architecture ====="
+timeout 30s "$wine_program" "$build_dir/src/tray/tests/test-service-win32.exe" \
+    >"$runtime_dir/test-service-win32.log" 2>&1 \
+    || fail "Windows service state reporting failed"
 
 for unit_test in test-framed-stream test-websocket-transport \
     test-game-transport test-connect-target \

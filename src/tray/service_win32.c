@@ -171,7 +171,9 @@ static void read_status(service_native *native)
     free(config);
     switch (status.dwCurrentState) {
     case SERVICE_STOPPED:
+        /* SCM reports 1077 before the first start; it is not a service failure. */
         snapshot.state = status.dwWin32ExitCode == NO_ERROR
+            || status.dwWin32ExitCode == ERROR_SERVICE_NEVER_STARTED
             ? XP_SERVICE_STOPPED : XP_SERVICE_FAILED;
         break;
     case SERVICE_RUNNING: snapshot.state = XP_SERVICE_RUNNING; break;

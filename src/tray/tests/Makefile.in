@@ -90,15 +90,16 @@ build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
 check_PROGRAMS = test-controller$(EXEEXT) test-menu$(EXEEXT) \
-	test-service-config$(EXEEXT) $(am__EXEEXT_1)
-noinst_PROGRAMS = service-driver$(EXEEXT) $(am__EXEEXT_2)
+	test-service-config$(EXEEXT) $(am__EXEEXT_1) $(am__EXEEXT_2)
+noinst_PROGRAMS = service-driver$(EXEEXT) $(am__EXEEXT_3)
 @COND_WINDOWS_TRUE@am__append_1 = -ladvapi32 -luser32 -lshell32 -lole32 -luuid
-@COND_WINDOWS_FALSE@am__append_2 = $(TRAY_CFLAGS)
-@COND_WINDOWS_FALSE@am__append_3 = $(TRAY_LIBS)
-@COND_WINDOWS_FALSE@am__append_4 = test-sni test-sni-hosts test-xembed \
+@COND_WINDOWS_TRUE@am__append_2 = test-service-win32
+@COND_WINDOWS_FALSE@am__append_3 = $(TRAY_CFLAGS)
+@COND_WINDOWS_FALSE@am__append_4 = $(TRAY_LIBS)
+@COND_WINDOWS_FALSE@am__append_5 = test-sni test-sni-hosts test-xembed \
 @COND_WINDOWS_FALSE@	test-catalog test-settings-file \
 @COND_WINDOWS_FALSE@	test-editor test-utf8-files
-@COND_WINDOWS_FALSE@am__append_5 = test-desktop test-auth-cancel
+@COND_WINDOWS_FALSE@am__append_6 = test-desktop test-auth-cancel
 @COND_WINDOWS_FALSE@TESTS = test-controller$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-menu$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-service-config$(EXEEXT) \
@@ -117,13 +118,14 @@ mkinstalldirs = $(SHELL) $(top_srcdir)/config/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-@COND_WINDOWS_FALSE@am__EXEEXT_1 = test-sni$(EXEEXT) \
+@COND_WINDOWS_TRUE@am__EXEEXT_1 = test-service-win32$(EXEEXT)
+@COND_WINDOWS_FALSE@am__EXEEXT_2 = test-sni$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-sni-hosts$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-xembed$(EXEEXT) test-catalog$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-settings-file$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-editor$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-utf8-files$(EXEEXT)
-@COND_WINDOWS_FALSE@am__EXEEXT_2 = test-desktop$(EXEEXT) \
+@COND_WINDOWS_FALSE@am__EXEEXT_3 = test-desktop$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-auth-cancel$(EXEEXT)
 PROGRAMS = $(noinst_PROGRAMS)
 am_service_driver_OBJECTS = service_driver.$(OBJEXT)
@@ -168,6 +170,13 @@ am_test_service_config_OBJECTS = test_service_config.$(OBJEXT) \
 	service_config.$(OBJEXT)
 test_service_config_OBJECTS = $(am_test_service_config_OBJECTS)
 test_service_config_LDADD = $(LDADD)
+am__test_service_win32_SOURCES_DIST = test_service_win32.c \
+	../service_paths_win32.c
+@COND_WINDOWS_TRUE@am_test_service_win32_OBJECTS =  \
+@COND_WINDOWS_TRUE@	test_service_win32.$(OBJEXT) \
+@COND_WINDOWS_TRUE@	service_paths_win32.$(OBJEXT)
+test_service_win32_OBJECTS = $(am_test_service_win32_OBJECTS)
+test_service_win32_DEPENDENCIES =
 am__test_settings_file_SOURCES_DIST = test_settings_file.c \
 	../settings_file_linux.c ../service_config.c
 @COND_WINDOWS_FALSE@am_test_settings_file_OBJECTS =  \
@@ -219,12 +228,14 @@ am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/config_editor.Po \
 	./$(DEPDIR)/map_catalog.Po ./$(DEPDIR)/service_config.Po \
 	./$(DEPDIR)/service_driver.Po \
+	./$(DEPDIR)/service_paths_win32.Po \
 	./$(DEPDIR)/settings_file_linux.Po \
 	./$(DEPDIR)/test_auth_cancel-test_auth_cancel.Po \
 	./$(DEPDIR)/test_catalog.Po ./$(DEPDIR)/test_controller.Po \
 	./$(DEPDIR)/test_desktop-test_desktop.Po \
 	./$(DEPDIR)/test_editor.Po ./$(DEPDIR)/test_menu.Po \
 	./$(DEPDIR)/test_service_config.Po \
+	./$(DEPDIR)/test_service_win32.Po \
 	./$(DEPDIR)/test_settings_file.Po \
 	./$(DEPDIR)/test_sni-test_sni.Po \
 	./$(DEPDIR)/test_sni_hosts-test_sni_hosts.Po \
@@ -253,15 +264,16 @@ SOURCES = $(service_driver_SOURCES) $(test_auth_cancel_SOURCES) \
 	$(test_catalog_SOURCES) $(test_controller_SOURCES) \
 	$(test_desktop_SOURCES) $(test_editor_SOURCES) \
 	$(test_menu_SOURCES) $(test_service_config_SOURCES) \
-	$(test_settings_file_SOURCES) $(test_sni_SOURCES) \
-	$(test_sni_hosts_SOURCES) $(test_utf8_files_SOURCES) \
-	$(test_xembed_SOURCES)
+	$(test_service_win32_SOURCES) $(test_settings_file_SOURCES) \
+	$(test_sni_SOURCES) $(test_sni_hosts_SOURCES) \
+	$(test_utf8_files_SOURCES) $(test_xembed_SOURCES)
 DIST_SOURCES = $(service_driver_SOURCES) \
 	$(am__test_auth_cancel_SOURCES_DIST) \
 	$(am__test_catalog_SOURCES_DIST) $(test_controller_SOURCES) \
 	$(am__test_desktop_SOURCES_DIST) \
 	$(am__test_editor_SOURCES_DIST) $(test_menu_SOURCES) \
 	$(test_service_config_SOURCES) \
+	$(am__test_service_win32_SOURCES_DIST) \
 	$(am__test_settings_file_SOURCES_DIST) \
 	$(am__test_sni_SOURCES_DIST) \
 	$(am__test_sni_hosts_SOURCES_DIST) \
@@ -649,13 +661,15 @@ target_vendor = @target_vendor@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-AM_CPPFLAGS = -I$(srcdir)/.. $(am__append_2)
+AM_CPPFLAGS = -I$(srcdir)/.. $(am__append_3)
 AM_CFLAGS = -std=c99 -Wall -Wextra -Werror
 test_controller_SOURCES = test_controller.c ../tray_controller.c
 test_menu_SOURCES = test_menu.c ../tray_menu.c
 test_service_config_SOURCES = test_service_config.c ../service_config.c
 service_driver_SOURCES = service_driver.c
-service_driver_LDADD = ../libxptray.a $(am__append_1) $(am__append_3)
+service_driver_LDADD = ../libxptray.a $(am__append_1) $(am__append_4)
+@COND_WINDOWS_TRUE@test_service_win32_SOURCES = test_service_win32.c ../service_paths_win32.c
+@COND_WINDOWS_TRUE@test_service_win32_LDADD = -ladvapi32 -luser32 -lshell32 -lole32 -luuid
 @COND_WINDOWS_FALSE@test_sni_hosts_SOURCES = test_sni_hosts.c
 @COND_WINDOWS_FALSE@test_sni_hosts_CPPFLAGS = $(AM_CPPFLAGS) -DXPILOT_TEST_ICON=\"$(abs_top_srcdir)/images/icon-1254.png\"
 @COND_WINDOWS_FALSE@test_sni_hosts_LDADD = ../libxptray.a $(TRAY_LIBS)
@@ -756,6 +770,10 @@ test-service-config$(EXEEXT): $(test_service_config_OBJECTS) $(test_service_conf
 	@rm -f test-service-config$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_service_config_OBJECTS) $(test_service_config_LDADD) $(LIBS)
 
+test-service-win32$(EXEEXT): $(test_service_win32_OBJECTS) $(test_service_win32_DEPENDENCIES) $(EXTRA_test_service_win32_DEPENDENCIES)
+	@rm -f test-service-win32$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_service_win32_OBJECTS) $(test_service_win32_LDADD) $(LIBS)
+
 test-settings-file$(EXEEXT): $(test_settings_file_OBJECTS) $(test_settings_file_DEPENDENCIES) $(EXTRA_test_settings_file_DEPENDENCIES)
 	@rm -f test-settings-file$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_settings_file_OBJECTS) $(test_settings_file_LDADD) $(LIBS)
@@ -786,6 +804,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/map_catalog.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/service_config.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/service_driver.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/service_paths_win32.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/settings_file_linux.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_auth_cancel-test_auth_cancel.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_catalog.Po@am__quote@ # am--include-marker
@@ -794,6 +813,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_editor.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_menu.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_service_config.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_service_win32.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_settings_file.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_sni-test_sni.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_sni_hosts-test_sni_hosts.Po@am__quote@ # am--include-marker
@@ -920,6 +940,20 @@ tray_menu.obj: ../tray_menu.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='../tray_menu.c' object='tray_menu.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o tray_menu.obj `if test -f '../tray_menu.c'; then $(CYGPATH_W) '../tray_menu.c'; else $(CYGPATH_W) '$(srcdir)/../tray_menu.c'; fi`
+
+service_paths_win32.o: ../service_paths_win32.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT service_paths_win32.o -MD -MP -MF $(DEPDIR)/service_paths_win32.Tpo -c -o service_paths_win32.o `test -f '../service_paths_win32.c' || echo '$(srcdir)/'`../service_paths_win32.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/service_paths_win32.Tpo $(DEPDIR)/service_paths_win32.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='../service_paths_win32.c' object='service_paths_win32.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o service_paths_win32.o `test -f '../service_paths_win32.c' || echo '$(srcdir)/'`../service_paths_win32.c
+
+service_paths_win32.obj: ../service_paths_win32.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT service_paths_win32.obj -MD -MP -MF $(DEPDIR)/service_paths_win32.Tpo -c -o service_paths_win32.obj `if test -f '../service_paths_win32.c'; then $(CYGPATH_W) '../service_paths_win32.c'; else $(CYGPATH_W) '$(srcdir)/../service_paths_win32.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/service_paths_win32.Tpo $(DEPDIR)/service_paths_win32.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='../service_paths_win32.c' object='service_paths_win32.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o service_paths_win32.obj `if test -f '../service_paths_win32.c'; then $(CYGPATH_W) '../service_paths_win32.c'; else $(CYGPATH_W) '$(srcdir)/../service_paths_win32.c'; fi`
 
 settings_file_linux.o: ../settings_file_linux.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT settings_file_linux.o -MD -MP -MF $(DEPDIR)/settings_file_linux.Tpo -c -o settings_file_linux.o `test -f '../settings_file_linux.c' || echo '$(srcdir)/'`../settings_file_linux.c
@@ -1365,6 +1399,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/map_catalog.Po
 	-rm -f ./$(DEPDIR)/service_config.Po
 	-rm -f ./$(DEPDIR)/service_driver.Po
+	-rm -f ./$(DEPDIR)/service_paths_win32.Po
 	-rm -f ./$(DEPDIR)/settings_file_linux.Po
 	-rm -f ./$(DEPDIR)/test_auth_cancel-test_auth_cancel.Po
 	-rm -f ./$(DEPDIR)/test_catalog.Po
@@ -1373,6 +1408,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/test_editor.Po
 	-rm -f ./$(DEPDIR)/test_menu.Po
 	-rm -f ./$(DEPDIR)/test_service_config.Po
+	-rm -f ./$(DEPDIR)/test_service_win32.Po
 	-rm -f ./$(DEPDIR)/test_settings_file.Po
 	-rm -f ./$(DEPDIR)/test_sni-test_sni.Po
 	-rm -f ./$(DEPDIR)/test_sni_hosts-test_sni_hosts.Po
@@ -1430,6 +1466,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/map_catalog.Po
 	-rm -f ./$(DEPDIR)/service_config.Po
 	-rm -f ./$(DEPDIR)/service_driver.Po
+	-rm -f ./$(DEPDIR)/service_paths_win32.Po
 	-rm -f ./$(DEPDIR)/settings_file_linux.Po
 	-rm -f ./$(DEPDIR)/test_auth_cancel-test_auth_cancel.Po
 	-rm -f ./$(DEPDIR)/test_catalog.Po
@@ -1438,6 +1475,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/test_editor.Po
 	-rm -f ./$(DEPDIR)/test_menu.Po
 	-rm -f ./$(DEPDIR)/test_service_config.Po
+	-rm -f ./$(DEPDIR)/test_service_win32.Po
 	-rm -f ./$(DEPDIR)/test_settings_file.Po
 	-rm -f ./$(DEPDIR)/test_sni-test_sni.Po
 	-rm -f ./$(DEPDIR)/test_sni_hosts-test_sni_hosts.Po

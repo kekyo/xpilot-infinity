@@ -9,6 +9,9 @@ service_driver_SOURCES = service_driver.c
 service_driver_LDADD = ../libxptray.a
 if COND_WINDOWS
 service_driver_LDADD += -ladvapi32 -luser32 -lshell32 -lole32 -luuid
+check_PROGRAMS += test-service-win32
+test_service_win32_SOURCES = test_service_win32.c ../service_paths_win32.c
+test_service_win32_LDADD = -ladvapi32 -luser32 -lshell32 -lole32 -luuid
 else
 AM_CPPFLAGS += $(TRAY_CFLAGS)
 service_driver_LDADD += $(TRAY_LIBS)
