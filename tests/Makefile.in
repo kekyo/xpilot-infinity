@@ -239,7 +239,7 @@ target_triplet = @target@
 @COND_WINDOWS_FALSE@	run-renderer-gl-core.sh \
 @COND_WINDOWS_FALSE@	run-sdl-renderer-core-context.sh \
 @COND_WINDOWS_FALSE@	run-build-metadata.sh run-build-wrapper.sh \
-@COND_WINDOWS_FALSE@	run-build-package.sh \
+@COND_WINDOWS_FALSE@	run-build-package.sh run-package-tools.sh \
 @COND_WINDOWS_FALSE@	run-package-windows.sh \
 @COND_WINDOWS_FALSE@	run-windows-archive.sh \
 @COND_WINDOWS_FALSE@	run-macos-info-plist.sh \
@@ -1914,7 +1914,7 @@ EXTRA_DIST = run-build-metadata.sh run-build-wrapper.sh \
 	run-renderer-gl-core.sh run-sdl-core-boundary.sh \
 	run-sdl-renderer-core-context.sh run-c23-server-build.sh \
 	run-vendored-zlib.sh \
-	run-wine-suite.sh run-build-package.sh run-package-windows.sh \
+	run-wine-suite.sh run-build-package.sh run-package-tools.sh run-package-windows.sh \
 	run-windows-archive.sh run-macos-info-plist.sh \
 	run-container-publish.sh run-container-image.sh run-quadlet.sh \
 	run-source-encoding.sh test-source-encoding.mjs \

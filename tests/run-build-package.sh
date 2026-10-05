@@ -545,6 +545,7 @@ prereq_project="$test_root/prereq-project"
 prereq_log="$test_root/prereq.log"
 mkdir -p "$prereq_project"
 ln -s "$package_script" "$prereq_project/build_package.sh"
+ln -s "$package_script_dir/tests" "$prereq_project/tests"
 
 cat > "$fixture_tools/prereq-container-engine" <<'EOF'
 #!/bin/sh

@@ -96,7 +96,7 @@ TESTS = test-framed-stream test-websocket-transport \
 	test-text-cache-adapter \
 	run-renderer-gl-core.sh run-sdl-renderer-core-context.sh \
 	run-build-metadata.sh run-build-wrapper.sh \
-	run-build-package.sh run-package-windows.sh \
+	run-build-package.sh run-package-tools.sh run-package-windows.sh \
 	run-windows-archive.sh run-macos-info-plist.sh \
 	run-source-encoding.sh \
 	run-c23-server-build.sh run-vendored-zlib.sh \
@@ -651,7 +651,7 @@ EXTRA_DIST = run-build-metadata.sh run-build-wrapper.sh \
 	run-renderer-gl-core.sh run-sdl-core-boundary.sh \
 	run-sdl-renderer-core-context.sh run-c23-server-build.sh \
 	run-vendored-zlib.sh \
-	run-wine-suite.sh run-build-package.sh run-package-windows.sh \
+	run-wine-suite.sh run-build-package.sh run-package-tools.sh run-package-windows.sh \
 	run-windows-archive.sh run-macos-info-plist.sh \
 	run-container-publish.sh run-container-image.sh run-quadlet.sh \
 	run-source-encoding.sh test-source-encoding.mjs \

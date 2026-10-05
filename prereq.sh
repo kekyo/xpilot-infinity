@@ -94,8 +94,14 @@ EOF
 
 # Ubuntu 22.04 ships Node 12; the build-time template CLI requires Node 16+.
 # Use distro Node on the other targets, including Debian's 32-bit builds.
+# Upgrade npm together with Node so it carries its own dependencies instead
+# of relying on the distro Node's shared module lookup paths.
 RUN node -e 'process.exit(Number(process.versions.node.split(".")[0]) >= 16 ? 0 : 1)' \
-    || npm install --global node@22
+    || (npm install --global node@22 && \
+        NODE_PATH=/usr/share/nodejs /usr/local/bin/node /usr/bin/npm install --global npm@10)
+
+COPY run-package-tools.sh /tmp/run-package-tools.sh
+RUN sh /tmp/run-package-tools.sh && rm /tmp/run-package-tools.sh
 EOF
     } > "$containerfile"
 }
@@ -116,6 +122,7 @@ build_prereq_image()
     rm -rf "$work_dir"
     mkdir -p "$work_dir"
     write_containerfile "$containerfile"
+    cp "$PROJECT_ROOT/tests/run-package-tools.sh" "$work_dir/"
 
     if test "$FORCE" -eq 1; then
         set -- --no-cache
