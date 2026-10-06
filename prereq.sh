@@ -99,9 +99,24 @@ EOF
 RUN node -e 'process.exit(Number(process.versions.node.split(".")[0]) >= 16 ? 0 : 1)' \
     || (npm install --global node@22 && \
         NODE_PATH=/usr/share/nodejs /usr/local/bin/node /usr/bin/npm install --global npm@10)
+EOF
+        if test "$distro/$release/$arch" = debian/bookworm/arm64; then
+            cat <<'EOF'
+
+# Bookworm's CMake 3.25.1 intermittently misses installed font libraries under
+# arm64 emulation. Use the upstream binary verified against fresh SDL_ttf builds.
+ADD https://github.com/Kitware/CMake/releases/download/v3.31.10/cmake-3.31.10-linux-aarch64.tar.gz /tmp/cmake.tar.gz
+RUN echo 'a343c6294f770742904e6a6792e0956b5ff8212abfb63cac99237de2e210fa0f  /tmp/cmake.tar.gz' | sha256sum -c - && \
+    tar -xzf /tmp/cmake.tar.gz --strip-components=1 -C /usr/local && \
+    rm /tmp/cmake.tar.gz
+EOF
+        fi
+        cat <<'EOF'
 
 COPY run-package-tools.sh /tmp/run-package-tools.sh
 RUN sh /tmp/run-package-tools.sh && rm /tmp/run-package-tools.sh
+COPY run-package-cmake.sh /tmp/run-package-cmake.sh
+RUN sh /tmp/run-package-cmake.sh && rm /tmp/run-package-cmake.sh
 EOF
     } > "$containerfile"
 }
@@ -123,6 +138,7 @@ build_prereq_image()
     mkdir -p "$work_dir"
     write_containerfile "$containerfile"
     cp "$PROJECT_ROOT/tests/run-package-tools.sh" "$work_dir/"
+    cp "$PROJECT_ROOT/tests/run-package-cmake.sh" "$work_dir/"
 
     if test "$FORCE" -eq 1; then
         set -- --no-cache
