@@ -22,6 +22,14 @@ require_command()
         || fail "required command was not found: $1"
 }
 
+require_tray_dependencies()
+{
+    pkg-config --print-errors --exists \
+        'gtk+-3.0 >= 3.22' 'gio-2.0 >= 2.60' \
+        gdk-x11-3.0 x11 xfixes polkit-gobject-1 \
+        || fail "the package image is missing server tray development dependencies. Run ./prereq.sh on the host to update the images, then retry."
+}
+
 assert_file()
 {
     test -f "$1" || fail "missing expected file: $1"
@@ -98,7 +106,7 @@ strip_staged_executables()
     strip_command=${STRIP:-strip}
     for executable_name in \
         xpilot-infinity-sdl xpilot-infinity-x11 xpilot-infinity-server \
-        xpilot-infinity-replay xpilot-infinity-xp-mapedit
+        xpilot-infinity-replay xpilot-infinity-xp-mapedit xpilot-infinity-tray
     do
         executable_path="$stage_dir/usr/games/$executable_name"
         assert_file "$executable_path"
@@ -106,6 +114,8 @@ strip_staged_executables()
             --remove-section=.comment --remove-section=.note \
             "$executable_path"
     done
+    "$strip_command" --strip-unneeded --remove-section=.comment --remove-section=.note \
+        "$stage_dir/usr/lib/xpilot-infinity/xpilot-infinity-settings-helper"
 }
 
 compress_manual_pages()
@@ -132,6 +142,7 @@ install_package_documentation()
     render_debian_changelog \
         "$debian_changelog_template_path" "$debian_changelog_path"
     cp "$source_dir/README.md" "$package_doc_dir/"
+    cp "$source_dir/README_ja.md" "$package_doc_dir/"
     cp "$copyright_path" "$package_doc_dir/copyright"
     gzip -9n -c "$source_dir/ChangeLog" \
         > "$package_doc_dir/changelog.gz"
@@ -156,6 +167,7 @@ install_systemd_service()
     install -m 0644 "$defaults_source" "$defaults_dir/$defaults_name"
     printf '/etc/default/%s\n' "$defaults_name" \
         > "$control_dir/conffiles"
+    printf '%s\n' /etc/dbus-1/system.d/org.xpilot.Infinity.ServerSettings1.conf >> "$control_dir/conffiles"
 
     for maintainer_script in postinst prerm postrm; do
         maintainer_source="$source_dir/debian/$XPILOT_PACKAGE_NAME.$maintainer_script"
@@ -214,6 +226,8 @@ EOF
             "$stage_dir/usr/games/xpilot-infinity-server" \
             "$stage_dir/usr/games/xpilot-infinity-replay" \
             "$stage_dir/usr/games/xpilot-infinity-xp-mapedit" \
+            "$stage_dir/usr/games/xpilot-infinity-tray" \
+            "$stage_dir/usr/lib/xpilot-infinity/xpilot-infinity-settings-helper" \
             | sed -n 's/^shlibs:Depends=//p'
     )
     rm -rf "$temporary_dir"
@@ -235,10 +249,10 @@ Priority: optional
 Architecture: $deb_arch
 Maintainer: $XPILOT_PACKAGE_MAINTAINER
 Pre-Depends: init-system-helpers (>= 1.54~)
-Depends: $dependencies
+Depends: $dependencies, dbus, polkitd | policykit-1
 Description: $XPILOT_PACKAGE_DESCRIPTION
  XPilot Infinity is a multiplayer tactical game. This package includes the SDL
- and X11 clients, the dedicated server, utilities, game data, and manuals.
+ and X11 clients, the dedicated server, service tray, utilities, game data, and manuals.
 EOF
 }
 
@@ -274,6 +288,9 @@ require_command make
 require_command pkg-config
 require_command "${STRIP:-strip}"
 
+# Check the reusable image before compiling the vendored dependencies.
+require_tray_dependencies
+
 test -x ./configure || fail "configure is unavailable; run ./bootstrap first"
 test -x ./vendor/sdl3/build.sh \
     || fail "the vendored SDL3 build script is unavailable"
@@ -305,6 +322,9 @@ mkdir -p "$build_dir" "$meta_dir" "$stage_dir"
         --bindir=/usr/games \
         --datadir=/usr/share/games \
         --mandir=/usr/share/man \
+        --sysconfdir=/etc \
+        --libexecdir=/usr/lib/xpilot-infinity \
+        --enable-server-tray=yes \
         --with-sdl3=vendored \
         "--with-sdl3-prefix=$dependency_prefix"
     make -j"$XPILOT_MAKE_JOBS" \
@@ -317,10 +337,14 @@ mkdir -p "$build_dir" "$meta_dir" "$stage_dir"
 
 for executable_name in \
     xpilot-infinity-sdl xpilot-infinity-x11 xpilot-infinity-server \
-    xpilot-infinity-replay xpilot-infinity-xp-mapedit
+    xpilot-infinity-replay xpilot-infinity-xp-mapedit xpilot-infinity-tray
 do
     assert_file "$stage_dir/usr/games/$executable_name"
 done
+assert_file "$stage_dir/usr/lib/xpilot-infinity/xpilot-infinity-settings-helper"
+assert_file "$stage_dir/usr/share/applications/xpilot-infinity-tray.desktop"
+assert_file "$stage_dir/usr/share/dbus-1/system-services/org.xpilot.Infinity.ServerSettings1.service"
+assert_file "$stage_dir/usr/share/polkit-1/actions/org.xpilot.infinity.policy"
 assert_file "$stage_dir/usr/share/games/xpilot-infinity/defaults.txt"
 assert_file "$stage_dir/usr/share/games/xpilot-infinity/maps/ndh.xp2"
 assert_file "$stage_dir/usr/share/games/xpilot-infinity/sound/sounds.txt"

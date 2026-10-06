@@ -62,6 +62,7 @@ extern struct options {
     bool	logRobots;
     int		framesPerSecond;
     char	*mapFileName;
+    bool        strictMap;      /**< Fail startup if the specified map cannot be read. */
     char	*mapData;
     int		mapWidth;
     int		mapHeight;

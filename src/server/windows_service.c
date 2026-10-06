@@ -130,9 +130,13 @@ static bool Windows_service_redirect_descriptor(const char *path,
     intptr_t duplicated_handle;
     int file_descriptor;
 
-    file_handle = CreateFileA(path, FILE_APPEND_DATA,
+    wchar_t *wide_path = Xp_wide(path);
+    if (!wide_path)
+        return false;
+    file_handle = CreateFileW(wide_path, FILE_APPEND_DATA,
 			      FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
 			      OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    free(wide_path);
     if (file_handle == INVALID_HANDLE_VALUE)
 	return false;
 

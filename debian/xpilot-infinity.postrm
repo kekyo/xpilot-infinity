@@ -12,6 +12,7 @@ if [ -z "${DPKG_ROOT:-}" ] && [ "$1" = remove ] \
     && [ -d /run/systemd/system ]
 then
     systemctl --system daemon-reload >/dev/null || true
+    systemctl --system reload dbus.service >/dev/null 2>&1 || true
 fi
 
 exit 0

@@ -111,7 +111,8 @@ am_xpilot_infinity_x11_OBJECTS = about.$(OBJEXT) bitmaps.$(OBJEXT) \
 	xeventhandlers.$(OBJEXT) x11_text.$(OBJEXT) xinit.$(OBJEXT) \
 	xpaint.$(OBJEXT) xpilot.$(OBJEXT)
 xpilot_infinity_x11_OBJECTS = $(am_xpilot_infinity_x11_OBJECTS)
-xpilot_infinity_x11_DEPENDENCIES = $(top_builddir)/src/client/libxpclient.a \
+xpilot_infinity_x11_DEPENDENCIES =  \
+	$(top_builddir)/src/client/libxpclient.a \
 	$(top_builddir)/src/common/libxpcommon.a
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -253,8 +254,15 @@ SHELL = @SHELL@
 SOUND_CFLAGS = @SOUND_CFLAGS@
 SOUND_LIBS = @SOUND_LIBS@
 STRIP = @STRIP@
+TRAY_CFLAGS = @TRAY_CFLAGS@
+TRAY_LIBS = @TRAY_LIBS@
+TRAY_POLKIT_CFLAGS = @TRAY_POLKIT_CFLAGS@
+TRAY_POLKIT_LIBS = @TRAY_POLKIT_LIBS@
+TRAY_TEST_CFLAGS = @TRAY_TEST_CFLAGS@
+TRAY_TEST_LIBS = @TRAY_TEST_LIBS@
 VERSION = @VERSION@
 W32_LIBS = @W32_LIBS@
+WINDRES = @WINDRES@
 XMKMF = @XMKMF@
 XP_AUTHORS = @XP_AUTHORS@
 XP_COPYRIGHT = @XP_COPYRIGHT@

@@ -28,6 +28,12 @@ release, and architecture filters apply only to the Debian/Ubuntu matrix; both
 Windows architectures are always built.  The `--version`, `--jobs`, and
 `--debug` options apply to both package families.
 
+Run `./prereq.sh` again after dependency requirements change. It updates the
+images from the current recipe and reuses unchanged build layers. Use
+`./prereq.sh --force` to rebuild without cached layers. If packaging reports
+missing server tray development dependencies, refresh the prerequisite images
+before retrying.
+
 The supported Debian package matrix is:
 
 | Distribution | Release | Architectures |

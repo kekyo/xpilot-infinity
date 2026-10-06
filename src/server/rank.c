@@ -304,7 +304,7 @@ void Rank_write_webpage(void)
     if (!filename)
 	return;
 
-    file = fopen(filename, "w");
+    file = Xp_fopen(filename, "w");
     if (!file) {
 	error("Couldn't open ranking file \"%s\" for writing", filename);
 	return;
@@ -565,7 +565,7 @@ void Rank_init_saved_scores(void)
     if (!options.rankFileName)
 	return;
 
-    file = fopen(options.rankFileName, "r");
+    file = Xp_fopen(options.rankFileName, "r");
     if (!file) {
 	if (errno != ENOENT)
 	    error("Couldn't open rank file \"%s\"", options.rankFileName);
@@ -667,7 +667,7 @@ void Rank_write_rankfile(void)
 
     snprintf(tmp_file, sizeof(tmp_file), "%s-new", options.rankFileName);
 
-    file = fopen(tmp_file, "w");
+    file = Xp_fopen(tmp_file, "w");
     if (file == NULL) {
 	error("Open temporary file \"%s\"", tmp_file);
 	goto failed;
@@ -767,12 +767,12 @@ void Rank_write_rankfile(void)
     file = NULL;
 
     /* Overwrite old rank file. */
-    if (rename(tmp_file, options.rankFileName) < 0) {
+    if (Xp_rename(tmp_file, options.rankFileName) < 0) {
 	error("Rename \"%s\" to \"%s\"", tmp_file, options.rankFileName);
 	goto failed;
     }
 
-    remove(tmp_file);
+    Xp_remove(tmp_file);
 
     /*xpprintf("%s Rank file with %d entries written successfully.\n",
       showtime(), rank_entries);*/
@@ -786,7 +786,7 @@ void Rank_write_rankfile(void)
 
     if (file) {
 	fclose(file);
-	remove(tmp_file);
+	Xp_remove(tmp_file);
     }
     warn("Couldn't save ranking data to file \"%s\".", options.rankFileName);
 

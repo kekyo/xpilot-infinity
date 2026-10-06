@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=org.xpilot.Infinity.ServerSettings1
+Exec="{{libexecdir}}/xpilot-infinity-settings-helper"
+User=root

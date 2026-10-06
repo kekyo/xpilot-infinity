@@ -87,6 +87,10 @@ Section "!XPilot Infinity client and server" SEC_CORE
     "$SMPROGRAMS\XPilot Infinity\XPilot Infinity.lnk" \
     "$INSTDIR\xpilot-infinity-sdl.exe" "" "$INSTDIR\icon.ico" 0 \
     SW_SHOWNORMAL "" "Open the XPilot Infinity server browser"
+  CreateShortcut \
+    "$SMPROGRAMS\XPilot Infinity\XPilot Infinity Server Tray.lnk" \
+    "$INSTDIR\xpilot-infinity-tray.exe" "" "$INSTDIR\icon.ico" 0 \
+    SW_SHOWNORMAL "" "Manage the installed XPilot Infinity server service"
 
   WriteUninstaller "$INSTDIR\uninstall.exe"
   WriteRegStr HKLM "${PRODUCT_KEY}" "InstallDir" "$INSTDIR"
@@ -105,6 +109,7 @@ SectionEnd
 Section /o "Dedicated server service (manual start)" SEC_SERVER_SERVICE
   SetShellVarContext all
   CreateDirectory "$APPDATA\XPilot Infinity\server"
+  Call ConfigureServerDataPermissions
   IfFileExists \
     "$APPDATA\XPilot Infinity\server\xpilot-infinity-server.conf" \
     server_config_exists
@@ -115,7 +120,7 @@ server_config_exists:
 SectionEnd
 
 LangString DESC_CORE ${LANG_ENGLISH} \
-  "Install the SDL client, dedicated server, game data, and Start menu shortcut."
+  "Install the SDL client, dedicated server, service tray, game data, and Start menu shortcuts."
 LangString DESC_SERVER_SERVICE ${LANG_ENGLISH} \
   "Register the dedicated server with Windows. The service uses manual startup and is not started by this installer."
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
@@ -124,19 +129,27 @@ LangString DESC_SERVER_SERVICE ${LANG_ENGLISH} \
     $(DESC_SERVER_SERVICE)
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
+Function ConfigureServerDataPermissions
+  StrCpy $0 "$APPDATA\XPilot Infinity\server"
+  ; LocalService needs write access only to its application data directory.
+  ; ProgramData also inherits Users create/write rights. Remove those inherited
+  ; grants so the settings helper can safely replace the shared configuration.
+  ; Keep ordinary users' read access for the tray and editing copies.
+  nsExec::ExecToStack \
+    '"$SYSDIR\icacls.exe" "$0" /inheritance:r /grant:r "*S-1-5-18:(OI)(CI)F" "*S-1-5-32-544:(OI)(CI)F" "*S-1-5-19:(OI)(CI)M" "*S-1-5-32-545:(OI)(CI)RX"'
+  Pop $1
+  Pop $2
+  ${If} $1 != 0
+    StrCpy $4 $1
+    StrCpy $2 "Could not update the server data ACL (icacls exit $1): $2"
+    Call FailServiceRegistration
+  ${EndIf}
+FunctionEnd
+
 Function ConfigureServerService
   StrCpy $0 "$APPDATA\XPilot Infinity\server"
   StrCpy $ServiceCommand \
     '\"$INSTDIR\xpilot-infinity-server.exe\" --windows-service --windows-service-log \"$0\xpilot-infinity-server.log\" -defaultsFileName \"$0\xpilot-infinity-server.conf\"'
-
-  ; LocalService needs write access only to its application data directory.
-  nsExec::ExecToStack \
-    '"$SYSDIR\icacls.exe" "$0" /grant "*S-1-5-19:(OI)(CI)M"'
-  Pop $1
-  Pop $2
-  ${If} $1 != 0
-    DetailPrint "Could not update the server data ACL (icacls exit $1): $2"
-  ${EndIf}
 
   nsExec::ExecToStack \
     '"$SYSDIR\sc.exe" query "${SERVICE_NAME}"'
@@ -164,7 +177,7 @@ Function FailServiceRegistration
   FileOpen $5 "$TEMP\XPilotInfinityInstaller.log" a
   FileWrite $5 \
     "Could not register the XPilot Infinity server service (error $4).$\r$\n"
-  FileWrite $5 "Service manager output: $2$\r$\n"
+  FileWrite $5 "Installer command output: $2$\r$\n"
   FileClose $5
   IfSilent service_failure_silent
   MessageBox MB_ICONSTOP|MB_OK \
@@ -216,6 +229,7 @@ Section "Uninstall"
   Pop $0
 
   Delete "$SMPROGRAMS\XPilot Infinity\XPilot Infinity.lnk"
+  Delete "$SMPROGRAMS\XPilot Infinity\XPilot Infinity Server Tray.lnk"
   RMDir "$SMPROGRAMS\XPilot Infinity"
   DeleteRegKey HKLM "${UNINSTALL_KEY}"
   DeleteRegKey HKLM "${PRODUCT_KEY}"

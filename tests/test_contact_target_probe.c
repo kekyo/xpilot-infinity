@@ -23,9 +23,10 @@ int main(int argc, char **argv)
     int invalid_index;
     int target_count;
     Contact_servers_result_t result;
+    int list_servers = argc == 3 && strcmp(argv[1], "--status") == 0;
 
-    if (argc == 3 && strcmp(argv[1], "--interactive") == 0) {
-        auto_connect = 0;
+    if (argc == 3 && (strcmp(argv[1], "--interactive") == 0 || list_servers)) {
+        auto_connect = list_servers;
         first_target = 2;
         target_count = 1;
     } else if (argc == 3) {
@@ -56,7 +57,7 @@ int main(int argc, char **argv)
         sock_cleanup();
         return 4;
     }
-    if (auto_connect) {
+    if (auto_connect && !list_servers) {
         expected_contact_transport = GAME_TRANSPORT_UDP;
         expected_game_transport = GAME_TRANSPORT_UDP;
     } else {
@@ -65,9 +66,11 @@ int main(int argc, char **argv)
     }
 
     result = Contact_servers_detailed(
-        target_count, targets, auto_connect, 0, 0, NULL, &connection);
+        target_count, targets, auto_connect, list_servers, 0, NULL, &connection);
     free(targets);
     sock_cleanup();
+    if (list_servers)
+        return result.contacted ? 0 : 5;
     if (!result.contacted || !result.connected)
         return 5;
     if (connection.contact_transport != expected_contact_transport

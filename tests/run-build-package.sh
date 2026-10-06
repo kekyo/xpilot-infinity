@@ -148,8 +148,10 @@ policy_meta="$test_root/policy-meta"
 mkdir -p "$policy_source/debian" \
     "$policy_source/images" \
     "$policy_stage/usr/games" "$policy_stage/usr/share/man/man6" \
+    "$policy_stage/usr/lib/xpilot-infinity" \
     "$policy_meta"
 printf 'fixture README\n' > "$policy_source/README.md"
+printf 'fixture README ja\n' > "$policy_source/README_ja.md"
 printf 'fixture upstream changes\n' > "$policy_source/ChangeLog"
 printf 'fixture copyright\n' > "$policy_source/debian/copyright"
 cat > "$policy_source/debian/changelog.in" <<'EOF'
@@ -200,11 +202,13 @@ readelf -S "$test_root/fixture-executable" | grep -Fq .debug_info \
     || fail "the fixture executable did not contain debug information"
 for executable_name in \
     xpilot-infinity-sdl xpilot-infinity-x11 xpilot-infinity-server \
-    xpilot-infinity-replay xpilot-infinity-xp-mapedit
+    xpilot-infinity-replay xpilot-infinity-xp-mapedit xpilot-infinity-tray
 do
     cp "$test_root/fixture-executable" \
         "$policy_stage/usr/games/$executable_name"
 done
+cp "$test_root/fixture-executable" \
+    "$policy_stage/usr/lib/xpilot-infinity/xpilot-infinity-settings-helper"
 
 (
     BUILD_LINUX_DIST_SOURCE_ONLY=1
@@ -480,6 +484,45 @@ assert_contains "$fixture_dpkg_log" \
 test -f "$DEB_ARTIFACT_ROOT/xpilot-infinity-4.7.99-1-debian-bookworm-amd64.deb" \
     || fail "the Debian artifact was not created"
 
+# A failed parallel job must retain both output streams and identify its target
+# after the other jobs finish, instead of ending with an unrelated job's output.
+parallel_driver="$test_root/parallel-driver"
+cat > "$parallel_driver" <<'EOF'
+#!/bin/sh
+set -eu
+BUILD_PACKAGE_SOURCE_ONLY=1
+. "$XPILOT_BUILD_PACKAGE"
+PACKAGE_LOG_ROOT="$XPILOT_PARALLEL_TEST_ROOT/logs"
+PARALLEL_JOBS=2
+ACTIVE_JOB_PIDS=
+ACTIVE_JOB_NAMES=
+ACTIVE_JOB_COUNT=0
+JOB_FAILURE=0
+FAILED_JOBS=
+run_parallel_job debian/bookworm/arm64 sh -c \
+    'echo "configure output"; echo "font dependency discovery failed" >&2; exit 23'
+run_parallel_job ubuntu/26.04/arm64 sh -c 'echo "successful package output"'
+wait_for_all_jobs
+EOF
+chmod +x "$parallel_driver"
+if XPILOT_BUILD_PACKAGE="$package_script" \
+    XPILOT_PARALLEL_TEST_ROOT="$test_root/parallel" \
+    "$parallel_driver" > "$test_root/parallel-output" 2>&1
+then
+    fail "a failed parallel package build was accepted"
+fi
+assert_contains "$test_root/parallel-output" "debian/bookworm/arm64"
+assert_contains "$test_root/parallel-output" "exit 23"
+assert_contains "$test_root/parallel-output" "font dependency discovery failed"
+assert_contains "$test_root/parallel-output" \
+    "$test_root/parallel/logs/debian/bookworm/arm64.log"
+assert_contains "$test_root/parallel/logs/debian/bookworm/arm64.log" \
+    "configure output"
+assert_contains "$test_root/parallel/logs/debian/bookworm/arm64.log" \
+    "font dependency discovery failed"
+assert_contains "$test_root/parallel/logs/ubuntu/26.04/arm64.log" \
+    "successful package output"
+
 all_args="$test_root/build-all.args"
 windows_args="$test_root/build-windows.args"
 cat > "$fixture_tools/build-package-stub" <<'EOF'
@@ -541,13 +584,14 @@ prereq_project="$test_root/prereq-project"
 prereq_log="$test_root/prereq.log"
 mkdir -p "$prereq_project"
 ln -s "$package_script" "$prereq_project/build_package.sh"
+ln -s "$package_script_dir/tests" "$prereq_project/tests"
 
 cat > "$fixture_tools/prereq-container-engine" <<'EOF'
 #!/bin/sh
 set -eu
 
 if test "${1:-}" = image && test "${2:-}" = exists; then
-    exit 1
+    exit "${XPILOT_PREREQ_IMAGE_EXISTS:-1}"
 fi
 test "${1:-}" = build || exit 2
 
@@ -583,5 +627,54 @@ assert_contains "$prereq_log" "libgl-dev"
 assert_contains "$prereq_log" "libopenal-dev"
 assert_contains "$prereq_log" "libxrender-dev"
 assert_contains "$prereq_log" "libxtst-dev"
+
+# Existing image tags must not hide changes to the dependency recipe.
+: > "$prereq_log"
+XPILOT_PREREQ_IMAGE_EXISTS=0 \
+XPILOT_PREREQ_TEST_LOG=$prereq_log \
+XPILOT_PREREQ_PROJECT_ROOT=$prereq_project \
+CONTAINER_ENGINE="$fixture_tools/prereq-container-engine" \
+    "$prereq_script" --distro debian --release trixie \
+    --arch arm64 --jobs 1
+assert_contains "$prereq_log" "build "
+assert_contains "$prereq_log" "--platform linux/arm64"
+assert_not_contains "$prereq_log" "--no-cache"
+
+XPILOT_PREREQ_IMAGE_EXISTS=0 \
+XPILOT_PREREQ_TEST_LOG=$prereq_log \
+XPILOT_PREREQ_PROJECT_ROOT=$prereq_project \
+CONTAINER_ENGINE="$fixture_tools/prereq-container-engine" \
+    "$prereq_script" --distro debian --release trixie \
+    --arch arm64 --jobs 1 --force
+assert_contains "$prereq_log" "--no-cache"
+
+# Missing tray dependencies must give an actionable prerequisite diagnostic.
+cat > "$fixture_tools/pkg-config" <<'EOF'
+#!/bin/sh
+exit "$XPILOT_TRAY_DEPS_STATUS"
+EOF
+chmod +x "$fixture_tools/pkg-config"
+for deps_status in 1 0; do
+    preflight_status=0
+    if (
+        BUILD_LINUX_DIST_SOURCE_ONLY=1
+        export BUILD_LINUX_DIST_SOURCE_ONLY
+        . "$linux_dist_script"
+        XPILOT_TRAY_DEPS_STATUS=$deps_status
+        export XPILOT_TRAY_DEPS_STATUS
+        require_tray_dependencies
+    ) > "$test_root/preflight.log" 2>&1; then
+        :
+    else
+        preflight_status=$?
+    fi
+    if test "$deps_status" = 1; then
+        test "$preflight_status" -ne 0 \
+            || fail "missing tray dependencies were accepted"
+        assert_contains "$test_root/preflight.log" "./prereq.sh"
+    else
+        assert_equal 0 "$preflight_status" "valid tray dependencies were rejected"
+    fi
+done
 
 echo "Package build orchestration smoke passed"

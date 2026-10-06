@@ -1,0 +1,4 @@
+#include <windows.h>
+1 ICON "images/icon.ico"
+/* Both the tray and its broker access the real shared configuration. */
+1 RT_MANIFEST "src/tray/tray.manifest"

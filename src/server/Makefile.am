@@ -27,3 +27,6 @@ xpilot_infinity_server_SOURCES = \
 	windows_service.c windows_service.h xp2map.c xpmap.c xpserver.h
 
 xpilot_infinity_server_LDADD =  $(top_builddir)/src/common/libxpcommon.a @X_EXTRA_LIBS@ @W32_LIBS@
+if COND_WINDOWS
+xpilot_infinity_server_LDFLAGS = -municode
+endif

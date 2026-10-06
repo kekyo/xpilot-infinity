@@ -17,3 +17,7 @@ else
 endif
 
 SUBDIRS = common server $(MAYBE_CLIENT) $(MAYBE_REPLAY) $(MAYBE_XP_MAPEDIT)
+
+if COND_SERVER_TRAY
+SUBDIRS += tray
+endif

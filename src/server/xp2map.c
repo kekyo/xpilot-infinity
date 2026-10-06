@@ -550,8 +550,11 @@ bool parseXp2MapFile(char* fname, optOrigin opt_origin)
     }
     XML_SetElementHandler(p, tagstart, tagend);
     
-    in = gzopen(fname, "rb");
+    int descriptor = Xp_open_read(fname);
+    in = descriptor >= 0 ? gzdopen(descriptor, "rb") : NULL;
     if (in == NULL) {
+	if (descriptor >= 0) close(descriptor);
+	XML_ParserFree(p);
 	error("Error reading map!");
 	return false;
     }
