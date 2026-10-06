@@ -528,23 +528,37 @@ wait_for_oldest_job()
     set -- $ACTIVE_JOB_PIDS
     wait_pid=$1
     shift
-    if wait "$wait_pid"; then
-        :
-    else
-        JOB_FAILURE=1
-    fi
     ACTIVE_JOB_PIDS=$*
+    set -- $ACTIVE_JOB_NAMES
+    wait_name=$1
+    shift
+    ACTIVE_JOB_NAMES=$*
+    if wait "$wait_pid"; then
+        printf '[done] %s\n' "$wait_name"
+    else
+        wait_status=$?
+        JOB_FAILURE=1
+        FAILED_JOBS="${FAILED_JOBS}${FAILED_JOBS:+ }$wait_name"
+        printf '%s\n' "$wait_status" > "$PACKAGE_LOG_ROOT/$wait_name.status"
+    fi
     ACTIVE_JOB_COUNT=$((ACTIVE_JOB_COUNT - 1))
 }
 
 run_parallel_job()
 {
+    job_name=$1
+    shift
     while test "$ACTIVE_JOB_COUNT" -ge "$PARALLEL_JOBS"; do
         wait_for_oldest_job
     done
-    test "$JOB_FAILURE" -eq 0 || fail "one or more package builds failed"
-    "$@" &
+    # Drain already-started jobs before reporting a failure and exiting.
+    test "$JOB_FAILURE" -eq 0 || wait_for_all_jobs
+    job_log="$PACKAGE_LOG_ROOT/$job_name.log"
+    mkdir -p "$(dirname -- "$job_log")"
+    printf '[build] %s (log: %s)\n' "$job_name" "$job_log"
+    ("$@") > "$job_log" 2>&1 &
     ACTIVE_JOB_PIDS="${ACTIVE_JOB_PIDS}${ACTIVE_JOB_PIDS:+ }$!"
+    ACTIVE_JOB_NAMES="${ACTIVE_JOB_NAMES}${ACTIVE_JOB_NAMES:+ }$job_name"
     ACTIVE_JOB_COUNT=$((ACTIVE_JOB_COUNT + 1))
 }
 
@@ -553,7 +567,16 @@ wait_for_all_jobs()
     while test "$ACTIVE_JOB_COUNT" -gt 0; do
         wait_for_oldest_job
     done
-    test "$JOB_FAILURE" -eq 0 || fail "one or more package builds failed"
+    if test "$JOB_FAILURE" -ne 0; then
+        for failed_job in $FAILED_JOBS; do
+            failed_log="$PACKAGE_LOG_ROOT/$failed_job.log"
+            failed_status=$(cat "$PACKAGE_LOG_ROOT/$failed_job.status")
+            printf '\n[failed] %s (exit %s)\nLog: %s\n' \
+                "$failed_job" "$failed_status" "$failed_log" >&2
+            tail -n 40 "$failed_log" >&2
+        done
+        fail "one or more package builds failed; logs: $PACKAGE_LOG_ROOT"
+    fi
 }
 
 schedule_deb_builds()
@@ -563,7 +586,8 @@ schedule_deb_builds()
         matches_filter "$DISTRO_FILTER" "$distro" || continue
         matches_filter "$RELEASE_FILTER" "$release" || continue
         matches_filter "$ARCH_FILTER" "$arch" || continue
-        run_parallel_job build_deb_package "$distro" "$release" "$arch" "$platform"
+        run_parallel_job "$distro/$release/$arch" \
+            build_deb_package "$distro" "$release" "$arch" "$platform"
     done <<EOF
 $LINUX_MATRIX
 EOF
@@ -665,9 +689,12 @@ main()
 
     RUN_ID="run-$(date +%Y%m%d%H%M%S)-$$"
     TMP_ROOT="$ARTIFACT_ROOT/.tmp/$RUN_ID"
+    PACKAGE_LOG_ROOT="$ARTIFACT_ROOT/logs/$RUN_ID"
     ACTIVE_JOB_PIDS=
+    ACTIVE_JOB_NAMES=
     ACTIVE_JOB_COUNT=0
     JOB_FAILURE=0
+    FAILED_JOBS=
 
     mkdir -p "$ARTIFACT_ROOT"
     rm -rf "$DEB_ARTIFACT_ROOT"

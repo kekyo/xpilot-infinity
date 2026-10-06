@@ -484,6 +484,45 @@ assert_contains "$fixture_dpkg_log" \
 test -f "$DEB_ARTIFACT_ROOT/xpilot-infinity-4.7.99-1-debian-bookworm-amd64.deb" \
     || fail "the Debian artifact was not created"
 
+# A failed parallel job must retain both output streams and identify its target
+# after the other jobs finish, instead of ending with an unrelated job's output.
+parallel_driver="$test_root/parallel-driver"
+cat > "$parallel_driver" <<'EOF'
+#!/bin/sh
+set -eu
+BUILD_PACKAGE_SOURCE_ONLY=1
+. "$XPILOT_BUILD_PACKAGE"
+PACKAGE_LOG_ROOT="$XPILOT_PARALLEL_TEST_ROOT/logs"
+PARALLEL_JOBS=2
+ACTIVE_JOB_PIDS=
+ACTIVE_JOB_NAMES=
+ACTIVE_JOB_COUNT=0
+JOB_FAILURE=0
+FAILED_JOBS=
+run_parallel_job debian/bookworm/arm64 sh -c \
+    'echo "configure output"; echo "font dependency discovery failed" >&2; exit 23'
+run_parallel_job ubuntu/26.04/arm64 sh -c 'echo "successful package output"'
+wait_for_all_jobs
+EOF
+chmod +x "$parallel_driver"
+if XPILOT_BUILD_PACKAGE="$package_script" \
+    XPILOT_PARALLEL_TEST_ROOT="$test_root/parallel" \
+    "$parallel_driver" > "$test_root/parallel-output" 2>&1
+then
+    fail "a failed parallel package build was accepted"
+fi
+assert_contains "$test_root/parallel-output" "debian/bookworm/arm64"
+assert_contains "$test_root/parallel-output" "exit 23"
+assert_contains "$test_root/parallel-output" "font dependency discovery failed"
+assert_contains "$test_root/parallel-output" \
+    "$test_root/parallel/logs/debian/bookworm/arm64.log"
+assert_contains "$test_root/parallel/logs/debian/bookworm/arm64.log" \
+    "configure output"
+assert_contains "$test_root/parallel/logs/debian/bookworm/arm64.log" \
+    "font dependency discovery failed"
+assert_contains "$test_root/parallel/logs/ubuntu/26.04/arm64.log" \
+    "successful package output"
+
 all_args="$test_root/build-all.args"
 windows_args="$test_root/build-windows.args"
 cat > "$fixture_tools/build-package-stub" <<'EOF'
