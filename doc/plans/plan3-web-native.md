@@ -358,3 +358,26 @@ Playwright MCP による Firefox と Chrome の回帰試験を追加した。Fir
 対応する検証用 Firefox は `npm exec -- playwright install firefox` で導入する。Playwright MCP と異なる版の既存 Firefox はプロトコルが一致しなかったため流用しない（[Playwright のブラウザ導入](https://playwright.dev/docs/browsers#install-browsers)）。単独の新規 2 試験が GREEN となり、WASM／Vite ビルド・型検査とブラウザ全体 13 ファイル・34 件も成功した。ログは `/tmp/xpilot-fullscreen-red.log`、`/tmp/xpilot-fullscreen-green.log`、`/tmp/xpilot-fullscreen-all-browser.log`。動画と描画回数は `xpilot-browser/test-results/browser-fullscreen-firefox/` と `browser-fullscreen-chromium/` に保存し、Firefox の全画面表示も目視した。
 
 ネイティブ全体も `make -C /tmp/xpilot-multiple/native-build -j8 check` で再実行し、tray 10 件＋本体 84 件の計 94 件が成功した（`/tmp/xpilot-fullscreen-all-native.log`、失敗・スキップなし）。追加の完了条件を満たした。ベンダーコードとネイティブ実装には変更を加えていない。
+
+### 本体リポジトリ単独の検証（2026-10-11）
+
+本体だけで実装が完結することを改めて確認した。段階 1a の完了条件は妥当だが、それまでのビルド確認は親 npm ワークスペースが存在する配置で行われており、親への暗黙の依存を検出できていなかった。今回の完了条件は、親とは別の場所に本体と記録済み vendor コミットを独立してチェックアウトし、親の npm 依存・ビルド成果物・Git オブジェクトの共有なしで依存導入、WASM／ネイティブのビルド、全体テストを成功させることとした。通常のホストツール、npm のダウンロードキャッシュ、Emscripten SDK キャッシュは利用する。
+
+初回の独立ビルドでは、バージョン取得時に npm 版 `screw-up format` が本体ルートの `package.json` を要求して失敗した。元の配置では親ワークスペースの `package.json` が見つかるため、この問題が隠れていた。ブラウザの呼び出しに、Git の情報だけでも処理できる公開オプション `--force` を追加し、共通リゾルバーは指定された format オプションを転送する。オプションを指定しない既存のネイティブ CLI 呼び出しは維持する。仕様は [screw-up の Format Command](https://github.com/kekyo/screw-up#format-command)、導入済み CLI のヘルプと実装コメントで確認した。
+
+回帰テストは、親 npm ワークスペースも本体ルートの `package.json` もない一時 Git リポジトリを作り、実際の npm CLI を使って生成したヘッダーのバージョンとコミット ID がそのリポジトリの情報になることを確認する。修正前の RED と修正後の GREEN を確認した。ログは `/tmp/xpilot-standalone-metadata-red.log` と `/tmp/xpilot-standalone-metadata-green.log`。修正は本体コミット `00278dd` に保存した。
+
+独立クローンは `/tmp/xpilot-standalone-2E2gpd/xpilot-infinity` に作成し、上記コミットで検証した。ソース・vendor・npm 依存・生成物をこのクローン内に配置し、ネイティブのインストール先も `build/install` とした。ネイティブ版のバージョンとコミット ID は本体内に導入した npm CLI と共通リゾルバーの `--force` で取得し、ビルドの既存バージョン指定に渡した。
+
+| 検証 | 結果 |
+| --- | --- |
+| `npm --prefix xpilot-browser ci` | 成功。親の `node_modules`、npm lockfile、ワークスペース定義は使用しない。 |
+| `npm --prefix xpilot-browser run build` | 成功。vendor から SDL3 と WASM 用依存を構築し、ゲーム・描画プレビュー・アセットを出力。型検査も成功。 |
+| `./build.sh --target native` と専用 prefix への install | 成功。独立クローン内にネイティブサーバー・クライアントとデータを構築。 |
+| `npm --prefix xpilot-browser test` | 14 ファイル・35 件すべて成功。`XPILOT_SERVER_BINARY` と `XPILOT_CLIENT_BINARY` を指定せず、本体の標準ビルド先を使用。静的配信、HTTP／HTTPS、参加、ゲーム操作、Firefox／Chrome の全画面操作を含む。 |
+| `make -C build/xpilot-infinity -j8 check` | tray 10 件＋本体 84 件、計 94 件すべて成功。失敗・スキップなし。 |
+| `make -C xpilot-browser/wasm check` | 同じクローンで構築した SDL3 prefix を指定し、実 GLES3 描画ドライバーが成功。 |
+
+各ログは `/tmp/xpilot-standalone-2E2gpd/` の `npm-ci.log`、`browser-build.log`、`native-build.log`、`native-install.log`、`browser-test.log`、`native-test.log`、`gles-test.log` に保存した。ブラウザの画像・動画は独立クローン内の `xpilot-browser/test-results/` に保存した。追加した完了条件を満たした。
+
+ブラウザの実装・アセット・独立 lockfile・テスト・計画書と、ネイティブサーバーの静的配信機能はすべて本体で追跡されている。親の npm スクリプトは本体へ処理を転送するだけで、親に残る `xpilot-server` の WASM 雛形は本体のビルド・実行に不要である。現在の作業ディレクトリ自体は Git サブモジュールであり、`.git` ファイルが親の管理領域を参照するため、独立利用には本体リポジトリのクローンを用いる。これはコードやビルドの依存とは別の、現在のチェックアウトの管理形態である。
