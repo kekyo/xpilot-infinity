@@ -1,6 +1,9 @@
 # XPilot Infinity
 
-Play using the native client or a browser. The [Node.js package](xpilot-server/README.md)
+Play using the native client or a browser. See [Playing in a browser](docs/en/browser.md)
+for joining a game, controls, and starting your own server.
+
+The [Node.js package](xpilot-server/README.md)
 includes a WASM server and browser client and requires Node.js 26.4 or later.
 See [browser hosting](doc/BROWSER.md) for native hosting and HTTPS/WSS deployment.
 
