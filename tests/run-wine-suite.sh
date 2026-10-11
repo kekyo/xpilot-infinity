@@ -1035,7 +1035,8 @@ timeout 30s "$wine_program" "$build_dir/src/tray/tests/test-settings-replace-win
 for unit_test in test-framed-stream test-websocket-transport \
     test-game-transport test-server-endpoint test-web-front test-connect-target \
     test-transport-display test-socket-io test-sdl-versions \
-    test-score-font test-native-text test-native-socket-handle; do
+    test-score-font test-native-text test-native-socket-handle \
+    test-messages test-robot-intercept; do
     run_wine_unit_test "$unit_test"
 done
 

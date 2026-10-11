@@ -534,7 +534,7 @@ bool Robot_evade_shot(player_t *pl){
     }
     
     /* return, if nothing will hit */
-    if((closest_shot == -1)) {return false; }
+    if(closest_shot == -1) {return false; }
     
 //printf("Time for closest shot (%i): %.2f\n",closest_shot,shortest_hit_time);
 //for (j = 0; j < dangerous_shots_ind  ; j++) { /*for .. dangerous_shots_ind*/
@@ -649,7 +649,7 @@ double Robot_ram_object(player_t *pl,object_t *object){
     /* use squares of length, so sqrt doesnt need to be calculated */
     sqr_a   = sqr(pl->power / pl->mass * CLICK);       /* acceleration */
     sqr_b   = sqr(velx)+sqr(vely);  /* velocity     */
-    sqr_c   = sqr(x)+sqr(y);        /* distance     */
+    sqr_c   = sqr((double)x)+sqr((double)y); /* distance */
     b_dot_c = velx*x + vely*y;      /* dot product b·c */
 
 /*     for (i = 0; i < 500; i++){ */
@@ -704,7 +704,7 @@ double Robot_ram_object(player_t *pl,object_t *object){
 
 
 //	if( abs(delta_time)< 0.001* abs(time))
-      if(abs(function) < 10)
+      if(fabs(function) < 10)
 //	if(abs(LENGTH(tmp_x,tmp_y)- 0.5 * (CLICK * pl->power/pl->mass) * sqr(time)) < 10 )
 	    break;
     }
@@ -865,7 +865,7 @@ void Robot_attack_player(player_t *pl, player_t *opponent){/*attack_player*/
     
     direction = findDir((double)dcx,(double)dcy);
     if(D2)
-      printf("no: dir= %i\n",direction);
+      printf("no: dir= %g\n",direction);
     
     if(rfrac() > 0.8) /* spread shots */
       direction += ((rfrac()-0.5 )*10);
@@ -1189,7 +1189,7 @@ static void Robot_suibot_play(player_t *pl)
   if(ship_dist_closest <  maxdist && BIT(closest_opponent->used, HAS_SHIELD)){
       direction = Wrap_cfindDir(-closest_opponent->pos.cx + pl->pos.cx,
 				-closest_opponent->pos.cy + pl->pos.cy);
-      Robot_set_pointing_direction(pl, (int)(abs(direction+0.5)));
+      Robot_set_pointing_direction(pl, (int)(fabs(direction+0.5)));
       Thrust(pl, true); 
       return;
   }

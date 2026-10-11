@@ -112,10 +112,24 @@ TESTS += run-x11-text.sh
 endif
 endif
 
-check_PROGRAMS += test-server-endpoint test-server-admission test-web-front
+check_PROGRAMS += test-server-endpoint test-server-admission test-web-front \
+	test-messages test-robot-intercept
 if !COND_WINDOWS
-TESTS += test-server-endpoint run-multiple-protocols.sh test-web-front
+TESTS += test-server-endpoint run-multiple-protocols.sh test-web-front \
+	test-messages test-robot-intercept
 endif
+
+test_messages_SOURCES = test_messages.c $(top_srcdir)/src/client/messages.c
+test_messages_CFLAGS = $(AM_CFLAGS) -ffunction-sections -fdata-sections
+test_messages_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections
+test_messages_LDADD = $(top_builddir)/src/common/libxpcommon.a @W32_LIBS@
+
+test_robot_intercept_SOURCES = test_robot_intercept.c \
+	$(top_srcdir)/src/server/suibotdef.c
+test_robot_intercept_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/src/server
+test_robot_intercept_CFLAGS = $(AM_CFLAGS) -ffunction-sections -fdata-sections
+test_robot_intercept_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections
+test_robot_intercept_LDADD = -lm
 
 test_web_front_SOURCES = test_web_front.c $(top_srcdir)/src/server/web_front.c
 test_web_front_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/src/server
@@ -450,7 +464,7 @@ test_sdlgui_hud_primitives_SOURCES = test_sdlgui_hud_primitives.c \
 test_sdlgui_hud_primitives_CPPFLAGS = $(AM_CPPFLAGS) \
 	-DXPILOT_SDLGUI_TEST_HOOKS
 test_sdlgui_hud_primitives_CFLAGS = $(AM_CFLAGS) \
-	-ffunction-sections -fdata-sections
+	-ffunction-sections -fdata-sections -Werror=address
 test_sdlgui_hud_primitives_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections
 test_sdlgui_hud_primitives_LDADD = $(XP_SDL3_LIBS)
 

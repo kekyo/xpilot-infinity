@@ -409,10 +409,13 @@ typedef struct {
 /*
  * is a selection pending (in progress), done, drawn emphasized?
  */
-#define SEL_NONE       (1 << 0)
-#define SEL_PENDING    (1 << 1)
-#define SEL_SELECTED   (1 << 2)
-#define SEL_EMPHASIZED (1 << 3)
+/** Lifecycle state of a text selection in the talk or draw window. */
+typedef enum {
+    SEL_NONE = (1 << 0),       /**< No text is selected. */
+    SEL_PENDING = (1 << 1),    /**< The user is still selecting text. */
+    SEL_SELECTED = (1 << 2),   /**< Text is selected without a highlight. */
+    SEL_EMPHASIZED = (1 << 3)  /**< Selected text is highlighted. */
+} selection_state_t;
 
 /*
  * a selection (text, string indices, state,...)
@@ -420,14 +423,14 @@ typedef struct {
 typedef struct {
     /* a selection in the talk window */
     struct {
-        bool    state;	/* current state of the selection */
+        selection_state_t state; /* current state of the selection */
         size_t  x1;	/* string indices */
         size_t  x2;
         bool    incl_nl;/* include a '\n'? */
     } talk ;
     /* a selection in the draw window */
     struct {
-        bool    state;
+        selection_state_t state; /**< Current draw-window selection state. */
         int     x1;	/* string indices (for TalkMsg[].txt) */
         int     x2;	/* they are modified when the emphasized area */
         int     y1;	/* is scrolled down by new messages coming in */

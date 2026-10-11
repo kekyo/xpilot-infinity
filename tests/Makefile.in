@@ -155,7 +155,9 @@ target_triplet = @target@
 @COND_WINDOWS_FALSE@	$(am__EXEEXT_1) $(am__EXEEXT_2) \
 @COND_WINDOWS_FALSE@	test-server-endpoint$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-server-admission$(EXEEXT) \
-@COND_WINDOWS_FALSE@	test-web-front$(EXEEXT)
+@COND_WINDOWS_FALSE@	test-web-front$(EXEEXT) \
+@COND_WINDOWS_FALSE@	test-messages$(EXEEXT) \
+@COND_WINDOWS_FALSE@	test-robot-intercept$(EXEEXT)
 @COND_WINDOWS_TRUE@check_PROGRAMS = test-framed-stream$(EXEEXT) \
 @COND_WINDOWS_TRUE@	test-websocket-transport$(EXEEXT) \
 @COND_WINDOWS_TRUE@	test-game-transport$(EXEEXT) \
@@ -179,7 +181,9 @@ target_triplet = @target@
 @COND_WINDOWS_TRUE@	$(am__EXEEXT_2) \
 @COND_WINDOWS_TRUE@	test-server-endpoint$(EXEEXT) \
 @COND_WINDOWS_TRUE@	test-server-admission$(EXEEXT) \
-@COND_WINDOWS_TRUE@	test-web-front$(EXEEXT)
+@COND_WINDOWS_TRUE@	test-web-front$(EXEEXT) \
+@COND_WINDOWS_TRUE@	test-messages$(EXEEXT) \
+@COND_WINDOWS_TRUE@	test-robot-intercept$(EXEEXT)
 @COND_WINDOWS_FALSE@TESTS = test-framed-stream$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-websocket-transport$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-game-transport$(EXEEXT) \
@@ -258,7 +262,9 @@ target_triplet = @target@
 @COND_WINDOWS_FALSE@	run-e2e.sh $(am__EXEEXT_1) $(am__append_4) \
 @COND_WINDOWS_FALSE@	test-server-endpoint$(EXEEXT) \
 @COND_WINDOWS_FALSE@	run-multiple-protocols.sh \
-@COND_WINDOWS_FALSE@	test-web-front$(EXEEXT)
+@COND_WINDOWS_FALSE@	test-web-front$(EXEEXT) \
+@COND_WINDOWS_FALSE@	test-messages$(EXEEXT) \
+@COND_WINDOWS_FALSE@	test-robot-intercept$(EXEEXT)
 @COND_WINDOWS_TRUE@TESTS = $(am__EXEEXT_1) $(am__append_4)
 @COND_SOUND_TRUE@@COND_WINDOWS_FALSE@am__append_1 = test-audio-device
 @COND_SOUND_TRUE@@COND_WINDOWS_FALSE@am__append_2 = test-audio-device
@@ -363,6 +369,12 @@ am_test_images_OBJECTS = test_images-test_images.$(OBJEXT) \
 	test_images-strdup.$(OBJEXT)
 test_images_OBJECTS = $(am_test_images_OBJECTS)
 test_images_DEPENDENCIES = $(am__DEPENDENCIES_1)
+am_test_messages_OBJECTS = test_messages-test_messages.$(OBJEXT) \
+	test_messages-messages.$(OBJEXT)
+test_messages_OBJECTS = $(am_test_messages_OBJECTS)
+test_messages_DEPENDENCIES = $(top_builddir)/src/common/libxpcommon.a
+test_messages_LINK = $(CCLD) $(test_messages_CFLAGS) $(CFLAGS) \
+	$(test_messages_LDFLAGS) $(LDFLAGS) -o $@
 am_test_meta_environment_OBJECTS =  \
 	test_meta_environment-test_meta_environment.$(OBJEXT) \
 	test_meta_environment-meta.$(OBJEXT) \
@@ -447,6 +459,13 @@ am_test_renderer_gl_core_OBJECTS = test_renderer_gl_core.$(OBJEXT) \
 	text_geometry.$(OBJEXT)
 test_renderer_gl_core_OBJECTS = $(am_test_renderer_gl_core_OBJECTS)
 test_renderer_gl_core_DEPENDENCIES = $(am__DEPENDENCIES_1)
+am_test_robot_intercept_OBJECTS =  \
+	test_robot_intercept-test_robot_intercept.$(OBJEXT) \
+	test_robot_intercept-suibotdef.$(OBJEXT)
+test_robot_intercept_OBJECTS = $(am_test_robot_intercept_OBJECTS)
+test_robot_intercept_DEPENDENCIES =
+test_robot_intercept_LINK = $(CCLD) $(test_robot_intercept_CFLAGS) \
+	$(CFLAGS) $(test_robot_intercept_LDFLAGS) $(LDFLAGS) -o $@
 am_test_score_font_OBJECTS =  \
 	test_score_font-test_score_font.$(OBJEXT) \
 	test_score_font-score_font.$(OBJEXT)
@@ -752,6 +771,8 @@ am__depfiles_remade = ./$(DEPDIR)/SDL_console.Po \
 	./$(DEPDIR)/test_images-images.Po \
 	./$(DEPDIR)/test_images-strdup.Po \
 	./$(DEPDIR)/test_images-test_images.Po \
+	./$(DEPDIR)/test_messages-messages.Po \
+	./$(DEPDIR)/test_messages-test_messages.Po \
 	./$(DEPDIR)/test_meta_environment-connect_target.Po \
 	./$(DEPDIR)/test_meta_environment-game_transport.Po \
 	./$(DEPDIR)/test_meta_environment-list.Po \
@@ -778,6 +799,8 @@ am__depfiles_remade = ./$(DEPDIR)/SDL_console.Po \
 	./$(DEPDIR)/test_renderer_context_recovery.Po \
 	./$(DEPDIR)/test_renderer_geometry.Po \
 	./$(DEPDIR)/test_renderer_gl_core.Po \
+	./$(DEPDIR)/test_robot_intercept-suibotdef.Po \
+	./$(DEPDIR)/test_robot_intercept-test_robot_intercept.Po \
 	./$(DEPDIR)/test_score_font-score_font.Po \
 	./$(DEPDIR)/test_score_font-test_score_font.Po \
 	./$(DEPDIR)/test_sdl_clipboard.Po \
@@ -878,7 +901,8 @@ SOURCES = $(test_audio_device_SOURCES) $(test_checknames_SOURCES) \
 	$(test_glwidgets_primitives_SOURCES) \
 	$(test_glwidgets_scissor_SOURCES) \
 	$(test_image_geometry_SOURCES) $(test_images_SOURCES) \
-	$(test_meta_environment_SOURCES) $(test_micro_delay_SOURCES) \
+	$(test_messages_SOURCES) $(test_meta_environment_SOURCES) \
+	$(test_micro_delay_SOURCES) \
 	$(test_native_socket_handle_SOURCES) \
 	$(test_native_text_SOURCES) $(test_paint_transform_SOURCES) \
 	$(test_paintmap_vdecor_SOURCES) \
@@ -888,7 +912,8 @@ SOURCES = $(test_audio_device_SOURCES) $(test_checknames_SOURCES) \
 	$(test_renderer_commands_SOURCES) \
 	$(test_renderer_context_recovery_SOURCES) \
 	$(test_renderer_geometry_SOURCES) \
-	$(test_renderer_gl_core_SOURCES) $(test_score_font_SOURCES) \
+	$(test_renderer_gl_core_SOURCES) \
+	$(test_robot_intercept_SOURCES) $(test_score_font_SOURCES) \
 	$(test_sdl_clipboard_SOURCES) $(test_sdl_console_SOURCES) \
 	$(test_sdl_event_SOURCES) $(test_sdl_game_frame_SOURCES) \
 	$(test_sdl_init_core_profile_SOURCES) $(test_sdl_keys_SOURCES) \
@@ -926,7 +951,8 @@ DIST_SOURCES = $(test_audio_device_SOURCES) $(test_checknames_SOURCES) \
 	$(test_glwidgets_primitives_SOURCES) \
 	$(test_glwidgets_scissor_SOURCES) \
 	$(test_image_geometry_SOURCES) $(test_images_SOURCES) \
-	$(test_meta_environment_SOURCES) $(test_micro_delay_SOURCES) \
+	$(test_messages_SOURCES) $(test_meta_environment_SOURCES) \
+	$(test_micro_delay_SOURCES) \
 	$(test_native_socket_handle_SOURCES) \
 	$(test_native_text_SOURCES) $(test_paint_transform_SOURCES) \
 	$(test_paintmap_vdecor_SOURCES) \
@@ -936,7 +962,8 @@ DIST_SOURCES = $(test_audio_device_SOURCES) $(test_checknames_SOURCES) \
 	$(test_renderer_commands_SOURCES) \
 	$(test_renderer_context_recovery_SOURCES) \
 	$(test_renderer_geometry_SOURCES) \
-	$(test_renderer_gl_core_SOURCES) $(test_score_font_SOURCES) \
+	$(test_renderer_gl_core_SOURCES) \
+	$(test_robot_intercept_SOURCES) $(test_score_font_SOURCES) \
 	$(test_sdl_clipboard_SOURCES) $(test_sdl_console_SOURCES) \
 	$(test_sdl_event_SOURCES) $(test_sdl_game_frame_SOURCES) \
 	$(test_sdl_init_core_profile_SOURCES) $(test_sdl_keys_SOURCES) \
@@ -1365,6 +1392,17 @@ AM_CPPFLAGS = -DCONF_DATADIR=\"$(pkgdatadir)/\" \
 	$(XP_SDL3_CFLAGS) $(XP_SDL3_IMAGE_CFLAGS) $(XP_SDL3_TTF_CFLAGS) \
 	@NATIVE_TEXT_CFLAGS@ @GL_CFLAGS@
 
+test_messages_SOURCES = test_messages.c $(top_srcdir)/src/client/messages.c
+test_messages_CFLAGS = $(AM_CFLAGS) -ffunction-sections -fdata-sections
+test_messages_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections
+test_messages_LDADD = $(top_builddir)/src/common/libxpcommon.a @W32_LIBS@
+test_robot_intercept_SOURCES = test_robot_intercept.c \
+	$(top_srcdir)/src/server/suibotdef.c
+
+test_robot_intercept_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/src/server
+test_robot_intercept_CFLAGS = $(AM_CFLAGS) -ffunction-sections -fdata-sections
+test_robot_intercept_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections
+test_robot_intercept_LDADD = -lm
 test_web_front_SOURCES = test_web_front.c $(top_srcdir)/src/server/web_front.c
 test_web_front_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/src/server
 test_web_front_LDADD = $(top_builddir)/src/common/libxpcommon.a @W32_LIBS@
@@ -1724,7 +1762,7 @@ test_sdlgui_hud_primitives_CPPFLAGS = $(AM_CPPFLAGS) \
 	-DXPILOT_SDLGUI_TEST_HOOKS
 
 test_sdlgui_hud_primitives_CFLAGS = $(AM_CFLAGS) \
-	-ffunction-sections -fdata-sections
+	-ffunction-sections -fdata-sections -Werror=address
 
 test_sdlgui_hud_primitives_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections
 test_sdlgui_hud_primitives_LDADD = $(XP_SDL3_LIBS)
@@ -2067,6 +2105,10 @@ test-images$(EXEEXT): $(test_images_OBJECTS) $(test_images_DEPENDENCIES) $(EXTRA
 	@rm -f test-images$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_images_OBJECTS) $(test_images_LDADD) $(LIBS)
 
+test-messages$(EXEEXT): $(test_messages_OBJECTS) $(test_messages_DEPENDENCIES) $(EXTRA_test_messages_DEPENDENCIES)
+	@rm -f test-messages$(EXEEXT)
+	$(AM_V_CCLD)$(test_messages_LINK) $(test_messages_OBJECTS) $(test_messages_LDADD) $(LIBS)
+
 test-meta-environment$(EXEEXT): $(test_meta_environment_OBJECTS) $(test_meta_environment_DEPENDENCIES) $(EXTRA_test_meta_environment_DEPENDENCIES)
 	@rm -f test-meta-environment$(EXEEXT)
 	$(AM_V_CCLD)$(test_meta_environment_LINK) $(test_meta_environment_OBJECTS) $(test_meta_environment_LDADD) $(LIBS)
@@ -2126,6 +2168,10 @@ test-renderer-geometry$(EXEEXT): $(test_renderer_geometry_OBJECTS) $(test_render
 test-renderer-gl-core$(EXEEXT): $(test_renderer_gl_core_OBJECTS) $(test_renderer_gl_core_DEPENDENCIES) $(EXTRA_test_renderer_gl_core_DEPENDENCIES)
 	@rm -f test-renderer-gl-core$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_renderer_gl_core_OBJECTS) $(test_renderer_gl_core_LDADD) $(LIBS)
+
+test-robot-intercept$(EXEEXT): $(test_robot_intercept_OBJECTS) $(test_robot_intercept_DEPENDENCIES) $(EXTRA_test_robot_intercept_DEPENDENCIES)
+	@rm -f test-robot-intercept$(EXEEXT)
+	$(AM_V_CCLD)$(test_robot_intercept_LINK) $(test_robot_intercept_OBJECTS) $(test_robot_intercept_LDADD) $(LIBS)
 
 test-score-font$(EXEEXT): $(test_score_font_OBJECTS) $(test_score_font_DEPENDENCIES) $(EXTRA_test_score_font_DEPENDENCIES)
 	@rm -f test-score-font$(EXEEXT)
@@ -2340,6 +2386,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_images-images.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_images-strdup.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_images-test_images.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_messages-messages.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_messages-test_messages.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_meta_environment-connect_target.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_meta_environment-game_transport.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_meta_environment-list.Po@am__quote@ # am--include-marker
@@ -2366,6 +2414,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_renderer_context_recovery.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_renderer_geometry.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_renderer_gl_core.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_robot_intercept-suibotdef.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_robot_intercept-test_robot_intercept.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_score_font-score_font.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_score_font-test_score_font.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_sdl_clipboard.Po@am__quote@ # am--include-marker
@@ -2786,6 +2836,34 @@ test_images-strdup.obj: $(top_srcdir)/src/common/strdup.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_images_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o test_images-strdup.obj `if test -f '$(top_srcdir)/src/common/strdup.c'; then $(CYGPATH_W) '$(top_srcdir)/src/common/strdup.c'; else $(CYGPATH_W) '$(srcdir)/$(top_srcdir)/src/common/strdup.c'; fi`
 
+test_messages-test_messages.o: test_messages.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_messages_CFLAGS) $(CFLAGS) -MT test_messages-test_messages.o -MD -MP -MF $(DEPDIR)/test_messages-test_messages.Tpo -c -o test_messages-test_messages.o `test -f 'test_messages.c' || echo '$(srcdir)/'`test_messages.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_messages-test_messages.Tpo $(DEPDIR)/test_messages-test_messages.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='test_messages.c' object='test_messages-test_messages.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_messages_CFLAGS) $(CFLAGS) -c -o test_messages-test_messages.o `test -f 'test_messages.c' || echo '$(srcdir)/'`test_messages.c
+
+test_messages-test_messages.obj: test_messages.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_messages_CFLAGS) $(CFLAGS) -MT test_messages-test_messages.obj -MD -MP -MF $(DEPDIR)/test_messages-test_messages.Tpo -c -o test_messages-test_messages.obj `if test -f 'test_messages.c'; then $(CYGPATH_W) 'test_messages.c'; else $(CYGPATH_W) '$(srcdir)/test_messages.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_messages-test_messages.Tpo $(DEPDIR)/test_messages-test_messages.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='test_messages.c' object='test_messages-test_messages.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_messages_CFLAGS) $(CFLAGS) -c -o test_messages-test_messages.obj `if test -f 'test_messages.c'; then $(CYGPATH_W) 'test_messages.c'; else $(CYGPATH_W) '$(srcdir)/test_messages.c'; fi`
+
+test_messages-messages.o: $(top_srcdir)/src/client/messages.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_messages_CFLAGS) $(CFLAGS) -MT test_messages-messages.o -MD -MP -MF $(DEPDIR)/test_messages-messages.Tpo -c -o test_messages-messages.o `test -f '$(top_srcdir)/src/client/messages.c' || echo '$(srcdir)/'`$(top_srcdir)/src/client/messages.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_messages-messages.Tpo $(DEPDIR)/test_messages-messages.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$(top_srcdir)/src/client/messages.c' object='test_messages-messages.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_messages_CFLAGS) $(CFLAGS) -c -o test_messages-messages.o `test -f '$(top_srcdir)/src/client/messages.c' || echo '$(srcdir)/'`$(top_srcdir)/src/client/messages.c
+
+test_messages-messages.obj: $(top_srcdir)/src/client/messages.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_messages_CFLAGS) $(CFLAGS) -MT test_messages-messages.obj -MD -MP -MF $(DEPDIR)/test_messages-messages.Tpo -c -o test_messages-messages.obj `if test -f '$(top_srcdir)/src/client/messages.c'; then $(CYGPATH_W) '$(top_srcdir)/src/client/messages.c'; else $(CYGPATH_W) '$(srcdir)/$(top_srcdir)/src/client/messages.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_messages-messages.Tpo $(DEPDIR)/test_messages-messages.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$(top_srcdir)/src/client/messages.c' object='test_messages-messages.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_messages_CFLAGS) $(CFLAGS) -c -o test_messages-messages.obj `if test -f '$(top_srcdir)/src/client/messages.c'; then $(CYGPATH_W) '$(top_srcdir)/src/client/messages.c'; else $(CYGPATH_W) '$(srcdir)/$(top_srcdir)/src/client/messages.c'; fi`
+
 test_meta_environment-test_meta_environment.o: test_meta_environment.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_meta_environment_CPPFLAGS) $(CPPFLAGS) $(test_meta_environment_CFLAGS) $(CFLAGS) -MT test_meta_environment-test_meta_environment.o -MD -MP -MF $(DEPDIR)/test_meta_environment-test_meta_environment.Tpo -c -o test_meta_environment-test_meta_environment.o `test -f 'test_meta_environment.c' || echo '$(srcdir)/'`test_meta_environment.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_meta_environment-test_meta_environment.Tpo $(DEPDIR)/test_meta_environment-test_meta_environment.Po
@@ -3093,6 +3171,34 @@ text_geometry.obj: $(top_srcdir)/src/client/sdl/text_geometry.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$(top_srcdir)/src/client/sdl/text_geometry.c' object='text_geometry.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o text_geometry.obj `if test -f '$(top_srcdir)/src/client/sdl/text_geometry.c'; then $(CYGPATH_W) '$(top_srcdir)/src/client/sdl/text_geometry.c'; else $(CYGPATH_W) '$(srcdir)/$(top_srcdir)/src/client/sdl/text_geometry.c'; fi`
+
+test_robot_intercept-test_robot_intercept.o: test_robot_intercept.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_robot_intercept_CPPFLAGS) $(CPPFLAGS) $(test_robot_intercept_CFLAGS) $(CFLAGS) -MT test_robot_intercept-test_robot_intercept.o -MD -MP -MF $(DEPDIR)/test_robot_intercept-test_robot_intercept.Tpo -c -o test_robot_intercept-test_robot_intercept.o `test -f 'test_robot_intercept.c' || echo '$(srcdir)/'`test_robot_intercept.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_robot_intercept-test_robot_intercept.Tpo $(DEPDIR)/test_robot_intercept-test_robot_intercept.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='test_robot_intercept.c' object='test_robot_intercept-test_robot_intercept.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_robot_intercept_CPPFLAGS) $(CPPFLAGS) $(test_robot_intercept_CFLAGS) $(CFLAGS) -c -o test_robot_intercept-test_robot_intercept.o `test -f 'test_robot_intercept.c' || echo '$(srcdir)/'`test_robot_intercept.c
+
+test_robot_intercept-test_robot_intercept.obj: test_robot_intercept.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_robot_intercept_CPPFLAGS) $(CPPFLAGS) $(test_robot_intercept_CFLAGS) $(CFLAGS) -MT test_robot_intercept-test_robot_intercept.obj -MD -MP -MF $(DEPDIR)/test_robot_intercept-test_robot_intercept.Tpo -c -o test_robot_intercept-test_robot_intercept.obj `if test -f 'test_robot_intercept.c'; then $(CYGPATH_W) 'test_robot_intercept.c'; else $(CYGPATH_W) '$(srcdir)/test_robot_intercept.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_robot_intercept-test_robot_intercept.Tpo $(DEPDIR)/test_robot_intercept-test_robot_intercept.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='test_robot_intercept.c' object='test_robot_intercept-test_robot_intercept.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_robot_intercept_CPPFLAGS) $(CPPFLAGS) $(test_robot_intercept_CFLAGS) $(CFLAGS) -c -o test_robot_intercept-test_robot_intercept.obj `if test -f 'test_robot_intercept.c'; then $(CYGPATH_W) 'test_robot_intercept.c'; else $(CYGPATH_W) '$(srcdir)/test_robot_intercept.c'; fi`
+
+test_robot_intercept-suibotdef.o: $(top_srcdir)/src/server/suibotdef.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_robot_intercept_CPPFLAGS) $(CPPFLAGS) $(test_robot_intercept_CFLAGS) $(CFLAGS) -MT test_robot_intercept-suibotdef.o -MD -MP -MF $(DEPDIR)/test_robot_intercept-suibotdef.Tpo -c -o test_robot_intercept-suibotdef.o `test -f '$(top_srcdir)/src/server/suibotdef.c' || echo '$(srcdir)/'`$(top_srcdir)/src/server/suibotdef.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_robot_intercept-suibotdef.Tpo $(DEPDIR)/test_robot_intercept-suibotdef.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$(top_srcdir)/src/server/suibotdef.c' object='test_robot_intercept-suibotdef.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_robot_intercept_CPPFLAGS) $(CPPFLAGS) $(test_robot_intercept_CFLAGS) $(CFLAGS) -c -o test_robot_intercept-suibotdef.o `test -f '$(top_srcdir)/src/server/suibotdef.c' || echo '$(srcdir)/'`$(top_srcdir)/src/server/suibotdef.c
+
+test_robot_intercept-suibotdef.obj: $(top_srcdir)/src/server/suibotdef.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_robot_intercept_CPPFLAGS) $(CPPFLAGS) $(test_robot_intercept_CFLAGS) $(CFLAGS) -MT test_robot_intercept-suibotdef.obj -MD -MP -MF $(DEPDIR)/test_robot_intercept-suibotdef.Tpo -c -o test_robot_intercept-suibotdef.obj `if test -f '$(top_srcdir)/src/server/suibotdef.c'; then $(CYGPATH_W) '$(top_srcdir)/src/server/suibotdef.c'; else $(CYGPATH_W) '$(srcdir)/$(top_srcdir)/src/server/suibotdef.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_robot_intercept-suibotdef.Tpo $(DEPDIR)/test_robot_intercept-suibotdef.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$(top_srcdir)/src/server/suibotdef.c' object='test_robot_intercept-suibotdef.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_robot_intercept_CPPFLAGS) $(CPPFLAGS) $(test_robot_intercept_CFLAGS) $(CFLAGS) -c -o test_robot_intercept-suibotdef.obj `if test -f '$(top_srcdir)/src/server/suibotdef.c'; then $(CYGPATH_W) '$(top_srcdir)/src/server/suibotdef.c'; else $(CYGPATH_W) '$(srcdir)/$(top_srcdir)/src/server/suibotdef.c'; fi`
 
 test_score_font-test_score_font.o: test_score_font.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_score_font_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT test_score_font-test_score_font.o -MD -MP -MF $(DEPDIR)/test_score_font-test_score_font.Tpo -c -o test_score_font-test_score_font.o `test -f 'test_score_font.c' || echo '$(srcdir)/'`test_score_font.c
@@ -4638,6 +4744,20 @@ test-web-front.log: test-web-front$(EXEEXT)
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
+test-messages.log: test-messages$(EXEEXT)
+	@p='test-messages$(EXEEXT)'; \
+	b='test-messages'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
+test-robot-intercept.log: test-robot-intercept$(EXEEXT)
+	@p='test-robot-intercept$(EXEEXT)'; \
+	b='test-robot-intercept'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
 .sh.log:
 	@p='$<'; \
 	$(am__set_b); \
@@ -4776,6 +4896,8 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/test_images-images.Po
 	-rm -f ./$(DEPDIR)/test_images-strdup.Po
 	-rm -f ./$(DEPDIR)/test_images-test_images.Po
+	-rm -f ./$(DEPDIR)/test_messages-messages.Po
+	-rm -f ./$(DEPDIR)/test_messages-test_messages.Po
 	-rm -f ./$(DEPDIR)/test_meta_environment-connect_target.Po
 	-rm -f ./$(DEPDIR)/test_meta_environment-game_transport.Po
 	-rm -f ./$(DEPDIR)/test_meta_environment-list.Po
@@ -4802,6 +4924,8 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/test_renderer_context_recovery.Po
 	-rm -f ./$(DEPDIR)/test_renderer_geometry.Po
 	-rm -f ./$(DEPDIR)/test_renderer_gl_core.Po
+	-rm -f ./$(DEPDIR)/test_robot_intercept-suibotdef.Po
+	-rm -f ./$(DEPDIR)/test_robot_intercept-test_robot_intercept.Po
 	-rm -f ./$(DEPDIR)/test_score_font-score_font.Po
 	-rm -f ./$(DEPDIR)/test_score_font-test_score_font.Po
 	-rm -f ./$(DEPDIR)/test_sdl_clipboard.Po
@@ -4971,6 +5095,8 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/test_images-images.Po
 	-rm -f ./$(DEPDIR)/test_images-strdup.Po
 	-rm -f ./$(DEPDIR)/test_images-test_images.Po
+	-rm -f ./$(DEPDIR)/test_messages-messages.Po
+	-rm -f ./$(DEPDIR)/test_messages-test_messages.Po
 	-rm -f ./$(DEPDIR)/test_meta_environment-connect_target.Po
 	-rm -f ./$(DEPDIR)/test_meta_environment-game_transport.Po
 	-rm -f ./$(DEPDIR)/test_meta_environment-list.Po
@@ -4997,6 +5123,8 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/test_renderer_context_recovery.Po
 	-rm -f ./$(DEPDIR)/test_renderer_geometry.Po
 	-rm -f ./$(DEPDIR)/test_renderer_gl_core.Po
+	-rm -f ./$(DEPDIR)/test_robot_intercept-suibotdef.Po
+	-rm -f ./$(DEPDIR)/test_robot_intercept-test_robot_intercept.Po
 	-rm -f ./$(DEPDIR)/test_score_font-score_font.Po
 	-rm -f ./$(DEPDIR)/test_score_font-test_score_font.Po
 	-rm -f ./$(DEPDIR)/test_sdl_clipboard.Po
