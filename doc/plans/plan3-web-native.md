@@ -306,3 +306,5 @@ Playwright MCP で 2 ブラウザとネイティブ SDL クライアントを同
 継続利用の UI が存在しない RED、Unicode キャッシュを再生成できない RED を確認した後に実装した。Playwright MCP で設定の再読み込み、実音声の非ゼロ PCM、押下中のフォーカス喪失、WebGL の実際の喪失と復旧、Pointer Lock とマウスによる船の旋回、全画面、高 DPI、リサイズ、退出・再参加後の音声ノード解放を確認した。復旧後の画像も目視し、図形・文字・画像の再描画を確認した。試験の HTTP サーバーは Upgrade 済みソケットも明示的に解放するようにした（[Node.js closeAllConnections の契約](https://nodejs.org/api/http.html#servercloseallconnections)）。
 
 ビルドと型検査が成功し、ブラウザ総合試験は `/tmp/xpilot-browser-stage4-final-check.log`、ネイティブのゲームループ・Unicode 描画・文字コードの 3 試験は `/tmp/xpilot-browser-stage4-native-check.log` で成功。段階 4 の完了条件を満たした。最終的な全体テストは配信統合後に実施する。
+
+段階 5 の最終レビューで、再参加用 WASM インスタンスの寿命を SDL の document イベント登録も含めて扱う必要があると確認した。段階 4 の資源解放条件の補強として、同期的な SDL 初期化中の登録を所有し、通常終了・初期化失敗時に解放する。登録 API は初期化から戻る前に元に戻し、ベンダーコードや内部 API は変更しない。[SDL の Emscripten マウス実装](../../vendor/sdl3/SDL/src/video/emscripten/SDL_emscriptenmouse.c) と公開 DOM API の契約を確認した。再参加 3 回で以前のコールバックが発火しないこと、および初期化失敗時の解放を RED→GREEN で検証した。補強後のブラウザ全体試験 32 件も成功した。

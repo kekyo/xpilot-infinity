@@ -17,6 +17,7 @@ import './style.css';
 import { installMapAssets } from './map-assets';
 import { createBrowserAudio, type BrowserAudio } from './browser-audio';
 import { loadSettings, saveSettings, type BrowserSettings } from './settings';
+import { initializeWithListeners } from './runtime-listeners';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game')!;
 const viewport = document.querySelector<HTMLElement>('#viewport')!;
@@ -37,6 +38,7 @@ let audio: BrowserAudio | undefined;
 let contextLost = false;
 let windowFocused = true;
 let runtime: GameRuntime | undefined;
+let releaseRuntimeListeners: (() => void) | undefined;
 let fonts: BrowserTextProvider | undefined;
 let phase: 'idle' | 'admission' | 'assets' | 'game' | 'resume' | 'quit' =
   'idle';
@@ -112,6 +114,8 @@ const stop = (message: string, state: string) => {
   phase = 'idle';
   runtime?._xp_browser_session_close();
   runtime?._xp_game_stop();
+  releaseRuntimeListeners?.();
+  releaseRuntimeListeners = undefined;
   runtime = undefined;
   connection.textContent = message;
   connection.dataset.state = state;
@@ -286,8 +290,14 @@ const prepare = async () => {
     '/home/web_user/.xpilotrc',
     new TextEncoder().encode(preferences.config)
   );
-  if (runtime._xp_game_init() !== 0)
+  const initialized = initializeWithListeners([window, document, canvas], () =>
+    created._xp_game_init()
+  );
+  releaseRuntimeListeners = initialized.dispose;
+  if (initialized.value !== 0) {
+    releaseRuntimeListeners();
     throw new Error('SDL / WebGL 2 initialization failed');
+  }
   resize();
   return true;
 };
