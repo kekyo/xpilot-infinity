@@ -23,7 +23,6 @@ bin_PROGRAMS += xpilot-infinity-service-helper
 xpilot_infinity_service_helper_SOURCES = service_helper_win32.c
 xpilot_infinity_service_helper_LDADD = libxptray.a tray-res.o -ladvapi32 -lshell32 -luser32 -lole32 -luuid -lbcrypt
 xpilot_infinity_service_helper_LDFLAGS = -municode -mwindows
-WINDRES = @WINDRES@
 tray-res.o: $(srcdir)/tray.rc $(srcdir)/tray.manifest $(top_srcdir)/images/icon.ico
 	$(WINDRES) -I$(top_srcdir) $(srcdir)/tray.rc $@
 CLEANFILES = tray-res.o

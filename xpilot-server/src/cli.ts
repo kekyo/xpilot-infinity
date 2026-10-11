@@ -23,8 +23,12 @@ try {
     else args.push(arg);
   }
   if (version) {
+    // These assets are installed next to the bundle and resolved by Node.js.
     const info = JSON.parse(
-      await readFile(new URL('./build-info.json', import.meta.url), 'utf8')
+      await readFile(
+        new URL(/* @vite-ignore */ './build-info.json', import.meta.url),
+        'utf8'
+      )
     );
     console.log(`XPilot Infinity [${info.version}-${info.commit}]`);
   } else if (help) {
@@ -39,9 +43,16 @@ try {
     await mkdir(data, { recursive: true });
     const server = await startServer(
       {
-        runtime: new URL('./runtime/xpilot-server.mjs', import.meta.url),
-        assets: fileURLToPath(new URL('./assets', import.meta.url)),
-        web: fileURLToPath(new URL('./web', import.meta.url)),
+        runtime: new URL(
+          /* @vite-ignore */ './runtime/xpilot-server.mjs',
+          import.meta.url
+        ),
+        assets: fileURLToPath(
+          new URL(/* @vite-ignore */ './assets', import.meta.url)
+        ),
+        web: fileURLToPath(
+          new URL(/* @vite-ignore */ './web', import.meta.url)
+        ),
         data,
         log: (line) => console.log(line),
       },

@@ -126,7 +126,11 @@ export default defineConfig(async (): Promise<UserConfig> => {
         formats: ['es'],
         fileName: () => 'cli.mjs',
       },
-      rolldownOptions: { external: [/^node:/] },
+      rolldownOptions: {
+        external: [/^node:/],
+        // These plugins deliberately compile WASM and run formatting/type checks.
+        checks: { bundlerTimings: false },
+      },
     },
   };
 });

@@ -142,6 +142,10 @@ case "$jobs" in
 esac
 test -n "$build_type" || fail "--build-type requires a nonempty value"
 
+# This dependency pipeline owns --jobs. Its sequential zlib/CMake builds each
+# receive that limit, independently of the enclosing Autotools jobserver.
+unset MAKEFLAGS MFLAGS
+
 zlib_source="$vendor_dir/zlib"
 expat_source="$vendor_dir/expat/expat"
 openal_source="$vendor_dir/openal-soft"
@@ -228,10 +232,6 @@ cmake -S "$openal_source" -B "$openal_build_dir" \
     -DALSOFT_STATIC_WINPTHREAD=ON \
     -DALSOFT_BACKEND_PIPEWIRE=OFF \
     -DALSOFT_BACKEND_PULSEAUDIO=OFF \
-    -DALSOFT_BACKEND_ALSA=OFF \
-    -DALSOFT_BACKEND_OSS=OFF \
-    -DALSOFT_BACKEND_SOLARIS=OFF \
-    -DALSOFT_BACKEND_SNDIO=OFF \
     -DALSOFT_BACKEND_JACK=OFF \
     -DALSOFT_BACKEND_COREAUDIO=OFF \
     -DALSOFT_BACKEND_OBOE=OFF \
@@ -257,7 +257,14 @@ test -n "$openal_import_library" \
 
 freealut_build_dir="$build_dir/freealut"
 echo "===== build: freealut for $triplet ====="
+set --
+# CMake 4 provides a public override for a dependency's old policy baseline.
+# Older CMake versions do not recognize this option.
+if cmake --help-variable CMAKE_POLICY_VERSION_MINIMUM >/dev/null 2>&1; then
+    set -- -DCMAKE_POLICY_VERSION_MINIMUM=3.10
+fi
 cmake -S "$freealut_source" -B "$freealut_build_dir" \
+    "$@" \
     "-DCMAKE_TOOLCHAIN_FILE=$toolchain_file" \
     "-DCMAKE_BUILD_TYPE=$build_type" \
     "-DCMAKE_INSTALL_PREFIX=$install_prefix" \

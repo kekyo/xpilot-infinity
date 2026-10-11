@@ -740,6 +740,7 @@ XP_AUTHORS
 MAINT
 MAINTAINER_MODE_FALSE
 MAINTAINER_MODE_TRUE
+ARFLAGS
 AM_BACKSLASH
 AM_DEFAULT_VERBOSITY
 AM_DEFAULT_V
@@ -849,6 +850,7 @@ with_x
       ac_precious_vars='build_alias
 host_alias
 target_alias
+ARFLAGS
 CC
 CFLAGS
 LDFLAGS
@@ -1549,6 +1551,7 @@ Optional Packages:
   --with-x                use the X Window System
 
 Some influential environment variables:
+  ARFLAGS     flags for creating static archives
   CC          C compiler command
   CFLAGS      C compiler flags
   LDFLAGS     linker flags, e.g. -L<lib dir> if you have libraries in a
@@ -3531,6 +3534,11 @@ END
   fi
 fi
 
+
+if test -z "$ARFLAGS"
+then :
+  ARFLAGS=cr
+fi
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether to enable maintainer-specific portions of Makefiles" >&5
 printf %s "checking whether to enable maintainer-specific portions of Makefiles... " >&6; }
@@ -7729,14 +7737,14 @@ printf "%s\n" "#define STDC_HEADERS 1" >>confdefs.h
 fi
 
 
-# Obsolete code to be removed.
-if test $ac_cv_header_sys_time_h = yes; then
+if test "$ac_cv_header_sys_time_h" = yes
+then :
+
 
 printf "%s\n" "#define TIME_WITH_SYS_TIME 1" >>confdefs.h
 
-fi
-# End of obsolete code.
 
+fi
 ac_fn_c_check_header_compile "$LINENO" "arpa/inet.h" "ac_cv_header_arpa_inet_h" "$ac_includes_default"
 if test "x$ac_cv_header_arpa_inet_h" = xyes
 then :
@@ -8147,39 +8155,6 @@ printf "%s\n" "#define mode_t int" >>confdefs.h
 
 fi
 
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking return type of signal handlers" >&5
-printf %s "checking return type of signal handlers... " >&6; }
-if test ${ac_cv_type_signal+y}
-then :
-  printf %s "(cached) " >&6
-else $as_nop
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <sys/types.h>
-#include <signal.h>
-
-int
-main (void)
-{
-return *(signal (0, 0)) (0) == 1;
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"
-then :
-  ac_cv_type_signal=int
-else $as_nop
-  ac_cv_type_signal=void
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
-fi
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_type_signal" >&5
-printf "%s\n" "$ac_cv_type_signal" >&6; }
-
-printf "%s\n" "#define RETSIGTYPE $ac_cv_type_signal" >>confdefs.h
-
-
 ac_fn_c_check_type "$LINENO" "size_t" "ac_cv_type_size_t" "$ac_includes_default"
 if test "x$ac_cv_type_size_t" = xyes
 then :
@@ -8424,14 +8399,6 @@ printf "%s\n" "#define SELECT_TYPE_ARG234 ($2)" >>confdefs.h
 printf "%s\n" "#define SELECT_TYPE_ARG5 ($3)" >>confdefs.h
 
 rm -rf conftest*
-
-if test ${ac_cv_func_setvbuf_reversed+y}
-then :
-  printf %s "(cached) " >&6
-else $as_nop
-  ac_cv_func_setvbuf_reversed=no
-fi
-
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether lstat correctly handles trailing slash" >&5
 printf %s "checking whether lstat correctly handles trailing slash... " >&6; }
@@ -9029,6 +8996,7 @@ DEFS=-DHAVE_CONFIG_H
 
 ac_libobjs=
 ac_ltlibobjs=
+U=
 for ac_i in : $LIBOBJS; do test "x$ac_i" = x: && continue
   # 1. Remove the extension, and $U if already installed.
   ac_script='s/\$U\././;s/\.o$//;s/\.obj$//'

@@ -14,8 +14,8 @@
     "dist"
   ],
   "scripts": {
-    "build": "vite build",
-    "dev": "vite dev",
+    "build": "node --no-experimental-webstorage node_modules/vite/bin/vite.js build",
+    "dev": "node --no-experimental-webstorage node_modules/vite/bin/vite.js dev",
     "test": "npm run build && vitest run",
     "pack": "npm run build && screw-up pack --pack-destination artifacts/",
     "dependencies": "reskill"

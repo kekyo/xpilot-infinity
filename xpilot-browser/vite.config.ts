@@ -176,6 +176,8 @@ export default defineConfig(async () => {
     },
     build: {
       rolldownOptions: {
+        // These plugins deliberately compile WASM and run formatting/type checks.
+        checks: { bundlerTimings: false },
         external: [],
         input: {
           game: resolve(root, 'index.html'),
