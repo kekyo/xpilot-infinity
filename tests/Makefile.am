@@ -136,6 +136,13 @@ test_robot_intercept_CFLAGS = $(AM_CFLAGS) -ffunction-sections -fdata-sections
 test_robot_intercept_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections
 test_robot_intercept_LDADD = -lm
 
+if COND_WINDOWS
+# PE unwind references retain uncalled game routines during section GC.
+# Let GCC remove them before linking these focused C test drivers.
+test_messages_CFLAGS += -flto
+test_robot_intercept_CFLAGS += -flto
+endif
+
 if !COND_WINDOWS
 check_PROGRAMS += test-mapdata-input test-srecord-input test-talkmacro-input
 TESTS += test-mapdata-input test-srecord-input test-talkmacro-input

@@ -281,6 +281,11 @@ target_triplet = @target@
 @COND_WINDOWS_FALSE@@COND_X11_CLIENT_TRUE@am__append_4 = run-x11-text.sh
 @COND_WINDOWS_FALSE@@COND_XP_MAPEDIT_TRUE@am__append_5 = test-mapedit-input
 @COND_WINDOWS_FALSE@@COND_XP_MAPEDIT_TRUE@am__append_6 = test-mapedit-input
+
+# PE unwind references retain uncalled game routines during section GC.
+# Let GCC remove them before linking these focused C test drivers.
+@COND_WINDOWS_TRUE@am__append_7 = -flto
+@COND_WINDOWS_TRUE@am__append_8 = -flto
 subdir = tests
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -1477,14 +1482,16 @@ AM_CPPFLAGS = -DCONF_DATADIR=\"$(pkgdatadir)/\" \
 test_messages_SOURCES = test_messages.c $(top_srcdir)/src/client/messages.c \
 	$(top_srcdir)/src/client/clientcommand.c
 
-test_messages_CFLAGS = $(AM_CFLAGS) -ffunction-sections -fdata-sections
+test_messages_CFLAGS = $(AM_CFLAGS) -ffunction-sections \
+	-fdata-sections $(am__append_7)
 test_messages_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections
 test_messages_LDADD = $(top_builddir)/src/common/libxpcommon.a @W32_LIBS@
 test_robot_intercept_SOURCES = test_robot_intercept.c \
 	$(top_srcdir)/src/server/suibotdef.c
 
 test_robot_intercept_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/src/server
-test_robot_intercept_CFLAGS = $(AM_CFLAGS) -ffunction-sections -fdata-sections
+test_robot_intercept_CFLAGS = $(AM_CFLAGS) -ffunction-sections \
+	-fdata-sections $(am__append_8)
 test_robot_intercept_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections
 test_robot_intercept_LDADD = -lm
 test_mapdata_input_SOURCES = test_mapdata_input.c
