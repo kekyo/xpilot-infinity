@@ -1,5 +1,7 @@
 # XPilot Infinity
 
+ブラウザクライアントは本リポジトリの一部です。起動・ビルド方法は [xpilot-browser](xpilot-browser/README.md) を参照してください。
+
 1991 年から続くマルチプレイヤー・オンライン・スペースアクション。
 
 ![XPilot Infinity](./images/xpilot-infinity.png)

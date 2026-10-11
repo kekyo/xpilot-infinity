@@ -1,5 +1,7 @@
 # XPilot Infinity
 
+The browser client is part of this repository. See [xpilot-browser](xpilot-browser/README.md) for the preview and browser build instructions.
+
 Multiplayer online space action since 1991.
 
 ![XPilot Infinity](./images/xpilot-infinity.png)

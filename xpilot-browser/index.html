@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <title>XPilot Infinity Browser</title>
+  </head>
+  <body>
+    <main>
+      <h1>XPilot Infinity</h1>
+      <p>
+        Renderer preview · Click the scene, then use the arrow keys to move.
+      </p>
+      <output id="status" aria-live="polite">Loading renderer…</output>
+      <div class="controls">
+        <label
+          >Preview text
+          <input id="preview-text" value="Flight: 日本語 é" maxlength="128"
+        /></label>
+        <label
+          >Font
+          <select id="preview-font">
+            <option value="oblique">FreeSans Bold Oblique</option>
+            <option value="mono">Vera Mono Bold</option>
+          </select></label
+        >
+      </div>
+      <div id="viewport">
+        <canvas id="game" tabindex="0" aria-label="XPilot renderer"></canvas>
+      </div>
+    </main>
+    <script type="module" src="/src/index.ts"></script>
+  </body>
+</html>
