@@ -56,7 +56,9 @@ org.xpilot.Infinity.ServerSettings1.service: $(srcdir)/data/org.xpilot.Infinity.
 CLEANFILES = org.xpilot.Infinity.ServerSettings1.service org.xpilot.Infinity.ServerSettings1.service.tmp
 applicationsdir = $(datarootdir)/applications
 applications_DATA = xpilot-infinity-tray.desktop
-xpilot-infinity-tray.desktop: $(srcdir)/data/xpilot-infinity-tray.desktop.fc Makefile
+# Serialize the two npm exec calls: older distribution npm versions can race
+# while installing their shared CLI cache (https://github.com/npm/cli/issues/8224).
+xpilot-infinity-tray.desktop: $(srcdir)/data/xpilot-infinity-tray.desktop.fc Makefile org.xpilot.Infinity.ServerSettings1.service
 	$(FUNCITY) --no-rc run -D 'bindir=$(bindir)' -D 'pkgdatadir=$(pkgdatadir)' -i $< > $@.tmp
 	mv $@.tmp $@
 CLEANFILES += xpilot-infinity-tray.desktop xpilot-infinity-tray.desktop.tmp
