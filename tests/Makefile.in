@@ -152,7 +152,8 @@ target_triplet = @target@
 @COND_WINDOWS_FALSE@	test-text-ttf-atlas$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-text-renderer$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-text-cache-adapter$(EXEEXT) \
-@COND_WINDOWS_FALSE@	$(am__EXEEXT_1) $(am__EXEEXT_2)
+@COND_WINDOWS_FALSE@	$(am__EXEEXT_1) $(am__EXEEXT_2) \
+@COND_WINDOWS_FALSE@	test-server-endpoint$(EXEEXT)
 @COND_WINDOWS_TRUE@check_PROGRAMS = test-framed-stream$(EXEEXT) \
 @COND_WINDOWS_TRUE@	test-websocket-transport$(EXEEXT) \
 @COND_WINDOWS_TRUE@	test-game-transport$(EXEEXT) \
@@ -173,7 +174,8 @@ target_triplet = @target@
 @COND_WINDOWS_TRUE@	test-score-font$(EXEEXT) \
 @COND_WINDOWS_TRUE@	test-native-text$(EXEEXT) \
 @COND_WINDOWS_TRUE@	test-game-input$(EXEEXT) $(am__EXEEXT_1) \
-@COND_WINDOWS_TRUE@	$(am__EXEEXT_2)
+@COND_WINDOWS_TRUE@	$(am__EXEEXT_2) \
+@COND_WINDOWS_TRUE@	test-server-endpoint$(EXEEXT)
 @COND_WINDOWS_FALSE@TESTS = test-framed-stream$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-websocket-transport$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-game-transport$(EXEEXT) \
@@ -249,7 +251,8 @@ target_triplet = @target@
 @COND_WINDOWS_FALSE@	run-vendored-zlib.sh \
 @COND_WINDOWS_FALSE@	run-container-publish.sh \
 @COND_WINDOWS_FALSE@	run-container-image.sh run-quadlet.sh \
-@COND_WINDOWS_FALSE@	run-e2e.sh $(am__EXEEXT_1) $(am__append_4)
+@COND_WINDOWS_FALSE@	run-e2e.sh $(am__EXEEXT_1) $(am__append_4) \
+@COND_WINDOWS_FALSE@	test-server-endpoint$(EXEEXT)
 @COND_WINDOWS_TRUE@TESTS = $(am__EXEEXT_1) $(am__append_4)
 @COND_SOUND_TRUE@@COND_WINDOWS_FALSE@am__append_1 = test-audio-device
 @COND_SOUND_TRUE@@COND_WINDOWS_FALSE@am__append_2 = test-audio-device
@@ -595,6 +598,12 @@ test_sdlpaint_stage_OBJECTS = $(am_test_sdlpaint_stage_OBJECTS)
 test_sdlpaint_stage_DEPENDENCIES = $(am__DEPENDENCIES_1)
 test_sdlpaint_stage_LINK = $(CCLD) $(test_sdlpaint_stage_CFLAGS) \
 	$(CFLAGS) $(test_sdlpaint_stage_LDFLAGS) $(LDFLAGS) -o $@
+am_test_server_endpoint_OBJECTS =  \
+	test_server_endpoint-test_server_endpoint.$(OBJEXT) \
+	test_server_endpoint-server_endpoint.$(OBJEXT)
+test_server_endpoint_OBJECTS = $(am_test_server_endpoint_OBJECTS)
+test_server_endpoint_DEPENDENCIES =  \
+	$(top_builddir)/src/common/libxpcommon.a
 am_test_session_flow_OBJECTS =  \
 	test_session_flow-test_session_flow.$(OBJEXT) \
 	test_session_flow-session_acceptor.$(OBJEXT)
@@ -798,6 +807,8 @@ am__depfiles_remade = ./$(DEPDIR)/SDL_console.Po \
 	./$(DEPDIR)/test_sdlmeta_primitives-test_sdlmeta_primitives.Po \
 	./$(DEPDIR)/test_sdlpaint_stage-sdlpaint.Po \
 	./$(DEPDIR)/test_sdlpaint_stage-test_sdlpaint_stage.Po \
+	./$(DEPDIR)/test_server_endpoint-server_endpoint.Po \
+	./$(DEPDIR)/test_server_endpoint-test_server_endpoint.Po \
 	./$(DEPDIR)/test_session_flow-session_acceptor.Po \
 	./$(DEPDIR)/test_session_flow-test_session_flow.Po \
 	./$(DEPDIR)/test_session_token.Po \
@@ -873,9 +884,9 @@ SOURCES = $(test_audio_device_SOURCES) $(test_checknames_SOURCES) \
 	$(test_sdlgui_polygons_SOURCES) $(test_sdlgui_ships_SOURCES) \
 	$(test_sdlgui_sparks_SOURCES) \
 	$(test_sdlmeta_primitives_SOURCES) \
-	$(test_sdlpaint_stage_SOURCES) $(test_session_flow_SOURCES) \
-	$(test_session_token_SOURCES) $(test_socket_io_SOURCES) \
-	$(test_surface_primitives_SOURCES) \
+	$(test_sdlpaint_stage_SOURCES) $(test_server_endpoint_SOURCES) \
+	$(test_session_flow_SOURCES) $(test_session_token_SOURCES) \
+	$(test_socket_io_SOURCES) $(test_surface_primitives_SOURCES) \
 	$(test_surface_rgba8_SOURCES) $(test_text_atlas_SOURCES) \
 	$(test_text_cache_adapter_SOURCES) \
 	$(test_text_geometry_SOURCES) $(test_text_renderer_SOURCES) \
@@ -918,9 +929,9 @@ DIST_SOURCES = $(test_audio_device_SOURCES) $(test_checknames_SOURCES) \
 	$(test_sdlgui_polygons_SOURCES) $(test_sdlgui_ships_SOURCES) \
 	$(test_sdlgui_sparks_SOURCES) \
 	$(test_sdlmeta_primitives_SOURCES) \
-	$(test_sdlpaint_stage_SOURCES) $(test_session_flow_SOURCES) \
-	$(test_session_token_SOURCES) $(test_socket_io_SOURCES) \
-	$(test_surface_primitives_SOURCES) \
+	$(test_sdlpaint_stage_SOURCES) $(test_server_endpoint_SOURCES) \
+	$(test_session_flow_SOURCES) $(test_session_token_SOURCES) \
+	$(test_socket_io_SOURCES) $(test_surface_primitives_SOURCES) \
 	$(test_surface_rgba8_SOURCES) $(test_text_atlas_SOURCES) \
 	$(test_text_cache_adapter_SOURCES) \
 	$(test_text_geometry_SOURCES) $(test_text_renderer_SOURCES) \
@@ -1329,6 +1340,11 @@ AM_CPPFLAGS = -DCONF_DATADIR=\"$(pkgdatadir)/\" \
 	$(XP_SDL3_CFLAGS) $(XP_SDL3_IMAGE_CFLAGS) $(XP_SDL3_TTF_CFLAGS) \
 	@NATIVE_TEXT_CFLAGS@ @GL_CFLAGS@
 
+test_server_endpoint_SOURCES = test_server_endpoint.c \
+	$(top_srcdir)/src/server/server_endpoint.c
+
+test_server_endpoint_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/src/server
+test_server_endpoint_LDADD = $(top_builddir)/src/common/libxpcommon.a
 test_game_transport_SOURCES = test_game_transport.c
 test_game_transport_LDADD = $(top_builddir)/src/common/libxpcommon.a
 test_checknames_SOURCES = test_checknames.c
@@ -2167,6 +2183,10 @@ test-sdlpaint-stage$(EXEEXT): $(test_sdlpaint_stage_OBJECTS) $(test_sdlpaint_sta
 	@rm -f test-sdlpaint-stage$(EXEEXT)
 	$(AM_V_CCLD)$(test_sdlpaint_stage_LINK) $(test_sdlpaint_stage_OBJECTS) $(test_sdlpaint_stage_LDADD) $(LIBS)
 
+test-server-endpoint$(EXEEXT): $(test_server_endpoint_OBJECTS) $(test_server_endpoint_DEPENDENCIES) $(EXTRA_test_server_endpoint_DEPENDENCIES)
+	@rm -f test-server-endpoint$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_server_endpoint_OBJECTS) $(test_server_endpoint_LDADD) $(LIBS)
+
 test-session-flow$(EXEEXT): $(test_session_flow_OBJECTS) $(test_session_flow_DEPENDENCIES) $(EXTRA_test_session_flow_DEPENDENCIES)
 	@rm -f test-session-flow$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_session_flow_OBJECTS) $(test_session_flow_LDADD) $(LIBS)
@@ -2348,6 +2368,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_sdlmeta_primitives-test_sdlmeta_primitives.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_sdlpaint_stage-sdlpaint.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_sdlpaint_stage-test_sdlpaint_stage.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_server_endpoint-server_endpoint.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_server_endpoint-test_server_endpoint.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_session_flow-session_acceptor.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_session_flow-test_session_flow.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_session_token.Po@am__quote@ # am--include-marker
@@ -3655,6 +3677,34 @@ test_sdlpaint_stage-sdlpaint.obj: $(top_srcdir)/src/client/sdl/sdlpaint.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_sdlpaint_stage_CPPFLAGS) $(CPPFLAGS) $(test_sdlpaint_stage_CFLAGS) $(CFLAGS) -c -o test_sdlpaint_stage-sdlpaint.obj `if test -f '$(top_srcdir)/src/client/sdl/sdlpaint.c'; then $(CYGPATH_W) '$(top_srcdir)/src/client/sdl/sdlpaint.c'; else $(CYGPATH_W) '$(srcdir)/$(top_srcdir)/src/client/sdl/sdlpaint.c'; fi`
 
+test_server_endpoint-test_server_endpoint.o: test_server_endpoint.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_server_endpoint_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT test_server_endpoint-test_server_endpoint.o -MD -MP -MF $(DEPDIR)/test_server_endpoint-test_server_endpoint.Tpo -c -o test_server_endpoint-test_server_endpoint.o `test -f 'test_server_endpoint.c' || echo '$(srcdir)/'`test_server_endpoint.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_server_endpoint-test_server_endpoint.Tpo $(DEPDIR)/test_server_endpoint-test_server_endpoint.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='test_server_endpoint.c' object='test_server_endpoint-test_server_endpoint.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_server_endpoint_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o test_server_endpoint-test_server_endpoint.o `test -f 'test_server_endpoint.c' || echo '$(srcdir)/'`test_server_endpoint.c
+
+test_server_endpoint-test_server_endpoint.obj: test_server_endpoint.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_server_endpoint_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT test_server_endpoint-test_server_endpoint.obj -MD -MP -MF $(DEPDIR)/test_server_endpoint-test_server_endpoint.Tpo -c -o test_server_endpoint-test_server_endpoint.obj `if test -f 'test_server_endpoint.c'; then $(CYGPATH_W) 'test_server_endpoint.c'; else $(CYGPATH_W) '$(srcdir)/test_server_endpoint.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_server_endpoint-test_server_endpoint.Tpo $(DEPDIR)/test_server_endpoint-test_server_endpoint.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='test_server_endpoint.c' object='test_server_endpoint-test_server_endpoint.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_server_endpoint_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o test_server_endpoint-test_server_endpoint.obj `if test -f 'test_server_endpoint.c'; then $(CYGPATH_W) 'test_server_endpoint.c'; else $(CYGPATH_W) '$(srcdir)/test_server_endpoint.c'; fi`
+
+test_server_endpoint-server_endpoint.o: $(top_srcdir)/src/server/server_endpoint.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_server_endpoint_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT test_server_endpoint-server_endpoint.o -MD -MP -MF $(DEPDIR)/test_server_endpoint-server_endpoint.Tpo -c -o test_server_endpoint-server_endpoint.o `test -f '$(top_srcdir)/src/server/server_endpoint.c' || echo '$(srcdir)/'`$(top_srcdir)/src/server/server_endpoint.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_server_endpoint-server_endpoint.Tpo $(DEPDIR)/test_server_endpoint-server_endpoint.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$(top_srcdir)/src/server/server_endpoint.c' object='test_server_endpoint-server_endpoint.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_server_endpoint_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o test_server_endpoint-server_endpoint.o `test -f '$(top_srcdir)/src/server/server_endpoint.c' || echo '$(srcdir)/'`$(top_srcdir)/src/server/server_endpoint.c
+
+test_server_endpoint-server_endpoint.obj: $(top_srcdir)/src/server/server_endpoint.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_server_endpoint_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT test_server_endpoint-server_endpoint.obj -MD -MP -MF $(DEPDIR)/test_server_endpoint-server_endpoint.Tpo -c -o test_server_endpoint-server_endpoint.obj `if test -f '$(top_srcdir)/src/server/server_endpoint.c'; then $(CYGPATH_W) '$(top_srcdir)/src/server/server_endpoint.c'; else $(CYGPATH_W) '$(srcdir)/$(top_srcdir)/src/server/server_endpoint.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_server_endpoint-server_endpoint.Tpo $(DEPDIR)/test_server_endpoint-server_endpoint.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$(top_srcdir)/src/server/server_endpoint.c' object='test_server_endpoint-server_endpoint.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_server_endpoint_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o test_server_endpoint-server_endpoint.obj `if test -f '$(top_srcdir)/src/server/server_endpoint.c'; then $(CYGPATH_W) '$(top_srcdir)/src/server/server_endpoint.c'; else $(CYGPATH_W) '$(srcdir)/$(top_srcdir)/src/server/server_endpoint.c'; fi`
+
 test_session_flow-test_session_flow.o: test_session_flow.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_session_flow_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT test_session_flow-test_session_flow.o -MD -MP -MF $(DEPDIR)/test_session_flow-test_session_flow.Tpo -c -o test_session_flow-test_session_flow.o `test -f 'test_session_flow.c' || echo '$(srcdir)/'`test_session_flow.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_session_flow-test_session_flow.Tpo $(DEPDIR)/test_session_flow-test_session_flow.Po
@@ -4499,6 +4549,13 @@ test-audio-device.log: test-audio-device$(EXEEXT)
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
+test-server-endpoint.log: test-server-endpoint$(EXEEXT)
+	@p='test-server-endpoint$(EXEEXT)'; \
+	b='test-server-endpoint'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
 .sh.log:
 	@p='$<'; \
 	$(am__set_b); \
@@ -4709,6 +4766,8 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/test_sdlmeta_primitives-test_sdlmeta_primitives.Po
 	-rm -f ./$(DEPDIR)/test_sdlpaint_stage-sdlpaint.Po
 	-rm -f ./$(DEPDIR)/test_sdlpaint_stage-test_sdlpaint_stage.Po
+	-rm -f ./$(DEPDIR)/test_server_endpoint-server_endpoint.Po
+	-rm -f ./$(DEPDIR)/test_server_endpoint-test_server_endpoint.Po
 	-rm -f ./$(DEPDIR)/test_session_flow-session_acceptor.Po
 	-rm -f ./$(DEPDIR)/test_session_flow-test_session_flow.Po
 	-rm -f ./$(DEPDIR)/test_session_token.Po
@@ -4899,6 +4958,8 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/test_sdlmeta_primitives-test_sdlmeta_primitives.Po
 	-rm -f ./$(DEPDIR)/test_sdlpaint_stage-sdlpaint.Po
 	-rm -f ./$(DEPDIR)/test_sdlpaint_stage-test_sdlpaint_stage.Po
+	-rm -f ./$(DEPDIR)/test_server_endpoint-server_endpoint.Po
+	-rm -f ./$(DEPDIR)/test_server_endpoint-test_server_endpoint.Po
 	-rm -f ./$(DEPDIR)/test_session_flow-session_acceptor.Po
 	-rm -f ./$(DEPDIR)/test_session_flow-test_session_flow.Po
 	-rm -f ./$(DEPDIR)/test_session_token.Po

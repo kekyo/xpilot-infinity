@@ -112,23 +112,15 @@
  * 4.F.1.5: Possibility to change polygon styles.
  */
 #define MAGIC_WORD		0xF4ED
-#ifdef SERVER
-#define MAGIC VERSION2MAGIC( \
-    Game_transport_protocol_version(gameTransport, is_polygon_map))
-#endif
 
 #define MAGIC2VERSION(M)	(((M) >> 16) & 0xFFFF)
 #define VERSION2MAGIC(V)	((((V) & 0xFFFF) << 16) | MAGIC_WORD)
-#ifdef SERVER
-#define MY_VERSION		MAGIC2VERSION(MAGIC)
-#endif
 
 /*
  * Which client versions can join this server.
  */
 #ifdef SERVER
 #define MIN_CLIENT_VERSION	0x4203
-#define MAX_CLIENT_VERSION	MY_VERSION
 #endif
 
 /*

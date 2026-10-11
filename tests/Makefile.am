@@ -112,6 +112,16 @@ TESTS += run-x11-text.sh
 endif
 endif
 
+check_PROGRAMS += test-server-endpoint
+if !COND_WINDOWS
+TESTS += test-server-endpoint
+endif
+
+test_server_endpoint_SOURCES = test_server_endpoint.c \
+	$(top_srcdir)/src/server/server_endpoint.c
+test_server_endpoint_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/src/server
+test_server_endpoint_LDADD = $(top_builddir)/src/common/libxpcommon.a
+
 test_game_transport_SOURCES = test_game_transport.c
 test_game_transport_LDADD = $(top_builddir)/src/common/libxpcommon.a
 

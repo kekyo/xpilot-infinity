@@ -33,6 +33,7 @@
 
 #include "record_session.h"
 #include "session_token.h"
+#include "server_endpoint.h"
 
 int Setup_net_server(void);
 void Conn_change_nick(connection_t *connp, const char *nick);
@@ -44,6 +45,7 @@ int Setup_connection(char *real, char *nick, char *dpy, int team,
  * Promote an admitted fixed-endpoint session to a gameplay connection.
  *
  * @param session Session whose ownership is transferred.
+ * @param endpoint Endpoint that admitted the session; copied on success.
  * @param real Operating-system user identity.
  * @param nick Requested in-game nickname.
  * @param dpy Client display identifier.
@@ -54,7 +56,8 @@ int Setup_connection(char *real, char *nick, char *dpy, int team,
  * @param peer_port Observed peer source port.
  * @return Zero on success, otherwise -1.
  */
-int Setup_session_connection(record_session_t *session, char *real,
+int Setup_session_connection(record_session_t *session,
+                             const server_endpoint_t *endpoint, char *real,
 			     char *nick, char *dpy, int team,
 			     char *addr, char *host, unsigned version,
 			     int peer_port);
@@ -67,13 +70,15 @@ int Net_server_connection_limit(void);
  *
  * @param token Bearer token from the incoming resumption request.
  * @param address Observed peer address of the replacement transport.
+ * @param endpoint Listener that accepted the replacement transport.
  * @param claim_id Stable identifier of the incoming logical session.
  * @param connection_index Receives the reserved connection index on success.
  * @return SUCCESS, E_NOT_FOUND, E_IN_USE, or E_INVAL.
  */
 int Net_server_claim_session_resume(
     const session_token_t *token, const char *address,
-    record_session_id_t claim_id, int *connection_index);
+    const server_endpoint_t *endpoint, record_session_id_t claim_id,
+    int *connection_index);
 
 /**
  * Install a reserved replacement transport and resume gameplay.

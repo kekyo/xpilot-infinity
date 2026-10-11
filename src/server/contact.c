@@ -60,6 +60,7 @@ typedef struct {
     record_session_t *session;
     char address[SOCK_HOSTNAME_LENGTH];
     int peer_port;
+    server_endpoint_t endpoint;
     session_game_request_t game;
     unsigned selected_version;
     bool promote_game;
@@ -91,16 +92,18 @@ sock_t			contactSocket;
 static sockbuf_t	ibuf;
 static bool		contact_initialized;
 static bool		session_listener;
+static server_endpoint_t contact_endpoint;
 static pending_session_t pending_sessions[MAX_PENDING_SESSIONS];
 
 static bool Owner(int request, char *user_name, char *host_addr,
 		  int host_port, int pass);
 static int Queue_player(char *real, char *nick, char *disp, int team,
 			char *addr, char *host, unsigned version, int port,
-			game_transport_t transport, int *qpos,
+			const server_endpoint_t *endpoint, int *qpos,
 			int *login_port);
 static int Check_address(char *addr);
-static void Contact_process(sockbuf_t *request, sockbuf_t *reply,
+static void Contact_process(const server_endpoint_t *endpoint,
+                            sockbuf_t *request, sockbuf_t *reply,
 			    const char *peer_address, int peer_port,
 			    bool stream);
 static int Contact_stream_request(sockbuf_t *request, sockbuf_t *reply,
@@ -108,19 +111,6 @@ static int Contact_stream_request(sockbuf_t *request, sockbuf_t *reply,
 static void Contact_accept_session(socket_handle_t fd, void *arg);
 static void Contact_session_poll(void);
 static void Pending_cleanup(pending_session_t *pending);
-
-static bool Contact_uses_session(void)
-{
-    return contactTransport == gameTransport
-	&& Game_transport_session_protocol_version(
-	       contactTransport, true) != 0;
-}
-
-static unsigned Contact_session_protocol_version(bool polygon_map)
-{
-    return Game_transport_session_protocol_version(
-	gameTransport, polygon_map);
-}
 
 void Contact_cleanup(void)
 {
@@ -151,8 +141,11 @@ int Contact_init(void)
 {
     int status;
 
+    contact_endpoint = (server_endpoint_t) {
+        contactTransport, gameTransport, options.contactPort
+    };
     sock_init(&contactSocket);
-    if (Contact_uses_session()) {
+    if (Server_endpoint_uses_session(&contact_endpoint)) {
 	int backlog = Net_server_connection_limit() + MAX_PENDING_SESSIONS;
 
 	if (backlog < MAX_PENDING_SESSIONS)
@@ -161,7 +154,8 @@ int Contact_init(void)
 				       options.contactPort, backlog);
 	if (status == SOCK_IS_ERROR
 	    || sock_set_non_blocking(&contactSocket, 1) == SOCK_IS_ERROR
-	    || install_input(Contact_accept_session, contactSocket.fd, NULL)
+	    || install_input(Contact_accept_session, contactSocket.fd,
+                             &contact_endpoint)
 	       == SOCK_IS_ERROR) {
 	    error("Could not create fixed %s session listener",
 		  Game_transport_name(contactTransport));
@@ -207,7 +201,7 @@ int Contact_init(void)
 	    sock_close(&contactSocket);
 	    return false;
 	}
-	if (install_input(Contact, contactSocket.fd, (void *)&contactSocket)
+	if (install_input(Contact, contactSocket.fd, &contact_endpoint)
 	    == SOCK_IS_ERROR) {
 	    error("Cannot register contact socket with scheduler");
 	    Sockbuf_cleanup(&ibuf);
@@ -424,12 +418,14 @@ static int Pending_count_address(const char *address)
 }
 
 int Contact_attach_transport(record_transport_t *transport,
-			     const char *address, int peer_port)
+			     const char *address, int peer_port,
+                             const server_endpoint_t *endpoint)
 {
     pending_session_t *pending;
     record_session_t *session;
 
-    if (transport == NULL || address == NULL || peer_port < 0
+    if (transport == NULL || address == NULL || endpoint == NULL
+        || !Server_endpoint_uses_session(endpoint) || peer_port < 0
 	|| peer_port > 65535) {
 	Record_transport_destroy(transport);
 	errno = EINVAL;
@@ -457,6 +453,7 @@ int Contact_attach_transport(record_transport_t *transport,
     pending->resume_connection = -1;
     pending->opened_at = time(NULL);
     pending->peer_port = peer_port;
+    pending->endpoint = *endpoint;
     strlcpy(pending->address, address, sizeof(pending->address));
     return 0;
 }
@@ -468,15 +465,16 @@ static void Contact_accept_session(socket_handle_t fd, void *arg)
     char address[SOCK_HOSTNAME_LENGTH];
     int peer_port;
 
+    const server_endpoint_t *endpoint = arg;
+
     UNUSED_PARAM(fd);
-    UNUSED_PARAM(arg);
 
     for (;;) {
 	errno = 0;
 	if (sock_accept(&contactSocket, &accepted) == SOCK_IS_ERROR) {
 	    if (errno != EWOULDBLOCK && errno != EAGAIN && errno != EINTR)
 		error("Cannot accept %s session (%d)",
-		      Game_transport_name(contactTransport), errno);
+		      Game_transport_name(endpoint->contact_transport), errno);
 	    return;
 	}
 
@@ -493,7 +491,7 @@ static void Contact_accept_session(socket_handle_t fd, void *arg)
 	if (sock_set_send_buffer_size(
 		&accepted, SERVER_SEND_SIZE + 256) == SOCK_IS_ERROR)
 	    error("Cannot set session send buffer size");
-	transport = contactTransport == GAME_TRANSPORT_WEBSOCKET
+	transport = endpoint->contact_transport == GAME_TRANSPORT_WEBSOCKET
 	    ? Record_transport_create_websocket_server(
 		&accepted, SERVER_RECV_SIZE, SERVER_SEND_SIZE)
 	    : Record_transport_create_tcp(
@@ -502,7 +500,7 @@ static void Contact_accept_session(socket_handle_t fd, void *arg)
 	    sock_close(&accepted);
 	    continue;
 	}
-	Contact_attach_transport(transport, address, peer_port);
+	Contact_attach_transport(transport, address, peer_port, endpoint);
     }
 }
 
@@ -540,14 +538,12 @@ static int Admit_session_game(pending_session_t *pending)
     if (game->team < 0 || game->team >= MAX_TEAMS)
 	game->team = TEAM_NOT_SET;
 
-    if (game->polygon_version
-	    != Contact_session_protocol_version(true)
-	|| game->legacy_version
-	    != Contact_session_protocol_version(false))
+    if (!Server_endpoint_accepts_session_versions(
+            &pending->endpoint, game->polygon_version, game->legacy_version))
 	return E_VERSION;
     pending->selected_version = is_polygon_map
-	? Contact_session_protocol_version(true)
-	: Contact_session_protocol_version(false);
+	? Server_endpoint_protocol_version(&pending->endpoint, true)
+	: Server_endpoint_protocol_version(&pending->endpoint, false);
     if (Check_address(pending->address))
 	return E_GAME_LOCKED;
     status = Check_names(game->nick, game->user, game->host);
@@ -775,10 +771,9 @@ static int Execute_session_control(pending_session_t *pending)
 
     if (Check_utf8_user_name(control->user) == NAME_ERROR)
 	return Queue_simple_session_control_reply(pending, E_INVAL);
-    if (control->polygon_version
-	    != Contact_session_protocol_version(true)
-	|| control->legacy_version
-	    != Contact_session_protocol_version(false))
+    if (!Server_endpoint_accepts_session_versions(
+            &pending->endpoint, control->polygon_version,
+            control->legacy_version))
 	return Queue_simple_session_control_reply(pending, E_VERSION);
     if (!Session_control_is_public(control->command)
 	&& !Session_control_is_owner(pending))
@@ -911,14 +906,16 @@ static void Promote_session_game(pending_session_t *pending)
     record_session_t *session = pending->session;
     char address[SOCK_HOSTNAME_LENGTH];
     int peer_port = pending->peer_port;
+    server_endpoint_t endpoint = pending->endpoint;
+    unsigned version = pending->selected_version;
 
     strlcpy(address, pending->address, sizeof(address));
     pending->session = NULL;
     memset(pending, 0, sizeof(*pending));
     Setup_session_connection(
-	session, game.user, game.nick, game.display,
+	session, &endpoint, game.user, game.nick, game.display,
 	game.team, address, game.host,
-	Contact_session_protocol_version(is_polygon_map), peer_port);
+	version, peer_port);
 }
 
 static void Promote_session_resume(pending_session_t *pending)
@@ -994,7 +991,7 @@ static void Process_pending_session(pending_session_t *pending)
 
 	    pending->resume_connection = -1;
 	    status = Net_server_claim_session_resume(
-		&open.request.resume.token, pending->address,
+		&open.request.resume.token, pending->address, &pending->endpoint,
 		claim_id, &pending->resume_connection);
 	    if (status == SUCCESS)
 		pending->resume_claim_id = claim_id;
@@ -1029,7 +1026,7 @@ static void Process_pending_session(pending_session_t *pending)
     if (pending->control_response == CONTROL_RESPONSE_DONE) {
 	/* A WebSocket endpoint must let the client consume the final response
 	 * and start the close handshake before the server releases the stream. */
-	if (contactTransport == GAME_TRANSPORT_WEBSOCKET) {
+	if (pending->endpoint.contact_transport == GAME_TRANSPORT_WEBSOCKET) {
 	    pending->state = PENDING_CONTROL_CLOSE;
 	    pending->opened_at = time(NULL);
 	    return;
@@ -1058,15 +1055,18 @@ static void Contact_session_poll(void)
  *
  * IMPORTANT! Adjust the next code if you're changing version numbers.
  */
-static unsigned Version_to_magic(unsigned version)
+static unsigned Version_to_magic(const server_endpoint_t *endpoint,
+                                 unsigned version)
 {
     game_transport_t requested_transport;
+    unsigned current_version = Server_endpoint_protocol_version(
+        endpoint, is_polygon_map);
 
     if (Game_transport_from_protocol_version(version, &requested_transport)
-	&& requested_transport == gameTransport
-	&& version >= 0x4203 && version <= MY_VERSION)
+	&& requested_transport == endpoint->game_transport
+	&& version >= 0x4203 && version <= current_version)
 	return VERSION2MAGIC(version);
-    return MAGIC;
+    return VERSION2MAGIC(current_version);
 }
 
 void Contact(socket_handle_t fd, void *arg)
@@ -1074,7 +1074,6 @@ void Contact(socket_handle_t fd, void *arg)
     int bytes;
 
     UNUSED_PARAM(fd);
-    UNUSED_PARAM(arg);
     Sockbuf_clear(&ibuf);
     bytes = sock_receive_any(&contactSocket, ibuf.buf, ibuf.size);
     if (bytes <= 8) {
@@ -1084,24 +1083,29 @@ void Contact(socket_handle_t fd, void *arg)
 	return;
     }
     ibuf.len = bytes;
-    Contact_process(&ibuf, &ibuf, sock_get_last_addr(&contactSocket),
+    Contact_process(arg, &ibuf, &ibuf, sock_get_last_addr(&contactSocket),
 		    sock_get_last_port(&contactSocket), false);
 }
 
 static int Contact_stream_request(sockbuf_t *request, sockbuf_t *reply,
 			  const char *peer_address, int peer_port)
 {
-    Contact_process(request, reply, peer_address, peer_port, true);
+    Contact_process(&contact_endpoint, request, reply,
+                    peer_address, peer_port, true);
     return reply->len;
 }
 
-static void Contact_process(sockbuf_t *request, sockbuf_t *reply,
+static void Contact_process(const server_endpoint_t *endpoint,
+                            sockbuf_t *request, sockbuf_t *reply,
 			    const char *peer_address, int peer_port,
 			    bool stream)
 {
     int i, team, delay, qpos, status, login_port;
     char reply_to, ch;
     unsigned magic, version, my_magic;
+    unsigned current_version = Server_endpoint_protocol_version(
+        endpoint, is_polygon_map);
+    unsigned server_magic = VERSION2MAGIC(current_version);
     uint16_t port;
     char user_name[MAX_CHARS], disp_name[MAX_CHARS], nick_name[MAX_CHARS];
     char host_name[MAX_CHARS], host_addr[SOCK_HOSTNAME_LENGTH], str[MSG_LEN];
@@ -1117,7 +1121,7 @@ static void Contact_process(sockbuf_t *request, sockbuf_t *reply,
      * Determine if we can talk with this client.
      */
     if (Packet_scanf(request, "%u", &magic) <= 0
-	|| (magic & 0xFFFF) != (MAGIC & 0xFFFF)) {
+	|| (magic & 0xFFFF) != MAGIC_WORD) {
 	D(printf("Incompatible packet from %s (0x%08x)", host_addr, magic));
 	return;
     }
@@ -1149,29 +1153,29 @@ static void Contact_process(sockbuf_t *request, sockbuf_t *reply,
 
 	if (!Game_transport_from_protocol_version(version,
 					      &requested_transport)
-	    || requested_transport != gameTransport) {
+	    || requested_transport != endpoint->game_transport) {
 	    D(error("Gameplay transport mismatch with %s@%s (%s,%04x)",
 		    user_name, host_addr,
-		    Game_transport_name(gameTransport), version));
+		    Game_transport_name(endpoint->game_transport), version));
 	    Sockbuf_clear(reply);
-	    Packet_printf(reply, "%u%c%c", MAGIC, reply_to, E_VERSION);
+	    Packet_printf(reply, "%u%c%c", server_magic, reply_to, E_VERSION);
 	    Reply(reply, host_addr, port, stream);
 	    return;
 	}
     }
 
     if (version < MIN_CLIENT_VERSION
-	|| (version > MAX_CLIENT_VERSION
+	|| (version > current_version
 	    && reply_to != CONTACT_pack)) {
 	D(error("Incompatible version with %s@%s (%04x,%04x)",
-		user_name, host_addr, MY_VERSION, version));
+		user_name, host_addr, current_version, version));
 	Sockbuf_clear(reply);
-	Packet_printf(reply, "%u%c%c", MAGIC, reply_to, E_VERSION);
+	Packet_printf(reply, "%u%c%c", server_magic, reply_to, E_VERSION);
 	Reply(reply, host_addr, port, stream);
 	return;
     }
 
-    my_magic = Version_to_magic(version);
+    my_magic = Version_to_magic(endpoint, version);
 
     status = SUCCESS;
 
@@ -1231,8 +1235,7 @@ static void Contact_process(sockbuf_t *request, sockbuf_t *reply,
 			      disp_name, team,
 			      host_addr, host_name,
 			      version, port,
-			      stream ? GAME_TRANSPORT_TCP
-			             : GAME_TRANSPORT_UDP,
+			      endpoint,
 			      &qpos, &login_port);
 	if (status < 0)
 	    return;
@@ -1471,7 +1474,7 @@ struct queued_player {
     int				team;
     unsigned			version;
     int				login_port;
-    game_transport_t		contact_transport;
+    server_endpoint_t		endpoint;
     long			last_ack_sent;
     long			last_ack_recv;
 };
@@ -1503,8 +1506,8 @@ void Queue_kick(const char *nick)
     if (!qp)
 	return;
 
-    if (qp->contact_transport == GAME_TRANSPORT_UDP) {
-	magic = Version_to_magic(qp->version);
+    if (qp->endpoint.contact_transport == GAME_TRANSPORT_UDP) {
+	magic = Version_to_magic(&qp->endpoint, qp->version);
 	Sockbuf_clear(&ibuf);
 	Packet_printf(&ibuf, "%u%c%c", magic, ENTER_GAME_pack, E_IN_USE);
 	Reply(&ibuf, qp->host_addr, qp->port, false);
@@ -1516,9 +1519,9 @@ void Queue_kick(const char *nick)
 
 static void Queue_ack(struct queued_player *qp, int qpos)
 {
-    unsigned my_magic = Version_to_magic(qp->version);
+    unsigned my_magic = Version_to_magic(&qp->endpoint, qp->version);
 
-    if (qp->contact_transport == GAME_TRANSPORT_TCP) {
+    if (qp->endpoint.contact_transport == GAME_TRANSPORT_TCP) {
 	qp->last_ack_sent = main_loops;
 	return;
     }
@@ -1539,7 +1542,7 @@ void Queue_loop(void)
     int qpos = 0, login_port;
     static long last_unqueued_loops;
 
-    if (Contact_uses_session())
+    if (Server_endpoint_uses_session(&contact_endpoint))
 	Contact_session_poll();
     else if (contactTransport == GAME_TRANSPORT_TCP)
 	Contact_stream_poll();
@@ -1661,7 +1664,7 @@ void Queue_loop(void)
 
 static int Queue_player(char *user, char *nick, char *disp, int team,
 			char *addr, char *host, unsigned version, int port,
-			game_transport_t transport, int *qpos,
+			const server_endpoint_t *endpoint, int *qpos,
 			int *login_port)
 {
     int status = SUCCESS, num_queued = 0, num_same_hosts = 0;
@@ -1687,10 +1690,11 @@ static int Queue_player(char *user, char *nick, char *disp, int team,
 		qp->port = port;
 		qp->version = version;
 		qp->team = team;
-		qp->contact_transport = transport;
+		qp->endpoint = *endpoint;
 		*login_port = qp->login_port;
 		/* UDP clients receive asynchronous queue acknowledgements. */
-		return transport == GAME_TRANSPORT_TCP ? SUCCESS : -1;
+		return endpoint->contact_transport == GAME_TRANSPORT_TCP
+                    ? SUCCESS : -1;
 	    }
 	    return E_IN_USE;
 	}
@@ -1723,7 +1727,7 @@ static int Queue_player(char *user, char *nick, char *disp, int team,
     qp->team = team;
     qp->version = version;
     qp->login_port = -1;
-    qp->contact_transport = transport;
+    qp->endpoint = *endpoint;
     qp->last_ack_sent = main_loops;
     qp->last_ack_recv = main_loops;
 
