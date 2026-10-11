@@ -21,9 +21,12 @@ $(PREFIX)/lib/libexpat.a:
 $(PREFIX)/lib/libz.a:
 	mkdir -p "$(BUILD_DIR)/zlib-source"
 	cp -a "$(CURDIR)/../../vendor/zlib/." "$(BUILD_DIR)/zlib-source/"
-	EM_CONFIG="$(EMSDK_ROOT)/.emscripten" "$(EMCMAKE)" cmake \
-		-S "$(BUILD_DIR)/zlib-source" -B "$(BUILD_DIR)/zlib" \
-		-DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$(PREFIX)" \
-		-DZLIB_BUILD_SHARED=OFF -DZLIB_BUILD_TESTING=OFF
-	EM_CONFIG="$(EMSDK_ROOT)/.emscripten" cmake --build "$(BUILD_DIR)/zlib" --parallel "$(JOBS)"
-	EM_CONFIG="$(EMSDK_ROOT)/.emscripten" cmake --install "$(BUILD_DIR)/zlib"
+	# zlib 1.2.11's CMake targets both produce libz.a under Emscripten.
+	# Its configure script supports a static-only build; its K&R definitions need C99.
+	cd "$(BUILD_DIR)/zlib-source" && \
+		EM_CONFIG="$(EMSDK_ROOT)/.emscripten" \
+		CFLAGS="-O3 -std=c99 -Wno-deprecated-non-prototype" \
+		"$(EMSDK_ROOT)/upstream/emscripten/emconfigure" \
+		./configure --static --prefix="$(PREFIX)"
+	EM_CONFIG="$(EMSDK_ROOT)/.emscripten" $(MAKE) -C "$(BUILD_DIR)/zlib-source" -j"$(JOBS)" libz.a
+	EM_CONFIG="$(EMSDK_ROOT)/.emscripten" $(MAKE) -C "$(BUILD_DIR)/zlib-source" install
