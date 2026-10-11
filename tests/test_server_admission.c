@@ -67,7 +67,8 @@ int main(int argc, char **argv)
             char error_text[MSG_LEN];
             TEST_CHECK(Session_connection_run_control(stream, &control, 10,
                 Capture_control_status, &status, error_text, sizeof(error_text)) == 0);
-            TEST_CHECK(status == E_UNDEFINED);
+            TEST_CHECK(status == (transport == GAME_TRANSPORT_WEBSOCKET
+                ? E_NOT_OWNER : E_UNDEFINED));
             continue;
         }
         session_game_request_t request;

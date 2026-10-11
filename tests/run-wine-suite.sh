@@ -151,7 +151,7 @@ if test "$inside_xvfb" = false; then
     "$make_program" -C "$build_dir/tests" "-j$jobs" \
         test-framed-stream.exe \
         test-websocket-transport.exe \
-        test-game-transport.exe test-server-endpoint.exe \
+        test-game-transport.exe test-server-endpoint.exe test-web-front.exe \
         test-connect-target.exe \
         test-contact-target-probe.exe \
         test-transport-display.exe \
@@ -1033,7 +1033,7 @@ timeout 30s "$wine_program" "$build_dir/src/tray/tests/test-settings-replace-win
     || fail "Windows settings replacement failed"
 
 for unit_test in test-framed-stream test-websocket-transport \
-    test-game-transport test-server-endpoint test-connect-target \
+    test-game-transport test-server-endpoint test-web-front test-connect-target \
     test-transport-display test-socket-io test-sdl-versions \
     test-score-font test-native-text test-native-socket-handle; do
     run_wine_unit_test "$unit_test"

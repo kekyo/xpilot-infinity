@@ -96,6 +96,14 @@ static void Meta_send(size_t index, char *mesg, size_t len)
     }
 }
 
+const char *Meta_host_name(size_t index)
+{
+    if (!options.reportToMetaServer || index >= NELEM(meta_servers))
+        return NULL;
+    Meta_apply_environment();
+    return meta_servers[index].name;
+}
+
 int Meta_from(char *addr, int port)
 {
     int i;

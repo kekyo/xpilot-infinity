@@ -23,3 +23,22 @@ Makefile
 *.dll
 *.exe
 *.log
+
+# Browser application build and test output.
+node_modules/
+/xpilot-browser/build/
+/xpilot-browser/dist/
+/xpilot-browser/public/runtime/
+/xpilot-browser/public/fonts/
+/xpilot-browser/public/licenses/
+/xpilot-browser/public/build-info.json
+/xpilot-browser/test-results/
+/xpilot-browser/artifacts/
+!/xpilot-browser/wasm/Makefile
+
+# Node.js server build and test output.
+/xpilot-server/build/
+/xpilot-server/dist/
+/xpilot-server/public/
+/xpilot-server/artifacts/
+!/xpilot-server/wasm/Makefile

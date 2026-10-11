@@ -200,6 +200,11 @@ prepare_debian_package_files()
     install_package_documentation
     install_desktop_launcher
     install_systemd_service
+    if test -f "$source_dir/xpilot-browser/dist/index.html"; then
+        browser_dir="$stage_dir/usr/share/games/xpilot-infinity/browser"
+        mkdir -p "$browser_dir"
+        cp -R "$source_dir/xpilot-browser/dist/." "$browser_dir/"
+    fi
 }
 
 calculate_runtime_dependencies()

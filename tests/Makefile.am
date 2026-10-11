@@ -112,10 +112,14 @@ TESTS += run-x11-text.sh
 endif
 endif
 
-check_PROGRAMS += test-server-endpoint test-server-admission
+check_PROGRAMS += test-server-endpoint test-server-admission test-web-front
 if !COND_WINDOWS
-TESTS += test-server-endpoint run-multiple-protocols.sh
+TESTS += test-server-endpoint run-multiple-protocols.sh test-web-front
 endif
+
+test_web_front_SOURCES = test_web_front.c $(top_srcdir)/src/server/web_front.c
+test_web_front_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/src/server
+test_web_front_LDADD = $(top_builddir)/src/common/libxpcommon.a @W32_LIBS@
 
 test_server_endpoint_SOURCES = test_server_endpoint.c \
 	$(top_srcdir)/src/server/server_endpoint.c

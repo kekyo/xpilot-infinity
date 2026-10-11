@@ -26,6 +26,10 @@
  */
 
 #include "xpclient.h"
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+EM_JS(void, browser_options_saved, (void), { Module.xpilotSettingsChanged?.(); });
+#endif
 
 int num_options = 0;
 int max_options = 0;
@@ -1045,6 +1049,9 @@ int Xpilotrc_write(const char *path)
     }
 
     fclose(fp);
+#ifdef __EMSCRIPTEN__
+    browser_options_saved();
+#endif
 
     return 0;
 }

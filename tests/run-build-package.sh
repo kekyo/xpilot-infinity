@@ -175,6 +175,9 @@ test -f "$package_script_dir/images/icon-1254.png" \
     || fail "Debian application icon is unavailable"
 cp "$package_script_dir/images/icon-1254.png" \
     "$policy_source/images/icon-1254.png"
+mkdir -p "$policy_source/xpilot-browser/dist/runtime"
+printf 'browser entry\n' > "$policy_source/xpilot-browser/dist/index.html"
+printf 'browser wasm\n' > "$policy_source/xpilot-browser/dist/runtime/game.wasm"
 printf '.TH XPILOT 6\n' \
     > "$policy_stage/usr/share/man/man6/xpilot-infinity-sdl.6"
 cat > "$test_root/fixture-executable.c" <<'EOF'
@@ -243,6 +246,10 @@ assert_equal '.TH XPILOT 6' \
     "$(gzip -cd "$policy_stage/usr/share/man/man6/xpilot-infinity-sdl.6.gz")" \
     "the compressed manual page contents changed"
 doc_dir="$policy_stage/usr/share/doc/xpilot-infinity"
+assert_equal 'browser entry' "$(cat "$policy_stage/usr/share/games/xpilot-infinity/browser/index.html")" \
+    "the Debian package did not include the browser application"
+assert_equal 'browser wasm' "$(cat "$policy_stage/usr/share/games/xpilot-infinity/browser/runtime/game.wasm")" \
+    "the Debian package did not include the browser WASM"
 assert_equal "fixture copyright" "$(cat "$doc_dir/copyright")" \
     "the Debian copyright file was not installed"
 assert_equal "fixture upstream changes" \
@@ -525,6 +532,7 @@ assert_contains "$test_root/parallel/logs/ubuntu/26.04/arm64.log" \
 
 all_args="$test_root/build-all.args"
 windows_args="$test_root/build-windows.args"
+npm_args="$test_root/build-npm.args"
 cat > "$fixture_tools/build-package-stub" <<'EOF'
 #!/bin/sh
 set -eu
@@ -539,12 +547,20 @@ printf '%s\n' "$XPILOT_COMMIT_ID" > "$XPILOT_WINDOWS_PACKAGE_ARGS.commit"
 EOF
 chmod +x "$fixture_tools/build-package-stub" \
     "$fixture_tools/build-windows-stub"
+cat > "$fixture_tools/build-npm-stub" <<'EOF'
+#!/bin/sh
+set -eu
+printf '%s\n' "$XPILOT_VERSION" "$XPILOT_COMMIT_ID" > "$XPILOT_NPM_PACKAGE_ARGS"
+EOF
+chmod +x "$fixture_tools/build-npm-stub"
 
 XPILOT_PACKAGE_ALL_ARGS=$all_args \
 XPILOT_WINDOWS_PACKAGE_ARGS=$windows_args \
+XPILOT_NPM_PACKAGE_ARGS=$npm_args \
 XPILOT_COMMIT_ID=$test_commit \
 BUILD_PACKAGE_SCRIPT="$fixture_tools/build-package-stub" \
 BUILD_WINDOWS_PACKAGE_SCRIPT="$fixture_tools/build-windows-stub" \
+BUILD_NPM_PACKAGE_SCRIPT="$fixture_tools/build-npm-stub" \
     "$package_all_script" --version 4.7.99 --debian-revision 3 \
     --distro ubuntu --release 24.04 --arch amd64 --jobs 2 --debug
 
@@ -579,6 +595,9 @@ assert_equal "$test_commit" "$(cat "$all_args.commit")" \
     "the Debian package build did not receive the commit ID"
 assert_equal "$test_commit" "$(cat "$windows_args.commit")" \
     "the Windows package build did not receive the commit ID"
+assert_equal "4.7.99
+$test_commit" "$(cat "$npm_args")" \
+    "the npm package build did not receive the shared build identity"
 
 prereq_project="$test_root/prereq-project"
 prereq_log="$test_root/prereq.log"

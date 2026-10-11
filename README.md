@@ -60,12 +60,42 @@ The supported package matrix is:
 | Ubuntu | 24.04 | amd64, arm64 |
 | Ubuntu | 26.04 | amd64, arm64 |
 | Windows | - | x86 (32bit), x86_64 (64bit) |
+| Node.js / npm | 26.4 or later | Platforms supported by Node.js |
 
 - Environment: SDL3, OpenGL 3.3 and OpenAL (sound)
 
 The Debian and Ubuntu packages add **XPilot Infinity** to XDG-compatible
 application menus. The launcher uses the packaged application icon and opens
 the SDL server browser without additional arguments.
+
+### Play on Node.js and browser
+
+Play using the native client or a browser. See [Playing in a browser](docs/en/browser.md)
+for joining a game, controls, and starting your own server.
+
+The [Node.js package](xpilot-server/README.md)
+includes a WASM server and browser client and requires Node.js 26.4 or later.
+See [browser hosting](doc/BROWSER.md) for native hosting and HTTPS/WSS deployment.
+
+Install the npm package globally and start the server:
+
+```sh
+npm install -g xpilot-infinity
+xpilot-infinity
+```
+
+Alternatively, start it with npx:
+
+```sh
+npx xpilot-infinity
+```
+
+Open `http://localhost:15347/`. UDP 15345 and TCP 15346 are also available for
+native clients. Stop the server with Ctrl+C. This package runs with Node.js and
+a browser; it needs no native compiler or separate native server. Settings and
+saved data belong in `--data-dir`, which defaults to `~/.xpilot-infinity`.
+
+For instructions on how to join, basic operations, and how to start your own server, see [Play in a Browser](docs/en/browser.md).
 
 ### Windows installation
 
@@ -211,9 +241,11 @@ through the long options or metaserver advertisements.
 
 WebSocket uses RFC 6455 binary messages at `/xpilot` with the
 `xpilot-infinity-v1` subprotocol; each message carries one logical XPilot
-record. Only unencrypted `ws://` is currently implemented. The native clients
-exercise this transport; browser client integration is intentionally a
-separate step.
+record. Native clients support direct `ws://` connections. The browser client
+uses the same-origin WebSocket endpoint, including `wss://` through a TLS
+frontend. Use `-webRoot PATH` to serve the browser build from this listener;
+see [browser hosting](doc/BROWSER.md) for Origin and trusted-proxy settings.
+WebSocket connections cannot claim loopback-based server administration.
 
 Multiple targets are tried in command-line order, for example
 `ws://server1 tcp://server2 udp://server3`. This is explicit fallback between

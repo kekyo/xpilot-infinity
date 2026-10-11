@@ -1,0 +1,151 @@
+# Node.js と WASM によるサーバーと配布形式の統合
+
+## 目的と合意事項
+
+XPilot Infinity のサーバーを Node.js と WASM で実行し、ビルド済みのブラウザクライアントとともに npm パッケージとして配布する。利用者は Node.js とブラウザだけでゲームを起動でき、C コンパイラー、Emscripten、外部のネイティブサーバー、ネイティブアドオンを必要としない。開発時には C ソースをビルドし、既存のネイティブ版も引き続き提供する。
+
+- npm 版も UDP・TCP・WebSocket の三方式に対応する。
+- ブラウザはコンテンツの配信元に接続し、メタサーバーを利用しない。サーバーのメタサーバー登録は既存の設定に従う。
+- Node.js 版は CLI から制御する。システムトレイや OS サービスの追加実装は行わない。既存のネイティブ版のトレイ・サービスは維持する。
+- すべての実装・ビルド定義・テスト・資料を xpilot-infinity 内に置く。親リポジトリの雛形や npm メタデータを必要としない。
+- Emscripten の導入・固定バージョンの管理・ビルドには emsdk-env とその Vite プラグインを使用する。
+- deb、NSIS、npm を同じソースとリリース識別情報から作成できるようにする。npm の公開はこの作業に含めない。
+
+## 現行コードと設計
+
+`src/server/server.c` の Server_run は初期化、常駐ループ、プロセス終了を一体化している。`src/server/sched.c` は select または OS のタイマーを使って待機する。WASM 版では初期化・処理の実行・終了を分離し、Node.js の通信イベントとフレーム時刻によって進める。ゲームのフレーム進行と入出力の通知を分け、待機で Node.js のイベントループを塞がない。追加のワーカースレッドや待ち合わせのためのビジーループを前提としない。
+
+ゲームルール、物理、マップ、ロボット、プロトコルは既存 C ソースを共有する。WASM インスタンスは一つのゲームを所有する。停止時にはソケットと保存データを処理し、再起動には新しいインスタンスを使用して C のグローバル状態を混在させない。
+
+通信の第一候補は Emscripten の NODERAWSOCKETS である。POSIX ソケットを Node.js の TCP/UDP に接続し、既存の HTTP と wslay による WebSocket 処理も利用する。サーバー SDK の初期検証バージョンは 6.0.12、実行環境は公開 API の BoundSocket、bindSync、connectSync が存在する Node.js 26.4 以降とする。ブラウザ SDK の更新は必須とせず、双方の成果物を検証する。
+
+`src/server/netserver.c` は接続用ポートを確保した直後にポート番号を使用する。動的ポート、競合、接続元、切断、送信待ちを実通信で検証する。ソケットの準備通知から短時間で戻る処理を呼び、フレームは所定の時刻に進める。長時間停止後に無制限の追い付き処理を実行しない。
+
+既存の同期的な DNS と alarm によるタイムアウトは Node.js の名前解決との境界に移す。数値アドレスとホスト名を区別し、解決の失敗を利用者に返す。SDK 内部の名前解決テーブルを書き換えない。
+
+第一段階で NODERAWSOCKETS に必要な機能が不足すると判明した場合は、その根拠を記録して計画を更新する。代替案は Node.js の公開 API による通信アダプターと既存 Record_transport 境界の接続である。外部コードへのパッチ、内部 API、UDP/TCP の省略によって回避しない。
+
+## ファイルと OS 依存部分
+
+同梱マップ・フォント等の資産は読み込み用とし、設定・ランキング・ログ・録画などの書き込み先を npm のインストール先から分離する。既存 C のファイル処理を使えるファイルシステム境界を設ける。ホスト上のパス、Windows のパス、エラー時の解放を検証する。
+
+`src/server/fileparser.c` の gzip 用 popen はライブラリによる展開へ置き換える。Expat、zlib、wslay など必要な依存は既存 vendor のソースを変更せず WASM 用にビルドする。サーバーには SDL や OpenAL をリンクしない。
+
+乱数、ホスト名、所有者情報、終了通知、時刻の取得を実行環境に対応させる。接続元 IP による制御や公開プロキシの信頼境界を維持する。録画・再生は現行で対応している方式を対象とし、現行で未対応の固定セッション接続を暗黙に対応済みとしない。
+
+## npm とネイティブパッケージ
+
+Node.js のホスト実装とパッケージ作成処理は `xpilot-server/` に置く。TypeScript、Vite、Vitest、prettier-max、resolved-killer、screw-up、emsdk-env を使用する。ビルド時のテキスト生成は funcity を使用し、C 依存のビルドは Makefile で管理する。公開ライブラリ API を設ける場合は ESM/CJS の .mjs/.cjs と型定義を提供する。
+
+npm の成果物には CLI、Emscripten の JS ランタイム、サーバー WASM、ブラウザの dist、ゲーム資産、ライセンスを含める。インストール時のコンパイルやビルド済みネイティブバイナリの取得を必要としない。Vite 開発サーバーを利用者向けの配信サーバーにしない。
+
+deb と NSIS はネイティブのサーバー・SDL クライアント・既存のトレイ/サービスを維持し、ブラウザ資産も同梱して設定から配信可能にする。ブラウザを一度ビルドした成果物を三形式に利用する。ネイティブコードだけをビルドする既存経路を維持する。既存 build_package_all.sh の deb と Windows 作成処理に npm の作成・検証を加える。
+
+## 段階と完了条件
+
+### 1. 通信方式を実証する
+
+- Node.js と WASM の小さな通信ドライバーと、その振る舞いを検証するテストを先に追加する。
+- emsdk-env による固定 SDK の導入・ビルドを構成する。
+- UDP、TCP、動的ポートの取得、競合、切断、受信イベントの通知を実通信で検証する。
+- 成果物は単独実行できるドライバーとする。公開 API を使う構成で成立することが完了条件である。
+
+### 2. マップとロボットが動く WASM サーバーを作る
+
+- C サーバーの開始・進行・終了と環境依存の待機を分離する。
+- サーバー用依存を WASM ビルドし、Node.js からマップを読み込んでゲームを進める。
+- Node.js のイベント処理と共存し、明示的に停止できることを検証する。
+- ネイティブ版のビルドと回帰テストが通ることを完了条件とする。
+
+### 3. 三方式でプレイできる試験用 npm パッケージを作る
+
+- HTTP と WebSocket の配信入口、UDP、TCP の接続を有効にする。
+- ビルド済みブラウザとサーバーを npm の試験パッケージに含める。
+- 実際のブラウザとネイティブクライアントで同じゲームに参加し、入力、退出、再接続を検証する。
+- ブラウザの試行と E2E は Playwright MCP を使用する。
+- 三方式でプレイでき、配信元へのブラウザ接続が成立することを完了条件とする。
+
+### 4. 運用に必要な機能を移植する
+
+- カスタム/圧縮マップ、設定、保存データ、名前解決、終了通知を対応させる。
+- 現行で対応する録画・再生、メタサーバー登録を検証する。メタサーバー試験はローカルの試験相手を使用する。
+- インストール先を変更せずデータを書き込み、再起動後に読み込めることを検証する。
+- 外部ネイティブコマンドなしで運用でき、停止時の資源が解放されることを完了条件とする。
+
+### 5. 三形式の配布と全体検証を統合する
+
+- 同じバージョンとコミットから deb、NSIS、npm を生成する。
+- ブラウザ資産をパッケージに同梱し、利用者向けの起動・設定手順を更新する。
+- npm の tgz を開発環境から分離したディレクトリへ devDependencies と install scripts なしでインストールし、サーバー起動・ブラウザ配信・三方式の接続を確認する。
+- 親リポジトリを参照しない独立したチェックアウトからビルドできることを検証する。
+- ネイティブ・ブラウザ・Node.js の全体テスト、deb と NSIS の既存パッケージ検証を実行する。利用可能な対象 OS で実行し、利用できない実機検証は完了と混同せず残条件として記録する。
+
+各段階でテストの RED と GREEN を確認し、適切な粒度でコミットする。最終確認では上記完了条件と成果物を照合する。
+
+## 参照
+
+- [Emscripten networking](https://emscripten.org/docs/porting/networking.html)
+- [Emscripten 6.0.12 Node sockets implementation and API comments](https://github.com/emscripten-core/emscripten/blob/6.0.12/src/lib/libsockfs_node.js)
+- [Node.js BoundSocket](https://nodejs.org/api/net.html#class-netboundsocket)
+- [Node.js UDP bindSync](https://nodejs.org/api/dgram.html#socketbindsyncoptions)
+- [Emscripten filesystem API](https://emscripten.org/docs/api_reference/Filesystem-API.html)
+- [emsdk-env](https://github.com/kekyo/emsdk-env)
+
+## 実施記録
+
+- 2026-10-11: 計画承認。Node.js 版のシステムトレイ制御を対象外とし、emsdk-env の利用を明示した。
+- 第1段階: emsdk-env 0.12.0 が管理する Emscripten 6.0.12 と Node.js 26.11.1 により通信ドライバーをビルド。成果物未実装でテストが失敗する RED を確認後、UDP の動的ポートと往復通信、TCP の受信と EOF 通知、TCP の bind 競合の3テストが成功した。公開 API の存在を起動前に検査する。NODERAWSOCKETS を採用して第2段階へ進む。
+- 第2段階: 起動処理を Server_initialize と常駐ループへ分離し、録画に対応した入出力/フレーム処理を共有した。Node.js 呼び出し境界で legacy exit を捕捉し、同じプロセスへ制御を返す。Expat/zlib を Makefile と emsdk-env 管理 SDK でビルド。未実装時の RED 後、マップ読み込み、ロボット2機、120フレーム、冪等な停止を含む計4テストが成功。ネイティブビルドと83テストが成功し、生成物を走査して失敗した文字コード検査は npm ディレクトリの除外を追加して単独 GREEN を確認した。最終段階で全体テストを再実行する。
+- 第3段階: CLI、フレーム時刻とソケット通知の独立した進行、ブラウザとゲーム資産の同梱を実装。CLI 未実装の RED 後、HTTP 配信・WASM の MIME・終了時のポート解放を確認。UDP/TCP/WebSocket の SDL クライアント3機が同時に Game frame ready に到達した。既存 Playwright MCP のゲームとセッションの2テストは Node.js 版を接続先として成功し、入力・チャット・再接続を確認。screw-up で試験用 tgz を生成した。親 package.json の README 継承による pack 失敗を受け、継承フィールドと files のマージを明示的に制限した。既存の複数プロトコル試験は録画操作の所有者判定で失敗し、第4段階の OS 所有者情報の対応を再現している。
+- 第4段階: gzip、DNS、設定ファイル内の絶対パス、所有者情報、環境変数、終了時のメタサーバー削除通知の RED を確認して対応した。gzip は zlib と一時ファイルを使い、Node.js とネイティブ版で実装を共有する。起動を設定読み込みと待ち受け開始に分け、Node.js の公開 DNS API でホスト名を先に解決する。ファイル境界でホストのパスを NODEFS に接続し、相対パスはデータディレクトリを基準にする。10テストで圧縮マップ・保存と再読み込み・UDP 録画と再生・三方式の実クライアントを確認。既存の複数プロトコル試験も、7組の接続構成、所有者の管理操作、ローカルメタサーバーへの全ポートからの登録・削除まで成功した。ネイティブビルドも成功。
+- UDP の終了処理: [Emscripten 6.0.12 の送受信実装](https://github.com/emscripten-core/emscripten/blob/6.0.12/src/lib/libsockfs_node.js)では数値アドレスでも Node.js の送信処理が次の tick に残る。同じ C 呼び出し内の close で削除通知が失われることを再現したため、所有権を保持したままホストの次の実行機会に解放し、停止の Promise は解放後に完了させる。SDK の変更や内部 API は使用しない。
+- 第5段階の追加検証で、ホストの既定値を CLI 引数として注入すると設定ファイルより優先されることを確認した。CLI と設定ファイルの重複解析をやめ、C の設定解決後に未指定の値だけを補う構成へ計画を具体化した。設定で指定したポートと webRoot を使う回帰テストは RED 後に GREEN となった。
+- 終了処理の追加検証では、既存 run-e2e.sh を Node.js 版に向けたところ、UDP の参加許可後、プレイヤーを作る前に退出する試験で停止が完了しなかった。原因はネイティブのプロセス終了に依存していたログイン待機接続の解放であり、全接続を明示的に閉じる処理を共有 C コードに追加した。フレーム待機や UDP の送信解放とは別の所有権の問題として修正し、Node.js 版を接続先とした総合 E2E とネイティブの全94テストで成功を確認した。自動終了の E2E は +noQuit を明示し、常駐を既定とする npm 版でも同じ振る舞いを検証する。
+- 第5段階: npm/deb/Windows パッケージへ共通のブラウザ成果物とライセンスを同梱し、バージョンとコミットを統一するビルド入口を追加した。npm の独立インストール、設定ファイルの優先順位、三方式の実クライアントを含む全12テストが成功。Playwright MCP によるブラウザ全35テストは、ネイティブ版と Node.js 版の双方を接続先として成功した。パッケージ構築の回帰テストはブラウザ同梱と npm 工程の未実装で RED を確認後に GREEN となった。実配布物の生成と独立チェックアウトの検証も完了した。
+
+## 最終検証と成果物
+
+2026-10-11、実装コミット `89afef6108e33b3ab74006c203c232439b02e293` から、screw-up によるバージョン `5.2.25` で以下を生成した。計画の検証記録だけを追記したコミットは、この実装コミットより後になる。
+
+| 形式 | 成果物 |
+| --- | --- |
+| npm | `artifacts/npm/xpilot-infinity-5.2.25.tgz` |
+| deb | `artifacts/deb/xpilot-infinity-5.2.25-1-debian-bookworm-amd64.deb` |
+| NSIS x86 | `artifacts/windows/xpilot-infinity-5.2.25-windows-x86-setup.exe` |
+| NSIS x86_64 | `artifacts/windows/xpilot-infinity-5.2.25-windows-x86_64-setup.exe` |
+| Windows ZIP | `artifacts/windows/xpilot-infinity-5.2.25-windows-{x86,x86_64}.zip` |
+
+`build_package_all.sh --distro debian --release bookworm --arch amd64 --jobs 8` が成功した。npm の package.json、CLI、サーバー/ブラウザの build-info.json、ネイティブ実行ファイルのバージョン情報に同じバージョンとコミットを確認した。今回実際に再ビルドした deb は Debian bookworm amd64 であり、他の Debian/Ubuntu 配布先については既存の構築経路とマトリクス選択の回帰試験を維持した。
+
+### 完了条件との照合
+
+| 段階 | 完了条件と結果 |
+| --- | --- |
+| 1 | 公開 Node.js API を使用した UDP/TCP、動的ポート、競合、EOF/準備通知を実通信で検証済み。SDK は emsdk-env 管理で固定。 |
+| 2 | マップ・ロボット・フレーム進行と終了を検証済み。ネイティブ版の全94テストが成功し、既存のビルド経路を維持。 |
+| 3 | UDP/TCP/WebSocket の SDL クライアント3機が同じ WASM のゲームに参加。Playwright MCP により配信元への接続、入力、チャット、再接続、Firefox の全画面操作を検証済み。 |
+| 4 | 設定ファイル、gzip、DNS、保存/再読み込み、UDP 録画/再生、メタサーバー登録/削除、接続とタイマーの終了を検証済み。インストール先外へ保存。 |
+| 5 | 三形式を同じ識別情報で生成。親のないチェックアウトから npm をビルドし、独立インストールした成果物を実行。Linux の全体試験と Windows ネイティブ版の Wine 試験が成功。Windows 実機上の npm 通信試験は下記の追加確認として残す。 |
+
+### 実行した検証
+
+- ネイティブ: `make check` が94件すべて成功（トレイ10件、共通/ゲーム/配布/E2E 84件、skip 0）。
+- Node.js: Node.js 26.11.1 で `npm test` の12件が成功。TypeScript の `tsc --noEmit` も成功。
+- ブラウザ: Playwright MCP を含む全35件がネイティブサーバーと Node.js サーバーのそれぞれで成功。
+- 総合 E2E: `XPILOT_E2E_SERVER_BINARY` に Node.js CLI を指定した既存 `tests/run-e2e.sh` が成功。既存の録画/再生、再接続、ログイン待機接続の解放も検証した。
+- 配布済み npm: tgz を別ディレクトリへ `npm install --omit=dev --ignore-scripts` で導入。インストール先を書き込み禁止とし、実行時 PATH からコンパイラー・SDK・ネイティブサーバーを除外して、同梱ブラウザの HTTP 配信と Playwright MCP での参加/フレーム進行/退出を確認した。ランキングは別のデータディレクトリへ保存された。
+- 配布済み npm の通信: SDL クライアント3機の同時参加、既存の7組のプロトコル構成、起動時の矛盾検出、ローカルメタサーバーへの各エンドポイントの登録/削除が成功した。
+- 独立チェックアウト: `/tmp/xpilot-standalone-2E2gpd/xpilot-infinity` の通常の .git を持つチェックアウトで `build_package_npm.sh` が成功。親 package.json、Git alternates、親 node_modules を持たず、vendor の変更もない。ここでもサーバーの全12テストが成功した。
+- deb: 展開したパッケージのネイティブ実行ファイルから、同梱 HTML と WASM の配信、MIME、ビルド識別情報を確認した。既存のシステム設定を混入させず、同梱 defaults.txt を明示して試験した。
+- NSIS/Windows: `build.sh --target windows --arch all --jobs 8 --package-version 5.2.25 --test` が成功。x86/x86_64 の双方で導入/削除、サービス、設定の権限と置換、単体試験、メタサーバー、UDP/TCP/WebSocket を Wine 上で確認した。
+
+## Windows 実機上の npm 追加確認
+
+[Windows 用 Node.js 26.11.1](https://nodejs.org/dist/v26.11.1/win-x64/node.exe) を Wine で実行し、三方式の待ち受け開始、localhost の解決、Windows 形式かつ空白/日本語を含むパスからの gzip マップ読み込み、ランキング保存、正常終了は成功した。
+
+同じ Wine 環境での TCP クライアント側は、XPilot/WASM を読み込まず `node:http.createServer` と `fetch` だけを使うローカル自己接続でも `connect UNKNOWN 127.0.0.1` となった。これは今回の環境で観測した結果であり、Windows 実機の npm 通信確認の代わりにはしない。Wine のための変更を製品へ加えず、実機で次の確認を行う。使用した API は [Node.js HTTP](https://nodejs.org/api/http.html) と [fetch](https://nodejs.org/api/globals.html#fetch) の公開 API である。
+
+1. 利用可能な Windows PC の対話セッションで [agent-rover の Windows エージェント](https://github.com/kekyo/agent-rover#preparation) を起動し、テスト用の接続先と認証情報を用意する。現環境にはその接続先がないため、実行済みとはしない。
+2. agent-rover 経由で同じ tgz を転送し、Node.js 26.4 以降で devDependencies/install scripts なしに導入する。書き込み禁止のインストール先と別の保存先を使い、CLI と日本語/空白を含む Windows パスを検証する。
+3. 三方式のネイティブクライアントと Playwright MCP のブラウザを Windows のサーバーへ接続し、入力、再接続、保存/再起動、終了時のポート解放、ローカルメタサーバーへの登録/削除を確認する。ブラウザの画面操作は引き続き Playwright MCP を使用する。
+4. 結果とログをこの計画に追記する。Node.js 版へのシステムトレイ実装追加や、SDK/vendor の修正は行わない。

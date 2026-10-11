@@ -495,7 +495,7 @@ static char *fileAddExtension(const char *file, const char *ext)
 
 
 #ifdef CONF_COMPRESSED_MAPS
-static bool     usePclose = false;
+#include <zlib.h>
 
 
 static bool isCompressed(const char *filename)
@@ -511,22 +511,46 @@ static bool isCompressed(const char *filename)
 
 static void closeCompressedFile(FILE * fp)
 {
-    if (usePclose) {
-	pclose(fp);
-	usePclose = false;
-	XFREE(FileName);
-    } else
-	fileClose(fp);
+    fileClose(fp);
 }
 
+/* The map parser requires a seekable FILE. Materialize decoded bytes in an
+ * anonymous temporary file, keeping the UTF-8 input path out of shell commands.
+ * gzdopen owns its duplicated descriptor; the caller owns the returned FILE. */
+static FILE *decompressFile(const char *filename)
+{
+    FILE *source = Xp_fopen(filename, "rb");
+    if (!source) return NULL;
+    int fd = dup(fileno(source));
+    fclose(source);
+    if (fd < 0) return NULL;
+    gzFile compressed = gzdopen(fd, "rb");
+    if (!compressed) {
+        close(fd);
+        return NULL;
+    }
+    FILE *output = tmpfile();
+    bool valid = output != NULL;
+    unsigned char buffer[8192];
+    int count = 0;
+    while (valid && (count = gzread(compressed, buffer, sizeof(buffer))) > 0)
+        valid = fwrite(buffer, 1, (size_t)count, output) == (size_t)count;
+    if (count < 0) valid = false;
+    /* A truncated stream may only be reported by gzclose. */
+    if (gzclose(compressed) != Z_OK) valid = false;
+    if (valid && fseek(output, 0, SEEK_SET) != 0) valid = false;
+    if (!valid && output) {
+        fclose(output);
+        output = NULL;
+    }
+    return output;
+}
 
 static FILE *openCompressedFile(const char *filename)
 {
     FILE *fp = NULL;
-    char *cmdline = NULL;
     char *newname = NULL;
 
-    usePclose = false;
     if (!isCompressed(filename)) {
 	if (Xp_access(filename, 4) == 0)
 	    return fileOpen(filename);
@@ -536,22 +560,13 @@ static FILE *openCompressedFile(const char *filename)
 	filename = newname;
     }
     if (Xp_access(filename, 4) == 0) {
-	cmdline = XMALLOC(char,
-			  strlen(CONF_ZCAT_FORMAT) + strlen(filename) + 1);
-	if (cmdline) {
-	    sprintf(cmdline, CONF_ZCAT_FORMAT, filename);
-	    fp = popen(cmdline, "r");
-	    if (fp) {
-		usePclose = true;
-		if (!copyFilename(filename)) {
-		    closeCompressedFile(fp);
-		    fp = NULL;
-		}
-	    }
-	}
+        fp = decompressFile(filename);
+        if (fp && !copyFilename(filename)) {
+            fclose(fp);
+            fp = NULL;
+        }
     }
     XFREE(newname);
-    XFREE(cmdline);
     return fp;
 }
 

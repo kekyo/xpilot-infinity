@@ -422,6 +422,13 @@ void Key_clear_counts(void)
 	Net_key_change();
 }
 
+int Key_held_count(void)
+{
+    int count = 0;
+    for (int i = 0; i < NUM_KEYS; i++) count += keyv_new[i] != 0;
+    return count;
+}
+
 /* Remember which key we used to exit quit mode. */
 static keys_t quit_mode_exit_key = KEY_DUMMY;
 

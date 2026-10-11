@@ -142,6 +142,20 @@ int sock_get_last_port(sock_t *sock);
 char * sock_get_last_addr(sock_t *sock);
 char * sock_get_last_name(sock_t *sock);
 int sock_read(sock_t *sock, char *buf, int len);
+/**
+ * Inspect queued stream bytes without consuming them.
+ * @param sock Connected socket; retains bytes and records native I/O errors.
+ * @param buf Output buffer borrowed during the call.
+ * @param len Buffer capacity in bytes.
+ * @return Bytes inspected, zero for EOF, or SOCK_IS_ERROR (possibly temporary).
+ */
+int sock_peek(sock_t *sock, char *buf, int len);
+/**
+ * Finish stream output after all previously accepted writes, retaining input.
+ * @param sock Owned connection, left open for bounded draining and sock_close.
+ * @return SOCK_IS_OK or SOCK_IS_ERROR with the native error recorded.
+ */
+int sock_shutdown_write(sock_t *sock);
 int sock_receive_any(sock_t *sock, char *buf, int len);
 int sock_send_dest(sock_t *sock, char *host, int port, char *buf, int len);
 int sock_write(sock_t *sock, char *buf, int len);

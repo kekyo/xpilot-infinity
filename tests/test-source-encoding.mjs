@@ -14,6 +14,14 @@ const ignoredRootDirectories = new Set([
   'build',
   'vendor',
 ]);
+// Package-manager and generated application trees are not project source.
+const ignoredApplicationDirectories = new Set(
+  ['xpilot-browser', 'xpilot-server'].flatMap((application) =>
+    ['node_modules', 'build', 'dist', 'public', 'test-results', 'artifacts'].map(
+      (directory) => `${application}/${directory}`
+    )
+  )
+);
 const binaryExtensions = new Set([
   '.bmp',
   '.gif',
@@ -66,6 +74,7 @@ const inspectDirectory = async (directory) => {
   for (const entry of entries) {
     const path = join(directory, entry.name);
     if (entry.isDirectory()) {
+      if (ignoredApplicationDirectories.has(relative(sourceRoot, path))) continue;
       if (
         directory !== sourceRoot ||
         !ignoredRootDirectories.has(entry.name)

@@ -105,6 +105,13 @@ static bool is_sdl_side_button(Uint8 button)
 void Platform_specific_pointer_control_set_state(bool on)
 {
     assert(clData.pointerControl != on);
+#ifdef __EMSCRIPTEN__
+    /* The browser can lock the canvas from a separate page button even when
+     * SDL's mouse focus still points outside the game window. */
+    extern void Browser_pointer_request(int enabled);
+    MainWidget_ShowMenu(MainWidget, !on);
+    Browser_pointer_request(on);
+#else
 
     if (on) {
     	MainWidget_ShowMenu(MainWidget, false);
@@ -121,6 +128,7 @@ void Platform_specific_pointer_control_set_state(bool on)
 	if (!SDL_ShowCursor())
 	    warn("Could not show the pointer: %s", SDL_GetError());
     }
+#endif
 }
 
 void Platform_specific_talk_set_state(bool on)
@@ -250,7 +258,12 @@ int Process_event(SDL_Event *evt)
 	}
 	break;
 
+#ifdef __EMSCRIPTEN__
+    /* Browser game geometry uses CSS pixels, independently of backing pixels. */
+    case SDL_EVENT_WINDOW_RESIZED:
+#else
     case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+#endif
 	Window_size_changed(evt->window.data1, evt->window.data2);
         break;
 

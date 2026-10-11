@@ -154,7 +154,8 @@ target_triplet = @target@
 @COND_WINDOWS_FALSE@	test-text-cache-adapter$(EXEEXT) \
 @COND_WINDOWS_FALSE@	$(am__EXEEXT_1) $(am__EXEEXT_2) \
 @COND_WINDOWS_FALSE@	test-server-endpoint$(EXEEXT) \
-@COND_WINDOWS_FALSE@	test-server-admission$(EXEEXT)
+@COND_WINDOWS_FALSE@	test-server-admission$(EXEEXT) \
+@COND_WINDOWS_FALSE@	test-web-front$(EXEEXT)
 @COND_WINDOWS_TRUE@check_PROGRAMS = test-framed-stream$(EXEEXT) \
 @COND_WINDOWS_TRUE@	test-websocket-transport$(EXEEXT) \
 @COND_WINDOWS_TRUE@	test-game-transport$(EXEEXT) \
@@ -177,7 +178,8 @@ target_triplet = @target@
 @COND_WINDOWS_TRUE@	test-game-input$(EXEEXT) $(am__EXEEXT_1) \
 @COND_WINDOWS_TRUE@	$(am__EXEEXT_2) \
 @COND_WINDOWS_TRUE@	test-server-endpoint$(EXEEXT) \
-@COND_WINDOWS_TRUE@	test-server-admission$(EXEEXT)
+@COND_WINDOWS_TRUE@	test-server-admission$(EXEEXT) \
+@COND_WINDOWS_TRUE@	test-web-front$(EXEEXT)
 @COND_WINDOWS_FALSE@TESTS = test-framed-stream$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-websocket-transport$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-game-transport$(EXEEXT) \
@@ -255,7 +257,8 @@ target_triplet = @target@
 @COND_WINDOWS_FALSE@	run-container-image.sh run-quadlet.sh \
 @COND_WINDOWS_FALSE@	run-e2e.sh $(am__EXEEXT_1) $(am__append_4) \
 @COND_WINDOWS_FALSE@	test-server-endpoint$(EXEEXT) \
-@COND_WINDOWS_FALSE@	run-multiple-protocols.sh
+@COND_WINDOWS_FALSE@	run-multiple-protocols.sh \
+@COND_WINDOWS_FALSE@	test-web-front$(EXEEXT)
 @COND_WINDOWS_TRUE@TESTS = $(am__EXEEXT_1) $(am__append_4)
 @COND_SOUND_TRUE@@COND_WINDOWS_FALSE@am__append_1 = test-audio-device
 @COND_SOUND_TRUE@@COND_WINDOWS_FALSE@am__append_2 = test-audio-device
@@ -680,6 +683,11 @@ am_test_unicode_text_renderer_OBJECTS =  \
 test_unicode_text_renderer_OBJECTS =  \
 	$(am_test_unicode_text_renderer_OBJECTS)
 test_unicode_text_renderer_LDADD = $(LDADD)
+am_test_web_front_OBJECTS = test_web_front-test_web_front.$(OBJEXT) \
+	test_web_front-web_front.$(OBJEXT)
+test_web_front_OBJECTS = $(am_test_web_front_OBJECTS)
+test_web_front_DEPENDENCIES =  \
+	$(top_builddir)/src/common/libxpcommon.a
 am_test_websocket_transport_OBJECTS =  \
 	test_websocket_transport.$(OBJEXT)
 test_websocket_transport_OBJECTS =  \
@@ -835,6 +843,8 @@ am__depfiles_remade = ./$(DEPDIR)/SDL_console.Po \
 	./$(DEPDIR)/test_text_ttf_atlas-text_ttf_atlas.Po \
 	./$(DEPDIR)/test_transport_display.Po \
 	./$(DEPDIR)/test_unicode_text_renderer.Po \
+	./$(DEPDIR)/test_web_front-test_web_front.Po \
+	./$(DEPDIR)/test_web_front-web_front.Po \
 	./$(DEPDIR)/test_websocket_transport.Po \
 	./$(DEPDIR)/test_x11_text-test_x11_text.Po \
 	./$(DEPDIR)/test_x11_text-x11_text.Po \
@@ -904,7 +914,8 @@ SOURCES = $(test_audio_device_SOURCES) $(test_checknames_SOURCES) \
 	$(test_text_ttf_atlas_SOURCES) \
 	$(test_transport_display_SOURCES) \
 	$(test_unicode_text_renderer_SOURCES) \
-	$(test_websocket_transport_SOURCES) $(test_x11_text_SOURCES)
+	$(test_web_front_SOURCES) $(test_websocket_transport_SOURCES) \
+	$(test_x11_text_SOURCES)
 DIST_SOURCES = $(test_audio_device_SOURCES) $(test_checknames_SOURCES) \
 	$(test_connect_target_SOURCES) \
 	$(test_contact_target_probe_SOURCES) \
@@ -951,7 +962,8 @@ DIST_SOURCES = $(test_audio_device_SOURCES) $(test_checknames_SOURCES) \
 	$(test_text_ttf_atlas_SOURCES) \
 	$(test_transport_display_SOURCES) \
 	$(test_unicode_text_renderer_SOURCES) \
-	$(test_websocket_transport_SOURCES) $(test_x11_text_SOURCES)
+	$(test_web_front_SOURCES) $(test_websocket_transport_SOURCES) \
+	$(test_x11_text_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -1353,6 +1365,9 @@ AM_CPPFLAGS = -DCONF_DATADIR=\"$(pkgdatadir)/\" \
 	$(XP_SDL3_CFLAGS) $(XP_SDL3_IMAGE_CFLAGS) $(XP_SDL3_TTF_CFLAGS) \
 	@NATIVE_TEXT_CFLAGS@ @GL_CFLAGS@
 
+test_web_front_SOURCES = test_web_front.c $(top_srcdir)/src/server/web_front.c
+test_web_front_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/src/server
+test_web_front_LDADD = $(top_builddir)/src/common/libxpcommon.a @W32_LIBS@
 test_server_endpoint_SOURCES = test_server_endpoint.c \
 	$(top_srcdir)/src/server/server_endpoint.c
 
@@ -2260,6 +2275,10 @@ test-unicode-text-renderer$(EXEEXT): $(test_unicode_text_renderer_OBJECTS) $(tes
 	@rm -f test-unicode-text-renderer$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_unicode_text_renderer_OBJECTS) $(test_unicode_text_renderer_LDADD) $(LIBS)
 
+test-web-front$(EXEEXT): $(test_web_front_OBJECTS) $(test_web_front_DEPENDENCIES) $(EXTRA_test_web_front_DEPENDENCIES)
+	@rm -f test-web-front$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_web_front_OBJECTS) $(test_web_front_LDADD) $(LIBS)
+
 test-websocket-transport$(EXEEXT): $(test_websocket_transport_OBJECTS) $(test_websocket_transport_DEPENDENCIES) $(EXTRA_test_websocket_transport_DEPENDENCIES)
 	@rm -f test-websocket-transport$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_websocket_transport_OBJECTS) $(test_websocket_transport_LDADD) $(LIBS)
@@ -2413,6 +2432,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_text_ttf_atlas-text_ttf_atlas.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_transport_display.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_unicode_text_renderer.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_web_front-test_web_front.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_web_front-web_front.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_websocket_transport.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_x11_text-test_x11_text.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_x11_text-x11_text.Po@am__quote@ # am--include-marker
@@ -3927,6 +3948,34 @@ unicode_text_renderer.obj: $(top_srcdir)/src/client/sdl/unicode_text_renderer.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o unicode_text_renderer.obj `if test -f '$(top_srcdir)/src/client/sdl/unicode_text_renderer.c'; then $(CYGPATH_W) '$(top_srcdir)/src/client/sdl/unicode_text_renderer.c'; else $(CYGPATH_W) '$(srcdir)/$(top_srcdir)/src/client/sdl/unicode_text_renderer.c'; fi`
 
+test_web_front-test_web_front.o: test_web_front.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_web_front_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT test_web_front-test_web_front.o -MD -MP -MF $(DEPDIR)/test_web_front-test_web_front.Tpo -c -o test_web_front-test_web_front.o `test -f 'test_web_front.c' || echo '$(srcdir)/'`test_web_front.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_web_front-test_web_front.Tpo $(DEPDIR)/test_web_front-test_web_front.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='test_web_front.c' object='test_web_front-test_web_front.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_web_front_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o test_web_front-test_web_front.o `test -f 'test_web_front.c' || echo '$(srcdir)/'`test_web_front.c
+
+test_web_front-test_web_front.obj: test_web_front.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_web_front_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT test_web_front-test_web_front.obj -MD -MP -MF $(DEPDIR)/test_web_front-test_web_front.Tpo -c -o test_web_front-test_web_front.obj `if test -f 'test_web_front.c'; then $(CYGPATH_W) 'test_web_front.c'; else $(CYGPATH_W) '$(srcdir)/test_web_front.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_web_front-test_web_front.Tpo $(DEPDIR)/test_web_front-test_web_front.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='test_web_front.c' object='test_web_front-test_web_front.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_web_front_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o test_web_front-test_web_front.obj `if test -f 'test_web_front.c'; then $(CYGPATH_W) 'test_web_front.c'; else $(CYGPATH_W) '$(srcdir)/test_web_front.c'; fi`
+
+test_web_front-web_front.o: $(top_srcdir)/src/server/web_front.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_web_front_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT test_web_front-web_front.o -MD -MP -MF $(DEPDIR)/test_web_front-web_front.Tpo -c -o test_web_front-web_front.o `test -f '$(top_srcdir)/src/server/web_front.c' || echo '$(srcdir)/'`$(top_srcdir)/src/server/web_front.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_web_front-web_front.Tpo $(DEPDIR)/test_web_front-web_front.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$(top_srcdir)/src/server/web_front.c' object='test_web_front-web_front.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_web_front_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o test_web_front-web_front.o `test -f '$(top_srcdir)/src/server/web_front.c' || echo '$(srcdir)/'`$(top_srcdir)/src/server/web_front.c
+
+test_web_front-web_front.obj: $(top_srcdir)/src/server/web_front.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_web_front_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT test_web_front-web_front.obj -MD -MP -MF $(DEPDIR)/test_web_front-web_front.Tpo -c -o test_web_front-web_front.obj `if test -f '$(top_srcdir)/src/server/web_front.c'; then $(CYGPATH_W) '$(top_srcdir)/src/server/web_front.c'; else $(CYGPATH_W) '$(srcdir)/$(top_srcdir)/src/server/web_front.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_web_front-web_front.Tpo $(DEPDIR)/test_web_front-web_front.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$(top_srcdir)/src/server/web_front.c' object='test_web_front-web_front.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_web_front_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o test_web_front-web_front.obj `if test -f '$(top_srcdir)/src/server/web_front.c'; then $(CYGPATH_W) '$(top_srcdir)/src/server/web_front.c'; else $(CYGPATH_W) '$(srcdir)/$(top_srcdir)/src/server/web_front.c'; fi`
+
 test_x11_text-test_x11_text.o: test_x11_text.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_x11_text_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT test_x11_text-test_x11_text.o -MD -MP -MF $(DEPDIR)/test_x11_text-test_x11_text.Tpo -c -o test_x11_text-test_x11_text.o `test -f 'test_x11_text.c' || echo '$(srcdir)/'`test_x11_text.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_x11_text-test_x11_text.Tpo $(DEPDIR)/test_x11_text-test_x11_text.Po
@@ -4582,6 +4631,13 @@ test-server-endpoint.log: test-server-endpoint$(EXEEXT)
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
+test-web-front.log: test-web-front$(EXEEXT)
+	@p='test-web-front$(EXEEXT)'; \
+	b='test-web-front'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
 .sh.log:
 	@p='$<'; \
 	$(am__set_b); \
@@ -4812,6 +4868,8 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/test_text_ttf_atlas-text_ttf_atlas.Po
 	-rm -f ./$(DEPDIR)/test_transport_display.Po
 	-rm -f ./$(DEPDIR)/test_unicode_text_renderer.Po
+	-rm -f ./$(DEPDIR)/test_web_front-test_web_front.Po
+	-rm -f ./$(DEPDIR)/test_web_front-web_front.Po
 	-rm -f ./$(DEPDIR)/test_websocket_transport.Po
 	-rm -f ./$(DEPDIR)/test_x11_text-test_x11_text.Po
 	-rm -f ./$(DEPDIR)/test_x11_text-x11_text.Po
@@ -5005,6 +5063,8 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/test_text_ttf_atlas-text_ttf_atlas.Po
 	-rm -f ./$(DEPDIR)/test_transport_display.Po
 	-rm -f ./$(DEPDIR)/test_unicode_text_renderer.Po
+	-rm -f ./$(DEPDIR)/test_web_front-test_web_front.Po
+	-rm -f ./$(DEPDIR)/test_web_front-web_front.Po
 	-rm -f ./$(DEPDIR)/test_websocket_transport.Po
 	-rm -f ./$(DEPDIR)/test_x11_text-test_x11_text.Po
 	-rm -f ./$(DEPDIR)/test_x11_text-x11_text.Po

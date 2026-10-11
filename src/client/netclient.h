@@ -27,6 +27,7 @@
 #define	NETCLIENT_H
 
 #include "game_transport.h"
+#include "record_transport.h"
 
 #ifndef TYPES_H
 /* need u_byte */
@@ -63,6 +64,16 @@ extern int pointer_move_next;
 extern long last_keyboard_ack;
 extern bool dirPrediction;
 
+/** Advance bounded map setup without waiting: 0 pending, 1 ready, -1 error. */
+int Net_setup_step(void);
+/** Advance reliable-session play startup without waiting: 0 pending, 1 ready, -1 error. */
+int Net_start_step(void);
+/** Replace the game transport for nonblocking token authentication. Ownership is consumed. */
+int Net_session_resume_begin(record_transport_t *transport);
+/** Advance authentication: 0 pending, 1 resumed, -1 rejected. */
+int Net_session_resume_step(void);
+/** Send quit and await server acknowledgement without waiting: 0 pending, 1 finished. */
+int Net_session_quit_step(void);
 int Net_setup(void);
 int Net_verify(char *real, char *nick, char *dpy);
 /**

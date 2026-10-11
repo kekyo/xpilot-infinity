@@ -3,6 +3,7 @@
 #include "renderer.h"
 #include "renderer_gl.h"
 #include "renderer_gl_core.h"
+#include "renderer_gl_es.h"
 #include "text_geometry.h"
 
 #include <SDL3/SDL.h>
@@ -467,6 +468,48 @@ cleanup:
         }
     }
     return result;
+}
+
+static int check_es_requires_es_context(TestContext *test_context)
+{
+    Renderer *renderer = NULL;
+
+    TEST_CHECK_CLEANUP(SDL_GL_MakeCurrent(test_context->window,
+                                          test_context->context));
+    TEST_CHECK_CLEANUP(Renderer_gl_es_create(load_gl_proc, NULL, &renderer)
+                       == RENDERER_STATUS_BACKEND_ERROR);
+    TEST_CHECK_CLEANUP(renderer == NULL);
+    return 0;
+
+cleanup:
+    Renderer_destroy(renderer);
+    return 1;
+}
+
+static int check_es_avoids_desktop_procs(TestContext *test_context)
+{
+    static const char *desktop_procs[] = {
+        "glPolygonMode", "glBindFragDataLocation"
+    };
+    size_t index;
+
+    TEST_CHECK_CLEANUP(SDL_GL_MakeCurrent(test_context->window,
+                                          test_context->context));
+    for (index = 0; index < sizeof(desktop_procs) / sizeof(desktop_procs[0]);
+         index++) {
+        MissingProcLoader loader = { desktop_procs[index], 0 };
+        Renderer *renderer = NULL;
+
+        TEST_CHECK_CLEANUP(Renderer_gl_es_create(load_gl_proc_except,
+                                                  &loader, &renderer)
+                           == RENDERER_STATUS_OK);
+        TEST_CHECK_CLEANUP(loader.requested == 0);
+        Renderer_destroy(renderer);
+    }
+    return 0;
+
+cleanup:
+    return 1;
 }
 
 static void discard_gl_errors(void)
@@ -1218,6 +1261,7 @@ cleanup:
 int main(void)
 {
     TestContext core_context;
+    TestContext es_context;
     GLubyte pixels[FRAME_WIDTH * FRAME_HEIGHT * PIXEL_COMPONENTS];
     GLubyte sampling_pixels[
         FRAME_WIDTH * FRAME_HEIGHT * PIXEL_COMPONENTS];
@@ -1225,6 +1269,7 @@ int main(void)
     int result = 1;
 
     memset(&core_context, 0, sizeof(core_context));
+    memset(&es_context, 0, sizeof(es_context));
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         fprintf(stderr, "SDL video initialization failed: %s\n",
                 SDL_GetError());
@@ -1238,6 +1283,8 @@ int main(void)
     if (check_factory_failure_contract(Renderer_gl_core_create,
                                        &core_context,
                                        "glDrawArrays") != 0)
+        goto cleanup;
+    if (check_es_requires_es_context(&core_context) != 0)
         goto cleanup;
     if (check_hot_path_avoids_synchronous_queries(&core_context) != 0)
         goto cleanup;
@@ -1253,9 +1300,26 @@ int main(void)
     TEST_CHECK_CLEANUP(check_texture_sampling_pixels(sampling_pixels) == 0);
     TEST_CHECK_CLEANUP(check_semantic_pixels(pixels) == 0);
     TEST_CHECK_CLEANUP(check_feature_pixels(pixels) == 0);
+    destroy_context(&core_context);
+    if (create_context(&es_context, 3, 0,
+                       SDL_GL_CONTEXT_PROFILE_ES,
+                       "OpenGL ES 3 renderer") != 0)
+        goto cleanup;
+    if (check_factory_failure_contract(Renderer_gl_es_create,
+                                       &es_context,
+                                       "glDrawArrays") != 0)
+        goto cleanup;
+    if (check_es_avoids_desktop_procs(&es_context) != 0)
+        goto cleanup;
+    if (render_scene(Renderer_gl_es_create, &es_context,
+                     pixels, 0) != 0)
+        goto cleanup;
+    TEST_CHECK_CLEANUP(check_semantic_pixels(pixels) == 0);
+    TEST_CHECK_CLEANUP(check_feature_pixels(pixels) == 0);
     result = 0;
 
 cleanup:
+    destroy_context(&es_context);
     destroy_context(&core_context);
     if (sdl_initialized)
         SDL_Quit();

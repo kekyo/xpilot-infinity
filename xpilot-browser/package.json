@@ -1,0 +1,43 @@
+{
+  "name": "xpilot-browser",
+  "description": "XPilot Infinity browser client.",
+  "version": "0.1.0",
+  "keywords": [
+    "xpilot",
+    "browser",
+    "client",
+    "wasm",
+    "webgl"
+  ],
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite dev",
+    "test": "npm run build && vitest run",
+    "pack": "npm run build && screw-up pack --pack-destination artifacts/",
+    "dependencies": "reskill"
+  },
+  "dependencies": {
+    "async-primitives": ">=1.7.0"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "@playwright/mcp": "0.0.83",
+    "@types/node": "26.6.5",
+    "@types/pngjs": "6.0.5",
+    "emsdk-env": ">=0.12.0",
+    "funcity": "1.5.0",
+    "pngjs": "7.0.0",
+    "prettier-max": ">=1.14.0",
+    "resolved-killer": "1.1.0",
+    "screw-up": ">=1.32.0",
+    "typescript": ">=5.0.0",
+    "unplugin-dts": ">=1.0.0-beta.6",
+    "vite": ">=5.0.0",
+    "vitest": ">=1.0.0"
+  },
+  "private": true
+}

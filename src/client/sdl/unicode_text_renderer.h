@@ -39,6 +39,13 @@ RendererStatus Unicode_text_renderer_destroy(
     UnicodeTextRenderer **text_renderer);
 
 /**
+ * Evict cached layouts and bitmaps after a raster-scale change.
+ * @param text_renderer Cache to clear; NULL is accepted.
+ * @return Operation status. Call outside an active renderer frame.
+ */
+RendererStatus Unicode_text_renderer_clear(UnicodeTextRenderer *text_renderer);
+
+/**
  * Test whether a renderer uses an exact SDL renderer and native font pair.
  *
  * @param text_renderer UTF-8 renderer.

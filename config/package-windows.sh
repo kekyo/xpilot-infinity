@@ -135,6 +135,9 @@ for data_file in defaults.txt password.txt robots.txt shipshapes.txt; do
         || fail "required game data is missing: lib/$data_file"
     cp "$source_dir/lib/$data_file" "$package_work_dir/lib/"
 done
+if test -f "$source_dir/xpilot-browser/dist/index.html"; then
+    cp -R "$source_dir/xpilot-browser/dist" "$package_work_dir/lib/browser"
+fi
 cp "$source_dir/COPYING" "$package_work_dir/"
 cp "$source_dir/README.md" "$source_dir/README_ja.md" "$package_work_dir/"
 mkdir -p "$package_work_dir/licenses"
