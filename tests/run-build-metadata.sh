@@ -38,8 +38,9 @@ cat > "$fixture_screw_up" <<'EOF'
 #!/bin/sh
 set -eu
 
-test "$#" -eq 1
+test "$#" -eq 2
 test "$1" = format
+test "$2" = --force
 printf 'invoked\n' >> "$XPILOT_BUILD_METADATA_TEST_LOG"
 template=$(cat)
 test "$template" = "{version}

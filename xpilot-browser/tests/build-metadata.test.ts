@@ -71,6 +71,18 @@ test('generates the build identity without a parent npm workspace', async () => 
       cwd: root,
     });
 
+    const { stdout: metadata } = await run(
+      join(root, 'config/resolve-build-metadata.sh'),
+      [],
+      {
+        env: {
+          ...process.env,
+          SCREW_UP: join(browser, 'node_modules/.bin/screw-up'),
+        },
+      }
+    );
+    expect(metadata.trim().split('\n')).toEqual(['1.2.3', commit.trim()]);
+
     const generated = await prepareBrowserMetadata(browser);
     const header = await readFile(join(generated, 'version.h'), 'utf8');
     expect(header).toContain('#define VERSION "1.2.3"');

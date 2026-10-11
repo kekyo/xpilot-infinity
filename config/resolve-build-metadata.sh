@@ -19,9 +19,9 @@ if test -z "$resolved_version" || test -z "$resolved_commit"; then
 		|| fail "screw-up was not found: $screw_up"
 	resolved_metadata=$(
 		cd "$project_root"
-		# Forward format options for callers using the npm CLI without package.json.
+		# The native repository root intentionally has no package.json.
 		printf '%s\n' '{version}' '{git.commit.hash}' \
-			| "$screw_up" format "$@" \
+			| "$screw_up" format --force "$@" \
 			| tr -d '\r'
 	)
 	screw_up_version=$(printf '%s\n' "$resolved_metadata" | sed -n '1p')
