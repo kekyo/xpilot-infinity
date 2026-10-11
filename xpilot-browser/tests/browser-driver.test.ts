@@ -139,9 +139,7 @@ test.each([1, 2])(
         function: '() => document.querySelector("#game").focus()',
       });
       await call('browser_press_key', { key: 'ArrowRight' });
-      const after = await evaluate(
-        '() => Number(document.querySelector("#game").dataset.sceneX)'
-      );
+      const after = await evaluate(`async () => { while (Number(document.querySelector("#game").dataset.sceneX) <= ${before}) await new Promise(requestAnimationFrame); return Number(document.querySelector("#game").dataset.sceneX); }`);
       expect(after).toBeGreaterThan(before);
       await call('browser_take_screenshot', {
         type: 'png',
@@ -187,7 +185,7 @@ test.each([1, 2])(
       await call('browser_press_key', { key: 'ArrowRight' });
       expect(
         await evaluate(
-          '() => Number(document.querySelector("#game").dataset.sceneX)'
+          `async () => { while (Number(document.querySelector("#game").dataset.sceneX) <= ${restoredX}) await new Promise(requestAnimationFrame); return Number(document.querySelector("#game").dataset.sceneX); }`
         )
       ).toBeGreaterThan(restoredX);
       const consoleErrors = await call('browser_console_messages', {
