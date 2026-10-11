@@ -33,3 +33,10 @@ node_modules/
 /xpilot-browser/test-results/
 /xpilot-browser/artifacts/
 !/xpilot-browser/wasm/Makefile
+
+# Node.js server build and test output.
+/xpilot-server/build/
+/xpilot-server/dist/
+/xpilot-server/public/
+/xpilot-server/artifacts/
+!/xpilot-server/wasm/Makefile
