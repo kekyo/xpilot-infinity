@@ -101,4 +101,51 @@ deb と NSIS はネイティブのサーバー・SDL クライアント・既存
 - UDP の終了処理: [Emscripten 6.0.12 の送受信実装](https://github.com/emscripten-core/emscripten/blob/6.0.12/src/lib/libsockfs_node.js)では数値アドレスでも Node.js の送信処理が次の tick に残る。同じ C 呼び出し内の close で削除通知が失われることを再現したため、所有権を保持したままホストの次の実行機会に解放し、停止の Promise は解放後に完了させる。SDK の変更や内部 API は使用しない。
 - 第5段階の追加検証で、ホストの既定値を CLI 引数として注入すると設定ファイルより優先されることを確認した。CLI と設定ファイルの重複解析をやめ、C の設定解決後に未指定の値だけを補う構成へ計画を具体化した。設定で指定したポートと webRoot を使う回帰テストは RED 後に GREEN となった。
 - 終了処理の追加検証では、既存 run-e2e.sh を Node.js 版に向けたところ、UDP の参加許可後、プレイヤーを作る前に退出する試験で停止が完了しなかった。原因はネイティブのプロセス終了に依存していたログイン待機接続の解放であり、全接続を明示的に閉じる処理を共有 C コードに追加した。フレーム待機や UDP の送信解放とは別の所有権の問題として修正し、Node.js 版を接続先とした総合 E2E とネイティブの全94テストで成功を確認した。自動終了の E2E は +noQuit を明示し、常駐を既定とする npm 版でも同じ振る舞いを検証する。
-- 第5段階: npm/deb/Windows パッケージへ共通のブラウザ成果物とライセンスを同梱し、バージョンとコミットを統一するビルド入口を追加した。npm の独立インストール、設定ファイルの優先順位、三方式の実クライアントを含む全12テストが成功。Playwright MCP によるブラウザ全35テストは、ネイティブ版と Node.js 版の双方を接続先として成功した。パッケージ構築の回帰テストはブラウザ同梱と npm 工程の未実装で RED を確認後に GREEN となった。実配布物の生成と独立チェックアウトの検証を続ける。
+- 第5段階: npm/deb/Windows パッケージへ共通のブラウザ成果物とライセンスを同梱し、バージョンとコミットを統一するビルド入口を追加した。npm の独立インストール、設定ファイルの優先順位、三方式の実クライアントを含む全12テストが成功。Playwright MCP によるブラウザ全35テストは、ネイティブ版と Node.js 版の双方を接続先として成功した。パッケージ構築の回帰テストはブラウザ同梱と npm 工程の未実装で RED を確認後に GREEN となった。実配布物の生成と独立チェックアウトの検証も完了した。
+
+## 最終検証と成果物
+
+2026-10-11、実装コミット `89afef6108e33b3ab74006c203c232439b02e293` から、screw-up によるバージョン `5.2.25` で以下を生成した。計画の検証記録だけを追記したコミットは、この実装コミットより後になる。
+
+| 形式 | 成果物 |
+| --- | --- |
+| npm | `artifacts/npm/xpilot-infinity-5.2.25.tgz` |
+| deb | `artifacts/deb/xpilot-infinity-5.2.25-1-debian-bookworm-amd64.deb` |
+| NSIS x86 | `artifacts/windows/xpilot-infinity-5.2.25-windows-x86-setup.exe` |
+| NSIS x86_64 | `artifacts/windows/xpilot-infinity-5.2.25-windows-x86_64-setup.exe` |
+| Windows ZIP | `artifacts/windows/xpilot-infinity-5.2.25-windows-{x86,x86_64}.zip` |
+
+`build_package_all.sh --distro debian --release bookworm --arch amd64 --jobs 8` が成功した。npm の package.json、CLI、サーバー/ブラウザの build-info.json、ネイティブ実行ファイルのバージョン情報に同じバージョンとコミットを確認した。今回実際に再ビルドした deb は Debian bookworm amd64 であり、他の Debian/Ubuntu 配布先については既存の構築経路とマトリクス選択の回帰試験を維持した。
+
+### 完了条件との照合
+
+| 段階 | 完了条件と結果 |
+| --- | --- |
+| 1 | 公開 Node.js API を使用した UDP/TCP、動的ポート、競合、EOF/準備通知を実通信で検証済み。SDK は emsdk-env 管理で固定。 |
+| 2 | マップ・ロボット・フレーム進行と終了を検証済み。ネイティブ版の全94テストが成功し、既存のビルド経路を維持。 |
+| 3 | UDP/TCP/WebSocket の SDL クライアント3機が同じ WASM のゲームに参加。Playwright MCP により配信元への接続、入力、チャット、再接続、Firefox の全画面操作を検証済み。 |
+| 4 | 設定ファイル、gzip、DNS、保存/再読み込み、UDP 録画/再生、メタサーバー登録/削除、接続とタイマーの終了を検証済み。インストール先外へ保存。 |
+| 5 | 三形式を同じ識別情報で生成。親のないチェックアウトから npm をビルドし、独立インストールした成果物を実行。Linux の全体試験と Windows ネイティブ版の Wine 試験が成功。Windows 実機上の npm 通信試験は下記の追加確認として残す。 |
+
+### 実行した検証
+
+- ネイティブ: `make check` が94件すべて成功（トレイ10件、共通/ゲーム/配布/E2E 84件、skip 0）。
+- Node.js: Node.js 26.11.1 で `npm test` の12件が成功。TypeScript の `tsc --noEmit` も成功。
+- ブラウザ: Playwright MCP を含む全35件がネイティブサーバーと Node.js サーバーのそれぞれで成功。
+- 総合 E2E: `XPILOT_E2E_SERVER_BINARY` に Node.js CLI を指定した既存 `tests/run-e2e.sh` が成功。既存の録画/再生、再接続、ログイン待機接続の解放も検証した。
+- 配布済み npm: tgz を別ディレクトリへ `npm install --omit=dev --ignore-scripts` で導入。インストール先を書き込み禁止とし、実行時 PATH からコンパイラー・SDK・ネイティブサーバーを除外して、同梱ブラウザの HTTP 配信と Playwright MCP での参加/フレーム進行/退出を確認した。ランキングは別のデータディレクトリへ保存された。
+- 配布済み npm の通信: SDL クライアント3機の同時参加、既存の7組のプロトコル構成、起動時の矛盾検出、ローカルメタサーバーへの各エンドポイントの登録/削除が成功した。
+- 独立チェックアウト: `/tmp/xpilot-standalone-2E2gpd/xpilot-infinity` の通常の .git を持つチェックアウトで `build_package_npm.sh` が成功。親 package.json、Git alternates、親 node_modules を持たず、vendor の変更もない。ここでもサーバーの全12テストが成功した。
+- deb: 展開したパッケージのネイティブ実行ファイルから、同梱 HTML と WASM の配信、MIME、ビルド識別情報を確認した。既存のシステム設定を混入させず、同梱 defaults.txt を明示して試験した。
+- NSIS/Windows: `build.sh --target windows --arch all --jobs 8 --package-version 5.2.25 --test` が成功。x86/x86_64 の双方で導入/削除、サービス、設定の権限と置換、単体試験、メタサーバー、UDP/TCP/WebSocket を Wine 上で確認した。
+
+## Windows 実機上の npm 追加確認
+
+[Windows 用 Node.js 26.11.1](https://nodejs.org/dist/v26.11.1/win-x64/node.exe) を Wine で実行し、三方式の待ち受け開始、localhost の解決、Windows 形式かつ空白/日本語を含むパスからの gzip マップ読み込み、ランキング保存、正常終了は成功した。
+
+同じ Wine 環境での TCP クライアント側は、XPilot/WASM を読み込まず `node:http.createServer` と `fetch` だけを使うローカル自己接続でも `connect UNKNOWN 127.0.0.1` となった。これは今回の環境で観測した結果であり、Windows 実機の npm 通信確認の代わりにはしない。Wine のための変更を製品へ加えず、実機で次の確認を行う。使用した API は [Node.js HTTP](https://nodejs.org/api/http.html) と [fetch](https://nodejs.org/api/globals.html#fetch) の公開 API である。
+
+1. 利用可能な Windows PC の対話セッションで [agent-rover の Windows エージェント](https://github.com/kekyo/agent-rover#preparation) を起動し、テスト用の接続先と認証情報を用意する。現環境にはその接続先がないため、実行済みとはしない。
+2. agent-rover 経由で同じ tgz を転送し、Node.js 26.4 以降で devDependencies/install scripts なしに導入する。書き込み禁止のインストール先と別の保存先を使い、CLI と日本語/空白を含む Windows パスを検証する。
+3. 三方式のネイティブクライアントと Playwright MCP のブラウザを Windows のサーバーへ接続し、入力、再接続、保存/再起動、終了時のポート解放、ローカルメタサーバーへの登録/削除を確認する。ブラウザの画面操作は引き続き Playwright MCP を使用する。
+4. 結果とログをこの計画に追記する。Node.js 版へのシステムトレイ実装追加や、SDK/vendor の修正は行わない。
