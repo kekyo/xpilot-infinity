@@ -28,6 +28,7 @@ xpilots \- XPilot multiplayer gravity war game server
 [\fB-udp\fP]
 [\fB-websocket\fP]
 [\fB-transport\fP \fIudp|tcp|websocket\fP]
+[\fB-listen\fP \fIprotocol:port[,protocol:port...]\fP]
 [\fB-contactTransport\fP \fIudp|tcp|websocket\fP]
 [\fB-gameTransport\fP \fIudp|tcp|websocket\fP]
 [\fB-clientPortStart\fP \fIport-number\fP]
@@ -152,6 +153,31 @@ called \fBfuzz2.xp\fP in the current directory, or in a predefined
 directory (default is @XP_DATADIR@/maps/).
 
 .TP 15
+.B -listen \fIprotocol:port[,protocol:port...]\fP
+Accept multiple transports in one shared game.  For example,
+\fB-listen udp:15345,tcp:15346,websocket:15347\fP enables all three.
+Each protocol may appear once; names are case-insensitive and \fBws\fP is
+an alias for \fBwebsocket\fP.  Ports must be between 1 and 65535.
+TCP and WebSocket require different ports.  UDP may share a numeric port
+with a stream transport only when metaserver reporting is disabled with
+\fB+reportMeta\fP.  Otherwise, all ports must differ and each listener is
+advertised separately with the same game information.
+
+This startup-only option is also accepted in defaults files.  It cannot be
+combined with explicit \fBcontactPort\fP/\fBport\fP,
+\fBcontactTransport\fP, \fBgameTransport\fP, or transport shortcuts,
+including settings in defaults files.  Any invalid or unavailable listener
+causes the whole startup to fail.  Without \fBlisten\fP, the single-listener
+settings apply, defaulting to UDP port 15345.
+
+Names and player/IP limits are shared across listeners.  Fixed TCP and
+WebSocket sessions use their listener port for gameplay and reconnect on
+that same protocol and port.  Server recording and playback are unavailable
+with fixed sessions; such configurations and runtime recording requests are
+rejected.  Traditional UDP and split UDP/TCP recordings remain supported.
+Metaserver reporting sends UDP from each listener's numeric port.
+
+.TP 15
 .B -contactPort or port \fIinteger\fP
 The numeric server contact port, using the selected contact transport.
 
@@ -255,9 +281,10 @@ Restrict selected gameplay transport ports to clientPortStart - clientPortEnd
 When the xpilots server is behind an IP masquerading or NAT firewall,
 the gameplay ports used for client connections (as distinct from the
 numeric contact port, which defaults to 15345) must be defined by the server.
-The firewall must forward the range as UDP for \fB-gameTransport udp\fP or
-TCP for \fB-gameTransport tcp\fP and \fB-gameTransport websocket\fP, and
-forward the contact port according to \fB-contactTransport\fP.  Use this
+The firewall must forward the range as UDP for UDP gameplay, or as TCP for
+split UDP/TCP gameplay.  Fixed TCP and WebSocket sessions use their listener
+ports instead of this range.  Also forward each contact listener port using
+its transport (TCP for both TCP and WebSocket).  Use this
 switch with \fB-clientPortEnd\fP to define the range.  One port must be
 reserved for each client, so reserve the same number of ports as there are
 bases on the map.

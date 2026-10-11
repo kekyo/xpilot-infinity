@@ -45,6 +45,10 @@ gameSpeed:		12.5
 # remains available only in UDP mode; metaserver entries select this value.
 # contactTransport:	udp
 
+# Accept multiple transports in the same game (one listener per protocol).
+# Leave contactPort, contactTransport, and gameTransport unset when using listen.
+# listen: udp:15345,tcp:15346,websocket:15347
+
 # Define a group of settings which make the world bouncy for players.
 define: SoftWalls \override: \multiline: EndSoftWalls
 EndSoftWalls

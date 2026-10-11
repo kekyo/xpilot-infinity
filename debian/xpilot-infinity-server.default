@@ -3,3 +3,7 @@
 # into arguments when XPILOT_SERVER_OPTIONS is expanded by the service unit.
 # +reportMeta disables public metaserver advertising by default.
 XPILOT_SERVER_OPTIONS="-noQuit +reportMeta -map ndh.xp2"
+
+# Optional simultaneous listeners, sharing the same game:
+# XPILOT_SERVER_OPTIONS="-noQuit +reportMeta -map ndh.xp2 -listen udp:15345,tcp:15346,websocket:15347"
+# Publish UDP 15345 and TCP 15346/15347, plus the configured UDP gameplay range.

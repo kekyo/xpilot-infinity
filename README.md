@@ -147,6 +147,39 @@ The main changes from NG version 4.7.3 are as follows:
 
 ## Network transport
 
+One server can accept UDP, TCP, and WebSocket players in the same game:
+
+```console
+xpilot-infinity-server -listen udp:15345,tcp:15346,websocket:15347 -map ndh.xp2
+xpilot-infinity-sdl -join udp://server.example:15345
+xpilot-infinity-sdl -join tcp://server.example:15346
+xpilot-infinity-sdl -join ws://server.example:15347
+```
+
+`listen` accepts any nonempty combination of these transports, once each,
+with ports from 1 to 65535. `ws` is an alias for `websocket`; transport names
+are case-insensitive. TCP and WebSocket require separate ports. UDP may use
+the same number as a stream listener when metaserver reporting is disabled
+with `+reportMeta`. With reporting enabled, every listener requires a distinct
+port and appears separately in the server list, with the same players and map.
+Player limits, names, and per-IP limits are shared across all listeners.
+
+The setting is also available as `listen: udp:15345,tcp:15346,websocket:15347`
+in the server defaults file. It cannot be combined with explicitly configured
+`contactPort`/`port`, `contactTransport`, `gameTransport`, or transport shortcuts,
+including settings in defaults files. Restart the server to change listeners.
+Invalid settings or an unavailable listener port fail the entire startup.
+Without `listen`, the single-listener settings below apply; the default is UDP
+on port 15345.
+
+For the example above, publish UDP port 15345 and TCP ports 15346 and 15347 in
+the firewall or container configuration. UDP gameplay also requires a port
+per player in the server's `clientPortStart`/`clientPortEnd` range. Fixed TCP
+and WebSocket sessions use their listener port for both admission and gameplay.
+Metaserver reporting sends UDP from each listener's numeric port, including
+TCP and WebSocket listeners. Reconnection uses the original protocol and port;
+it does not move a player between transports.
+
 Contact/lobby and gameplay connections use UDP by default and can be selected
 independently. To use TCP for both, start both endpoints with matching
 settings, for example:
@@ -210,14 +243,17 @@ legacy advertisements without transport metadata are treated as UDP contact
 and UDP gameplay servers. Metaserver query and reporting traffic continues to
 use its existing protocols.
 
-The server's `clientPortStart` and `clientPortEnd` range applies to the
-selected gameplay protocol. On clients it also applies to gameplay and the
+The server's `clientPortStart` and `clientPortEnd` range applies to traditional
+UDP and split UDP/TCP gameplay connections. On clients it also applies to gameplay and the
 traditional UDP contact socket; fixed TCP and WebSocket sessions use that
 range for their local source port.
 
 TCP gameplay records contain a two-byte network-order payload length followed
 by an unchanged XPilot packet payload. Server recordings must be replayed with
-the same `gameTransport` value that was used while recording.
+the same `gameTransport` value that was used while recording. Server recording
+and playback are unavailable when fixed TCP or WebSocket sessions are enabled;
+the server rejects those combinations, including attempts to enable recording
+while it is running. Traditional UDP and split UDP/TCP recording remain available.
 
 ### Running the server as a systemd service
 
