@@ -38,12 +38,12 @@ gameSpeed:		12.5
 
 # Gameplay uses UDP by default.  Select tcp here and on connecting clients
 # to use length-framed TCP gameplay sessions instead.
-gameTransport:		udp
+# gameTransport:	udp
 
 # Direct contact and pre-game lobby connections use UDP by default and can
 # select length-framed TCP on both server and client.  LAN broadcast discovery
 # remains available only in UDP mode; metaserver entries select this value.
-contactTransport:	udp
+# contactTransport:	udp
 
 # Define a group of settings which make the world bouncy for players.
 define: SoftWalls \override: \multiline: EndSoftWalls

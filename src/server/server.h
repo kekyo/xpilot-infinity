@@ -72,7 +72,6 @@ extern int		NumAlliances;
 extern int		NumRobots;
 extern int		login_in_progress;
 extern char		ShutdownReason[];
-extern sock_t		contactSocket;
 extern time_t		serverStartTime;
 extern server_t		Server;
 extern char		*serverAddr;
@@ -387,6 +386,24 @@ void Main_loop(void);
  */
 void Contact_cleanup(void);
 int Contact_init(void);
+/** Validate and retain listener settings before freeing the option database. */
+bool Contact_configure(void);
+/** Return the number of configured contact endpoints. */
+size_t Contact_endpoint_count(void);
+/**
+ * Inspect one configured contact endpoint.
+ * @param index Index less than Contact_endpoint_count().
+ * @return Borrowed endpoint valid until server shutdown.
+ */
+const server_endpoint_t *Contact_endpoint(size_t index);
+/**
+ * Borrow an active UDP contact socket for metaserver reporting.
+ * @param port Local UDP port to find.
+ * @return Borrowed socket, or NULL when there is no matching UDP listener.
+ */
+sock_t *Contact_udp_socket(int port);
+/** Return whether all configured listeners support server recording. */
+bool Contact_recording_supported(void);
 void Contact(socket_handle_t fd, void *arg);
 void Queue_kick(const char *nick);
 void Queue_loop(void);

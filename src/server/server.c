@@ -53,8 +53,6 @@ bool			is_server = true;	/* used in common code */
 static bool		NoPlayersEnteredYet = true;
 bool			game_lock = false;
 bool			mute_baseless = false;
-game_transport_t	gameTransport = GAME_TRANSPORT_UDP;
-game_transport_t	contactTransport = GAME_TRANSPORT_UDP;
 
 time_t			gameOverTime = 0;
 time_t			serverStartTime = 0;
@@ -119,23 +117,6 @@ static int Server_run(int argc, char **argv)
     if (!Parser(argc, argv))
 	exit(1);
 
-    if (!Game_transport_parse(options.contactTransport, &contactTransport)) {
-	warn("Invalid contactTransport '%s'; expected 'udp', 'tcp', or "
-	     "'websocket'",
-	     options.contactTransport);
-	return 1;
-    }
-    if (!Game_transport_parse(options.gameTransport, &gameTransport)) {
-	warn("Invalid gameTransport '%s'; expected 'udp', 'tcp', or "
-	     "'websocket'",
-	     options.gameTransport);
-	return 1;
-    }
-    if (!Game_transport_pair_is_supported(contactTransport, gameTransport)) {
-	warn("WebSocket must be selected for both contact/lobby and gameplay");
-	return 1;
-    }
-
     Init_recording();
     /* Lock the server into memory */
     plock_server(options.pLockServer);
@@ -178,8 +159,10 @@ static int Server_run(int argc, char **argv)
     /* Log, if enabled. */
     Log_game("START");
 
-    if (!Contact_init())
-	End_game();
+    if (!Contact_init()) {
+        sock_cleanup();
+        return 1;
+    }
 
     Meta_init();
 

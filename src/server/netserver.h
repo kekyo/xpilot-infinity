@@ -162,7 +162,20 @@ int Get_player_id(connection_t *connp);
 const char *Player_get_addr(player_t *pl);
 const char *Player_get_dpy(player_t *pl);
 int Send_shape(connection_t *connp, int shape);
-int Check_max_clients_per_IP(char *host_addr);
+/**
+ * Check the shared per-address limit, including pending admission reservations.
+ * @param host_addr Observed client address.
+ * @param reserved Admissions accepted but not yet installed as connections.
+ * @return Nonzero when no further client can be admitted at this address.
+ */
+int Check_max_clients_per_IP(const char *host_addr, int reserved);
+
+/**
+ * Check names of both playing clients and clients still entering the game.
+ * @param nick Case-insensitive nickname to check.
+ * @return True when an existing connection owns the name.
+ */
+bool Net_server_name_in_use(const char *nick);
 #define FEATURE(connp, feature)	((connp)->features & (feature))
 #define F_POLY			(1 << 0)
 #define F_FLOATSCORE		(1 << 1)

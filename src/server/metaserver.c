@@ -78,8 +78,8 @@ static sock_t *Meta_report_socket(void)
 {
     if (!meta_reporting_ready)
 	return NULL;
-    return contactTransport != GAME_TRANSPORT_UDP
-	? &metaSocket : &contactSocket;
+    return Contact_endpoint(0)->contact_transport != GAME_TRANSPORT_UDP
+	? &metaSocket : Contact_udp_socket(Contact_endpoint(0)->port);
 }
 
 void Meta_send(char *mesg, size_t len)
@@ -141,16 +141,16 @@ void Meta_init(void)
 	return;
 
     Meta_apply_environment();
-    if (contactTransport != GAME_TRANSPORT_UDP) {
+    if (Contact_endpoint(0)->contact_transport != GAME_TRANSPORT_UDP) {
 	/*
 	 * Current metaservers publish the UDP source port of each update.
 	 * Stream transports and UDP can share the same numeric port, so keep
 	 * reporting compatible without reopening the contact listener as UDP.
 	 */
-	if (sock_open_udp(&metaSocket, serverAddr, options.contactPort)
+	if (sock_open_udp(&metaSocket, serverAddr, Contact_endpoint(0)->port)
 	    == SOCK_IS_ERROR) {
 	    warn("Could not open UDP metaserver reporting socket on port %d",
-		 options.contactPort);
+		 Contact_endpoint(0)->port);
 	    return;
 	}
 	meta_socket_open = true;
@@ -283,7 +283,7 @@ void Meta_update(bool change)
 
     if (!Game_transport_format_meta_version(
 	    meta_version, sizeof(meta_version), META_VERSION,
-	    contactTransport, gameTransport)) {
+	    Contact_endpoint(0)->contact_transport, Contact_endpoint(0)->game_transport)) {
 	warn("Could not format metaserver transport metadata");
 	return;
     }
@@ -307,7 +307,7 @@ void Meta_update(bool change)
 	     "add sound %s\n",
 	     Server.host, num_active_players,
 	     meta_version, world->name, world->x, world->y, world->author,
-	     Num_bases(), FPS, options.contactPort,
+	     Num_bases(), FPS, Contact_endpoint(0)->port,
 	     game_mode, world->NumTeamBases, freebases,
 	     BIT(world->rules->mode, TIMING) ? 1:0,
 	     (long)(time(NULL) - serverStartTime),

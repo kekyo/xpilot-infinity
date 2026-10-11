@@ -3744,9 +3744,18 @@ static int Receive_audio_request(connection_t *connp)
     return 1;
 }
 
-int Check_max_clients_per_IP(char *host_addr)
+bool Net_server_name_in_use(const char *nick)
 {
-    int i, clients_per_ip = 0;
+    for (int i = 0; i < max_connections; i++) {
+        if (Conn[i].state != CONN_FREE && !strcasecmp(Conn[i].nick, nick))
+            return true;
+    }
+    return false;
+}
+
+int Check_max_clients_per_IP(const char *host_addr, int reserved)
+{
+    int i, clients_per_ip = reserved;
     connection_t *connp;
 
     if (options.maxClientsPerIP <= 0)

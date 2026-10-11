@@ -69,6 +69,7 @@ extern struct options {
     char	*mapName;
     char	*mapAuthor;
     int 	contactPort;
+    char        *listen;        /**< Explicit protocol:port listener list. */
     char	*contactTransport;
     char	*gameTransport;
     char	*serverHost;

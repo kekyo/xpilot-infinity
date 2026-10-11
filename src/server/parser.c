@@ -475,7 +475,10 @@ bool Parser(int argc, char **argv)
      */
     Options_parse();
 
+    bool contact_configured = Contact_configure();
     Options_free();
+    if (!contact_configured)
+        return false;
 
     /*
      * Construct the World structure from the options.
@@ -504,6 +507,10 @@ int Tune_option(char *name, char *val)
 
     if (opt->tuner == tuner_none)
 	return -1;	/* Operation undefined */
+
+    if (opt->variable == &options.recordMode && !Contact_recording_supported()
+        && (!Convert_string_to_int(val, &ival) || ival != 0))
+        return -1;
 
     switch (opt->type) {
     case valInt:

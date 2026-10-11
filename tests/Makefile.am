@@ -112,15 +112,19 @@ TESTS += run-x11-text.sh
 endif
 endif
 
-check_PROGRAMS += test-server-endpoint
+check_PROGRAMS += test-server-endpoint test-server-admission
 if !COND_WINDOWS
-TESTS += test-server-endpoint
+TESTS += test-server-endpoint run-multiple-protocols.sh
 endif
 
 test_server_endpoint_SOURCES = test_server_endpoint.c \
 	$(top_srcdir)/src/server/server_endpoint.c
 test_server_endpoint_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/src/server
 test_server_endpoint_LDADD = $(top_builddir)/src/common/libxpcommon.a
+
+test_server_admission_SOURCES = test_server_admission.c
+test_server_admission_LDADD = $(top_builddir)/src/client/libxpclient.a \
+	$(top_builddir)/src/common/libxpcommon.a @W32_LIBS@
 
 test_game_transport_SOURCES = test_game_transport.c
 test_game_transport_LDADD = $(top_builddir)/src/common/libxpcommon.a
@@ -602,6 +606,10 @@ test_audio_device_LDADD = $(top_builddir)/src/client/libxpclient.a \
 TEST_EXTENSIONS = .sh
 SH_LOG_COMPILER = $(SHELL)
 AM_TESTS_ENVIRONMENT = \
+	XPILOT_SERVER_BINARY='$(abs_top_builddir)/src/server/xpilot-infinity-server'; \
+	export XPILOT_SERVER_BINARY; \
+	XPILOT_SERVER_ADMISSION_PROBE='$(abs_builddir)/test-server-admission'; \
+	export XPILOT_SERVER_ADMISSION_PROBE; \
 	XPILOT_TEST_PREFIX='$(prefix)'; export XPILOT_TEST_PREFIX; \
 	XPILOT_TEST_BINDIR='$(bindir)'; export XPILOT_TEST_BINDIR; \
 	XPILOT_TEST_PKGDATADIR='$(pkgdatadir)'; export XPILOT_TEST_PKGDATADIR; \
@@ -656,7 +664,7 @@ AM_TESTS_ENVIRONMENT = \
 	export XPILOT_VENDOR_ZLIB_SOURCE;
 
 EXTRA_DIST = run-build-metadata.sh run-build-wrapper.sh \
-	run-e2e.sh run-full-suite.sh \
+	run-e2e.sh run-full-suite.sh run-multiple-protocols.sh \
 	tcp-reconnect-proxy.mjs session-reconnect-proxy.mjs \
 	run-gl-core-resources.sh \
 	run-renderer-gl-core.sh run-sdl-core-boundary.sh \
@@ -674,6 +682,7 @@ run-sdl-core-boundary.log: \
 
 .PHONY: e2e-install
 run-e2e.log: e2e-install
+run-multiple-protocols.log: e2e-install
 e2e-install:
 	@case '$(prefix)' in \
 		/tmp/*|/var/tmp/*) $(MAKE) -C '$(abs_top_builddir)' install ;; \

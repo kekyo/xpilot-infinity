@@ -12,6 +12,9 @@
 
 #include "game_transport.h"
 
+/** Maximum number of distinct server transport listeners. */
+#define SERVER_ENDPOINT_LIMIT 3
+
 /** One configured server contact endpoint and its gameplay policy. */
 typedef struct {
     /** Protocol accepted by the contact listener. */
@@ -21,6 +24,18 @@ typedef struct {
     /** Local contact port, in the range 1 through 65535. */
     int port;
 } server_endpoint_t;
+
+/**
+ * Parse a comma-separated list of protocol:port listeners.
+ * @param value Complete list; surrounding ASCII whitespace is accepted.
+ * @param endpoints Storage for SERVER_ENDPOINT_LIMIT endpoints.
+ * @param count Receives the number of endpoints, or zero on failure.
+ * @return NULL on success, otherwise a static diagnostic string.
+ * @remarks Each protocol may occur once. TCP and WebSocket require distinct
+ * ports. Endpoint storage is changed only after the entire list is validated.
+ */
+const char *Server_endpoints_parse(const char *value,
+                                   server_endpoint_t *endpoints, size_t *count);
 
 /**
  * Determine whether an endpoint retains its contact stream for gameplay.

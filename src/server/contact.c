@@ -43,7 +43,7 @@ typedef enum {
     PENDING_GAME_REPLY,
     PENDING_RESUME_REPLY,
     PENDING_CONTROL_REPLY,
-    PENDING_CONTROL_CLOSE
+    PENDING_CLOSING
 } pending_state_t;
 
 typedef enum {
@@ -87,12 +87,19 @@ int			NumQueuedPlayers = 0;
 int			MaxQueuedPlayers = 20;
 int			NumPseudoPlayers = 0;
 
-sock_t			contactSocket;
+typedef struct {
+    server_endpoint_t endpoint;
+    sock_t socket;
+    bool input_registered;
+    bool contact_stream;
+} contact_listener_t;
 
-static sockbuf_t	ibuf;
-static bool		contact_initialized;
-static bool		session_listener;
-static server_endpoint_t contact_endpoint;
+static contact_listener_t listeners[SERVER_ENDPOINT_LIMIT];
+static size_t listener_count;
+/* Only the legacy UDP or split TCP path uses the contact packet buffer. */
+static contact_listener_t *legacy_listener;
+static sockbuf_t ibuf;
+static bool contact_initialized;
 static pending_session_t pending_sessions[MAX_PENDING_SESSIONS];
 
 static bool Owner(int request, char *user_name, char *host_addr,
@@ -111,107 +118,192 @@ static int Contact_stream_request(sockbuf_t *request, sockbuf_t *reply,
 static void Contact_accept_session(socket_handle_t fd, void *arg);
 static void Contact_session_poll(void);
 static void Pending_cleanup(pending_session_t *pending);
+static bool Queue_name_in_use(const char *nick);
+
+size_t Contact_endpoint_count(void)
+{
+    return listener_count;
+}
+
+const server_endpoint_t *Contact_endpoint(size_t index)
+{
+    return &listeners[index].endpoint;
+}
+
+sock_t *Contact_udp_socket(int port)
+{
+    if (!contact_initialized)
+        return NULL;
+    for (size_t i = 0; i < listener_count; i++) {
+        if (listeners[i].endpoint.contact_transport == GAME_TRANSPORT_UDP
+            && listeners[i].endpoint.port == port)
+            return &listeners[i].socket;
+    }
+    return NULL;
+}
+
+bool Contact_recording_supported(void)
+{
+    for (size_t i = 0; i < listener_count; i++) {
+        if (Server_endpoint_uses_session(&listeners[i].endpoint))
+            return false;
+    }
+    return true;
+}
+
+bool Contact_configure(void)
+{
+    server_endpoint_t endpoints[SERVER_ENDPOINT_LIMIT];
+    size_t count;
+
+    if (options.listen != NULL) {
+        const char *single_options[] = {
+            "contactPort", "contactTransport", "gameTransport"
+        };
+        for (size_t i = 0; i < NELEM(single_options); i++) {
+            optOrigin origin = OPT_INIT;
+            Option_get_value(single_options[i], &origin);
+            if (origin != OPT_INIT) {
+                warn("listen cannot be combined with %s", single_options[i]);
+                return false;
+            }
+        }
+        const char *reason = Server_endpoints_parse(options.listen, endpoints, &count);
+        if (reason != NULL) {
+            warn("Invalid listen '%s': %s", options.listen, reason);
+            return false;
+        }
+    } else {
+        game_transport_t contactTransport, gameTransport;
+        if (!Game_transport_parse(options.contactTransport, &contactTransport)) {
+            warn("Invalid contactTransport '%s'; expected 'udp', 'tcp', or 'websocket'",
+                 options.contactTransport);
+            return false;
+        }
+        if (!Game_transport_parse(options.gameTransport, &gameTransport)) {
+            warn("Invalid gameTransport '%s'; expected 'udp', 'tcp', or 'websocket'",
+                 options.gameTransport);
+            return false;
+        }
+        if (!Game_transport_pair_is_supported(contactTransport, gameTransport)) {
+            warn("WebSocket must be selected for both contact/lobby and gameplay");
+            return false;
+        }
+        if (options.contactPort < 1 || options.contactPort > 65535) {
+            warn("contactPort must be in the range 1 through 65535");
+            return false;
+        }
+        endpoints[0] = (server_endpoint_t) {
+            contactTransport, gameTransport, options.contactPort
+        };
+        count = 1;
+    }
+    for (size_t i = 0; i < count; i++) {
+        if (options.reportToMetaServer) {
+            for (size_t j = 0; j < i; j++) {
+                if (endpoints[i].port == endpoints[j].port) {
+                    warn("Metaserver reporting requires a distinct port for each listener");
+                    return false;
+                }
+            }
+        }
+        listeners[i].endpoint = endpoints[i];
+    }
+    listener_count = count;
+    if (options.recordMode != 0 && !Contact_recording_supported()) {
+        warn("Server recording and playback are not supported with fixed TCP or WebSocket sessions");
+        return false;
+    }
+    return true;
+}
 
 void Contact_cleanup(void)
 {
-    int i;
-
     if (!contact_initialized)
-	return;
-    if (session_listener) {
-	for (i = 0; i < MAX_PENDING_SESSIONS; i++) {
-	    if (pending_sessions[i].active)
-		Pending_cleanup(&pending_sessions[i]);
-	}
-	remove_input(contactSocket.fd);
-	sock_close(&contactSocket);
-	session_listener = false;
-    } else if (contactTransport == GAME_TRANSPORT_TCP)
-	Contact_stream_cleanup();
-    else {
-	remove_input(contactSocket.fd);
-	sock_close(&contactSocket);
+        return;
+    for (int i = 0; i < MAX_PENDING_SESSIONS; i++) {
+        if (pending_sessions[i].active)
+            Pending_cleanup(&pending_sessions[i]);
+    }
+    for (size_t i = 0; i < listener_count; i++) {
+        contact_listener_t *listener = &listeners[i];
+        if (listener->contact_stream) {
+            Contact_stream_cleanup();
+            listener->contact_stream = false;
+        } else {
+            if (listener->input_registered)
+                remove_input(listener->socket.fd);
+            if (listener->socket.fd != SOCK_FD_INVALID)
+                sock_close(&listener->socket);
+        }
+        listener->input_registered = false;
     }
     if (ibuf.buf != NULL)
-	Sockbuf_cleanup(&ibuf);
+        Sockbuf_cleanup(&ibuf);
+    legacy_listener = NULL;
     contact_initialized = false;
+}
+
+static bool Contact_open_listener(contact_listener_t *listener)
+{
+    const server_endpoint_t *endpoint = &listener->endpoint;
+    sock_t *socket = &listener->socket;
+
+    if (Server_endpoint_uses_session(endpoint)) {
+        int backlog = Net_server_connection_limit() + MAX_PENDING_SESSIONS;
+        if (sock_open_tcp_listener(socket, serverAddr, endpoint->port, backlog)
+                == SOCK_IS_ERROR
+            || sock_set_non_blocking(socket, 1) == SOCK_IS_ERROR)
+            return false;
+        if (install_input(Contact_accept_session, socket->fd, listener)
+            == SOCK_IS_ERROR)
+            return false;
+        listener->input_registered = true;
+    } else if (endpoint->contact_transport == GAME_TRANSPORT_TCP) {
+        legacy_listener = listener;
+        if (Sockbuf_init(&ibuf, NULL, SERVER_SEND_SIZE,
+                        SOCKBUF_READ | SOCKBUF_WRITE | SOCKBUF_LOCK) == -1
+            || Contact_stream_init(socket, serverAddr, endpoint->port,
+                                   Contact_stream_request) == SOCK_IS_ERROR)
+            return false;
+        listener->contact_stream = true;
+    } else {
+        /* Create the datagram socket used by the traditional contact path. */
+        legacy_listener = listener;
+        if (sock_open_udp(socket, serverAddr, endpoint->port) == SOCK_IS_ERROR)
+            return false;
+        sock_set_timeout(socket, 0, 0);
+        if (sock_set_non_blocking(socket, 1) == SOCK_IS_ERROR
+            || Sockbuf_init(&ibuf, socket, SERVER_SEND_SIZE,
+                            SOCKBUF_READ | SOCKBUF_WRITE | SOCKBUF_DGRAM) == -1)
+            return false;
+        if (install_input(Contact, socket->fd, listener) == SOCK_IS_ERROR)
+            return false;
+        listener->input_registered = true;
+    }
+    return true;
 }
 
 int Contact_init(void)
 {
-    int status;
-
-    contact_endpoint = (server_endpoint_t) {
-        contactTransport, gameTransport, options.contactPort
-    };
-    sock_init(&contactSocket);
-    if (Server_endpoint_uses_session(&contact_endpoint)) {
-	int backlog = Net_server_connection_limit() + MAX_PENDING_SESSIONS;
-
-	if (backlog < MAX_PENDING_SESSIONS)
-	    backlog = MAX_PENDING_SESSIONS;
-	status = sock_open_tcp_listener(&contactSocket, serverAddr,
-				       options.contactPort, backlog);
-	if (status == SOCK_IS_ERROR
-	    || sock_set_non_blocking(&contactSocket, 1) == SOCK_IS_ERROR
-	    || install_input(Contact_accept_session, contactSocket.fd,
-                             &contact_endpoint)
-	       == SOCK_IS_ERROR) {
-	    error("Could not create fixed %s session listener",
-		  Game_transport_name(contactTransport));
-	    if (contactSocket.fd != SOCK_FD_INVALID)
-		sock_close(&contactSocket);
-	    return false;
-	}
-	session_listener = true;
-    } else if (contactTransport == GAME_TRANSPORT_TCP) {
-	if (Sockbuf_init(&ibuf, NULL, SERVER_SEND_SIZE,
-			 SOCKBUF_READ | SOCKBUF_WRITE | SOCKBUF_LOCK) == -1) {
-	    error("No memory for contact buffer");
-	    return false;
-	}
-	status = Contact_stream_init(&contactSocket, serverAddr,
-				     options.contactPort,
-				     Contact_stream_request);
-	if (status == SOCK_IS_ERROR) {
-	    error("Could not create TCP contact listener");
-	    error("Perhaps %s is already running?", APPNAME);
-	    Sockbuf_cleanup(&ibuf);
-	    return false;
-	}
-    }
-    else {
-	/* Create the datagram socket used by the traditional contact path. */
-	status = sock_open_udp(&contactSocket, serverAddr,
-			       options.contactPort);
-	if (status == SOCK_IS_ERROR) {
-	    error("Could not create UDP contact socket");
-	    error("Perhaps %s is already running?", APPNAME);
-	    return false;
-	}
-	sock_set_timeout(&contactSocket, 0, 0);
-	if (sock_set_non_blocking(&contactSocket, 1) == SOCK_IS_ERROR) {
-	    error("Can't make contact socket non-blocking");
-	    sock_close(&contactSocket);
-	    return false;
-	}
-	if (Sockbuf_init(&ibuf, &contactSocket, SERVER_SEND_SIZE,
-			 SOCKBUF_READ | SOCKBUF_WRITE | SOCKBUF_DGRAM) == -1) {
-	    error("No memory for contact buffer");
-	    sock_close(&contactSocket);
-	    return false;
-	}
-	if (install_input(Contact, contactSocket.fd, &contact_endpoint)
-	    == SOCK_IS_ERROR) {
-	    error("Cannot register contact socket with scheduler");
-	    Sockbuf_cleanup(&ibuf);
-	    sock_close(&contactSocket);
-	    return false;
-	}
-    }
+    for (size_t i = 0; i < listener_count; i++)
+        sock_init(&listeners[i].socket);
     contact_initialized = true;
-    xpprintf("Contact transport: %s on port %d.\n",
-	     Game_transport_name(contactTransport), options.contactPort);
+    for (size_t i = 0; i < listener_count; i++) {
+        contact_listener_t *listener = &listeners[i];
+        if (!Contact_open_listener(listener)) {
+            error("Could not create %s contact listener on port %d",
+                  Game_transport_name(listener->endpoint.contact_transport),
+                  listener->endpoint.port);
+            Contact_cleanup();
+            return false;
+        }
+    }
+    for (size_t i = 0; i < listener_count; i++) {
+        xpprintf("Contact transport: %s on port %d.\n",
+                 Game_transport_name(listeners[i].endpoint.contact_transport),
+                 listeners[i].endpoint.port);
+    }
     return true;
 }
 
@@ -335,10 +427,10 @@ static int Reply(sockbuf_t *reply, char *host_addr, int port, bool stream)
 	return reply->len;
 
     for (i = 0; i < max_send_retries; i++) {
-	result = sock_send_dest(&contactSocket, host_addr, port,
+	result = sock_send_dest(&legacy_listener->socket, host_addr, port,
 			        reply->buf, reply->len);
 	if (result == SOCK_IS_ERROR)
-	    sock_get_error(&contactSocket);
+	    sock_get_error(&legacy_listener->socket);
 	else
 	    break;
     }
@@ -465,13 +557,16 @@ static void Contact_accept_session(socket_handle_t fd, void *arg)
     char address[SOCK_HOSTNAME_LENGTH];
     int peer_port;
 
-    const server_endpoint_t *endpoint = arg;
+    contact_listener_t *listener = arg;
+    const server_endpoint_t *endpoint = &listener->endpoint;
 
     UNUSED_PARAM(fd);
 
-    for (;;) {
+
+    /* Bound work per listener so an accept backlog cannot starve gameplay. */
+    for (int i = 0; i < MAX_PENDING_SESSIONS; i++) {
 	errno = 0;
-	if (sock_accept(&contactSocket, &accepted) == SOCK_IS_ERROR) {
+	if (sock_accept(&listener->socket, &accepted) == SOCK_IS_ERROR) {
 	    if (errno != EWOULDBLOCK && errno != EAGAIN && errno != EINTR)
 		error("Cannot accept %s session (%d)",
 		      Game_transport_name(endpoint->contact_transport), errno);
@@ -516,8 +611,21 @@ static int Pending_reserved_games(const pending_session_t *current,
 	if (pending == current || !pending->active || !pending->promote_game)
 	    continue;
 	reserved++;
-	if (strcasecmp(pending->game.nick, nick) == 0)
+	if (nick != NULL && strcasecmp(pending->game.nick, nick) == 0)
 	    return -1;
+    }
+    return reserved;
+}
+
+static int Pending_reserved_address(const char *address)
+{
+    int reserved = 0;
+
+    for (int i = 0; i < MAX_PENDING_SESSIONS; i++) {
+        const pending_session_t *pending = &pending_sessions[i];
+        if (pending->active && pending->promote_game
+            && strcmp(pending->address, address) == 0)
+            reserved++;
     }
     return reserved;
 }
@@ -551,11 +659,13 @@ static int Admit_session_game(pending_session_t *pending)
 	return status;
 
     reserved = Pending_reserved_games(pending, game->nick);
-    if (reserved < 0)
+    if (reserved < 0 || Net_server_name_in_use(game->nick)
+        || Queue_name_in_use(game->nick))
 	return E_IN_USE;
     if (game_lock && !rplayback && !options.baselessPausing)
 	return E_GAME_LOCKED;
-    if (Check_max_clients_per_IP(pending->address))
+    if (Check_max_clients_per_IP(pending->address,
+                                Pending_reserved_address(pending->address)))
 	return E_GAME_LOCKED;
 
     limit = (int)MIN(options.playerLimit,
@@ -932,6 +1042,17 @@ static void Promote_session_resume(pending_session_t *pending)
     memset(pending, 0, sizeof(*pending));
 }
 
+static void Pending_finish_response(pending_session_t *pending)
+{
+    /* Let WebSocket clients consume the final response and initiate the close
+     * handshake before releasing the stream, including admission failures. */
+    if (pending->endpoint.contact_transport == GAME_TRANSPORT_WEBSOCKET) {
+        pending->state = PENDING_CLOSING;
+        pending->opened_at = time(NULL);
+    } else
+        Pending_cleanup(pending);
+}
+
 static void Process_pending_session(pending_session_t *pending)
 {
     session_acceptor_result_t accept_result;
@@ -942,13 +1063,13 @@ static void Process_pending_session(pending_session_t *pending)
     int status;
 
     if ((pending->state == PENDING_READING
-	 || pending->state == PENDING_CONTROL_CLOSE)
+	 || pending->state == PENDING_CLOSING)
 	&& time(NULL) >= pending->opened_at + SESSION_ADMISSION_TIMEOUT) {
 	Pending_cleanup(pending);
 	return;
     }
 
-    if (pending->state == PENDING_CONTROL_CLOSE) {
+    if (pending->state == PENDING_CLOSING) {
 	receive_result = Record_session_receive(
 	    pending->session, ignored, sizeof(ignored), &ignored_length);
 	if (receive_result == RECORD_RECEIVE_EMPTY)
@@ -1013,25 +1134,18 @@ static void Process_pending_session(pending_session_t *pending)
 	if (pending->promote_game)
 	    Promote_session_game(pending);
 	else
-	    Pending_cleanup(pending);
+	    Pending_finish_response(pending);
 	return;
     }
     if (pending->state == PENDING_RESUME_REPLY) {
 	if (pending->promote_resume)
 	    Promote_session_resume(pending);
 	else
-	    Pending_cleanup(pending);
+	    Pending_finish_response(pending);
 	return;
     }
     if (pending->control_response == CONTROL_RESPONSE_DONE) {
-	/* A WebSocket endpoint must let the client consume the final response
-	 * and start the close handshake before the server releases the stream. */
-	if (pending->endpoint.contact_transport == GAME_TRANSPORT_WEBSOCKET) {
-	    pending->state = PENDING_CONTROL_CLOSE;
-	    pending->opened_at = time(NULL);
-	    return;
-	}
-	Pending_cleanup(pending);
+	Pending_finish_response(pending);
 	return;
     }
     if (Queue_next_session_control_frame(pending) == -1)
@@ -1071,26 +1185,27 @@ static unsigned Version_to_magic(const server_endpoint_t *endpoint,
 
 void Contact(socket_handle_t fd, void *arg)
 {
+    contact_listener_t *listener = arg;
     int bytes;
 
     UNUSED_PARAM(fd);
     Sockbuf_clear(&ibuf);
-    bytes = sock_receive_any(&contactSocket, ibuf.buf, ibuf.size);
+    bytes = sock_receive_any(&legacy_listener->socket, ibuf.buf, ibuf.size);
     if (bytes <= 8) {
 	if (bytes < 0 && errno != EWOULDBLOCK && errno != EAGAIN
 	    && errno != EINTR)
-	    sock_get_error(&contactSocket);
+	    sock_get_error(&legacy_listener->socket);
 	return;
     }
     ibuf.len = bytes;
-    Contact_process(arg, &ibuf, &ibuf, sock_get_last_addr(&contactSocket),
-		    sock_get_last_port(&contactSocket), false);
+    Contact_process(&listener->endpoint, &ibuf, &ibuf, sock_get_last_addr(&legacy_listener->socket),
+		    sock_get_last_port(&legacy_listener->socket), false);
 }
 
 static int Contact_stream_request(sockbuf_t *request, sockbuf_t *reply,
 			  const char *peer_address, int peer_port)
 {
-    Contact_process(&contact_endpoint, request, reply,
+    Contact_process(&legacy_listener->endpoint, request, reply,
                     peer_address, peer_port, true);
     return reply->len;
 }
@@ -1481,6 +1596,15 @@ struct queued_player {
 
 struct queued_player	*qp_list;
 
+static bool Queue_name_in_use(const char *nick)
+{
+    for (const struct queued_player *qp = qp_list; qp != NULL; qp = qp->next) {
+        if (!strcasecmp(qp->nick_name, nick))
+            return true;
+    }
+    return false;
+}
+
 static void Queue_remove(struct queued_player *qp, struct queued_player *prev)
 {
     if (qp == qp_list)
@@ -1542,9 +1666,8 @@ void Queue_loop(void)
     int qpos = 0, login_port;
     static long last_unqueued_loops;
 
-    if (Server_endpoint_uses_session(&contact_endpoint))
-	Contact_session_poll();
-    else if (contactTransport == GAME_TRANSPORT_TCP)
+    Contact_session_poll();
+    if (legacy_listener != NULL && legacy_listener->contact_stream)
 	Contact_stream_poll();
 
     for (qp = qp_list; qp && qp->login_port > 0; ) {
@@ -1585,16 +1708,21 @@ void Queue_loop(void)
 
 	/* slow down the rate at which players enter the game. */
 	if (last_unqueued_loops + 2 + (FPS >> 2) < main_loops) {
+	    int reserved = Pending_reserved_games(NULL, NULL);
 	    int lim = (int)MIN(options.playerLimit,
 			       options.baselessPausing
 			       ? 1e6 : Num_bases());
 
+	    /* Recheck reservations made since this player entered the queue. */
+            if (Check_max_clients_per_IP(qp->host_addr,
+                                        Pending_reserved_address(qp->host_addr)))
+                return;
 	    /* is there a homebase available? */
-	    if (NumPlayers - NumPseudoPlayers + login_in_progress < lim
+	    if (NumPlayers - NumPseudoPlayers + login_in_progress + reserved < lim
 		|| !game_lock && ((Kick_robot_players(TEAM_NOT_SET)
-		    && NumPlayers - NumPseudoPlayers + login_in_progress < lim)
+		    && NumPlayers - NumPseudoPlayers + login_in_progress + reserved < lim)
 		|| (Kick_paused_players(TEAM_NOT_SET) &&
-		    NumPlayers - NumPseudoPlayers + login_in_progress < lim))){
+		    NumPlayers - NumPseudoPlayers + login_in_progress + reserved < lim))){
 
 		/* find a team for this fellow. */
 		if (BIT(world->rules->mode, TEAM_PLAY)) {
@@ -1707,11 +1835,13 @@ static int Queue_player(char *user, char *nick, char *disp, int team,
     }
 
     NumQueuedPlayers = num_queued;
+    if (Net_server_name_in_use(nick) || Pending_reserved_games(NULL, nick) < 0)
+        return E_IN_USE;
     if (NumQueuedPlayers >= MaxQueuedPlayers)
 	return E_GAME_FULL;
     if (game_lock && !rplayback && !options.baselessPausing)
 	return E_GAME_LOCKED;
-    if (Check_max_clients_per_IP(addr))
+    if (Check_max_clients_per_IP(addr, Pending_reserved_address(addr)))
 	return E_GAME_LOCKED;
 
     qp = (struct queued_player *)malloc(sizeof(struct queued_player));

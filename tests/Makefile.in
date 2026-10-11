@@ -153,7 +153,8 @@ target_triplet = @target@
 @COND_WINDOWS_FALSE@	test-text-renderer$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-text-cache-adapter$(EXEEXT) \
 @COND_WINDOWS_FALSE@	$(am__EXEEXT_1) $(am__EXEEXT_2) \
-@COND_WINDOWS_FALSE@	test-server-endpoint$(EXEEXT)
+@COND_WINDOWS_FALSE@	test-server-endpoint$(EXEEXT) \
+@COND_WINDOWS_FALSE@	test-server-admission$(EXEEXT)
 @COND_WINDOWS_TRUE@check_PROGRAMS = test-framed-stream$(EXEEXT) \
 @COND_WINDOWS_TRUE@	test-websocket-transport$(EXEEXT) \
 @COND_WINDOWS_TRUE@	test-game-transport$(EXEEXT) \
@@ -175,7 +176,8 @@ target_triplet = @target@
 @COND_WINDOWS_TRUE@	test-native-text$(EXEEXT) \
 @COND_WINDOWS_TRUE@	test-game-input$(EXEEXT) $(am__EXEEXT_1) \
 @COND_WINDOWS_TRUE@	$(am__EXEEXT_2) \
-@COND_WINDOWS_TRUE@	test-server-endpoint$(EXEEXT)
+@COND_WINDOWS_TRUE@	test-server-endpoint$(EXEEXT) \
+@COND_WINDOWS_TRUE@	test-server-admission$(EXEEXT)
 @COND_WINDOWS_FALSE@TESTS = test-framed-stream$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-websocket-transport$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-game-transport$(EXEEXT) \
@@ -252,7 +254,8 @@ target_triplet = @target@
 @COND_WINDOWS_FALSE@	run-container-publish.sh \
 @COND_WINDOWS_FALSE@	run-container-image.sh run-quadlet.sh \
 @COND_WINDOWS_FALSE@	run-e2e.sh $(am__EXEEXT_1) $(am__append_4) \
-@COND_WINDOWS_FALSE@	test-server-endpoint$(EXEEXT)
+@COND_WINDOWS_FALSE@	test-server-endpoint$(EXEEXT) \
+@COND_WINDOWS_FALSE@	run-multiple-protocols.sh
 @COND_WINDOWS_TRUE@TESTS = $(am__EXEEXT_1) $(am__append_4)
 @COND_SOUND_TRUE@@COND_WINDOWS_FALSE@am__append_1 = test-audio-device
 @COND_SOUND_TRUE@@COND_WINDOWS_FALSE@am__append_2 = test-audio-device
@@ -598,6 +601,11 @@ test_sdlpaint_stage_OBJECTS = $(am_test_sdlpaint_stage_OBJECTS)
 test_sdlpaint_stage_DEPENDENCIES = $(am__DEPENDENCIES_1)
 test_sdlpaint_stage_LINK = $(CCLD) $(test_sdlpaint_stage_CFLAGS) \
 	$(CFLAGS) $(test_sdlpaint_stage_LDFLAGS) $(LDFLAGS) -o $@
+am_test_server_admission_OBJECTS = test_server_admission.$(OBJEXT)
+test_server_admission_OBJECTS = $(am_test_server_admission_OBJECTS)
+test_server_admission_DEPENDENCIES =  \
+	$(top_builddir)/src/client/libxpclient.a \
+	$(top_builddir)/src/common/libxpcommon.a
 am_test_server_endpoint_OBJECTS =  \
 	test_server_endpoint-test_server_endpoint.$(OBJEXT) \
 	test_server_endpoint-server_endpoint.$(OBJEXT)
@@ -807,6 +815,7 @@ am__depfiles_remade = ./$(DEPDIR)/SDL_console.Po \
 	./$(DEPDIR)/test_sdlmeta_primitives-test_sdlmeta_primitives.Po \
 	./$(DEPDIR)/test_sdlpaint_stage-sdlpaint.Po \
 	./$(DEPDIR)/test_sdlpaint_stage-test_sdlpaint_stage.Po \
+	./$(DEPDIR)/test_server_admission.Po \
 	./$(DEPDIR)/test_server_endpoint-server_endpoint.Po \
 	./$(DEPDIR)/test_server_endpoint-test_server_endpoint.Po \
 	./$(DEPDIR)/test_session_flow-session_acceptor.Po \
@@ -884,9 +893,11 @@ SOURCES = $(test_audio_device_SOURCES) $(test_checknames_SOURCES) \
 	$(test_sdlgui_polygons_SOURCES) $(test_sdlgui_ships_SOURCES) \
 	$(test_sdlgui_sparks_SOURCES) \
 	$(test_sdlmeta_primitives_SOURCES) \
-	$(test_sdlpaint_stage_SOURCES) $(test_server_endpoint_SOURCES) \
-	$(test_session_flow_SOURCES) $(test_session_token_SOURCES) \
-	$(test_socket_io_SOURCES) $(test_surface_primitives_SOURCES) \
+	$(test_sdlpaint_stage_SOURCES) \
+	$(test_server_admission_SOURCES) \
+	$(test_server_endpoint_SOURCES) $(test_session_flow_SOURCES) \
+	$(test_session_token_SOURCES) $(test_socket_io_SOURCES) \
+	$(test_surface_primitives_SOURCES) \
 	$(test_surface_rgba8_SOURCES) $(test_text_atlas_SOURCES) \
 	$(test_text_cache_adapter_SOURCES) \
 	$(test_text_geometry_SOURCES) $(test_text_renderer_SOURCES) \
@@ -929,9 +940,11 @@ DIST_SOURCES = $(test_audio_device_SOURCES) $(test_checknames_SOURCES) \
 	$(test_sdlgui_polygons_SOURCES) $(test_sdlgui_ships_SOURCES) \
 	$(test_sdlgui_sparks_SOURCES) \
 	$(test_sdlmeta_primitives_SOURCES) \
-	$(test_sdlpaint_stage_SOURCES) $(test_server_endpoint_SOURCES) \
-	$(test_session_flow_SOURCES) $(test_session_token_SOURCES) \
-	$(test_socket_io_SOURCES) $(test_surface_primitives_SOURCES) \
+	$(test_sdlpaint_stage_SOURCES) \
+	$(test_server_admission_SOURCES) \
+	$(test_server_endpoint_SOURCES) $(test_session_flow_SOURCES) \
+	$(test_session_token_SOURCES) $(test_socket_io_SOURCES) \
+	$(test_surface_primitives_SOURCES) \
 	$(test_surface_rgba8_SOURCES) $(test_text_atlas_SOURCES) \
 	$(test_text_cache_adapter_SOURCES) \
 	$(test_text_geometry_SOURCES) $(test_text_renderer_SOURCES) \
@@ -1345,6 +1358,10 @@ test_server_endpoint_SOURCES = test_server_endpoint.c \
 
 test_server_endpoint_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/src/server
 test_server_endpoint_LDADD = $(top_builddir)/src/common/libxpcommon.a
+test_server_admission_SOURCES = test_server_admission.c
+test_server_admission_LDADD = $(top_builddir)/src/client/libxpclient.a \
+	$(top_builddir)/src/common/libxpcommon.a @W32_LIBS@
+
 test_game_transport_SOURCES = test_game_transport.c
 test_game_transport_LDADD = $(top_builddir)/src/common/libxpcommon.a
 test_checknames_SOURCES = test_checknames.c
@@ -1871,6 +1888,10 @@ test_audio_device_LDADD = $(top_builddir)/src/client/libxpclient.a \
 TEST_EXTENSIONS = .sh
 SH_LOG_COMPILER = $(SHELL)
 AM_TESTS_ENVIRONMENT = \
+	XPILOT_SERVER_BINARY='$(abs_top_builddir)/src/server/xpilot-infinity-server'; \
+	export XPILOT_SERVER_BINARY; \
+	XPILOT_SERVER_ADMISSION_PROBE='$(abs_builddir)/test-server-admission'; \
+	export XPILOT_SERVER_ADMISSION_PROBE; \
 	XPILOT_TEST_PREFIX='$(prefix)'; export XPILOT_TEST_PREFIX; \
 	XPILOT_TEST_BINDIR='$(bindir)'; export XPILOT_TEST_BINDIR; \
 	XPILOT_TEST_PKGDATADIR='$(pkgdatadir)'; export XPILOT_TEST_PKGDATADIR; \
@@ -1925,7 +1946,7 @@ AM_TESTS_ENVIRONMENT = \
 	export XPILOT_VENDOR_ZLIB_SOURCE;
 
 EXTRA_DIST = run-build-metadata.sh run-build-wrapper.sh \
-	run-e2e.sh run-full-suite.sh \
+	run-e2e.sh run-full-suite.sh run-multiple-protocols.sh \
 	tcp-reconnect-proxy.mjs session-reconnect-proxy.mjs \
 	run-gl-core-resources.sh \
 	run-renderer-gl-core.sh run-sdl-core-boundary.sh \
@@ -2183,6 +2204,10 @@ test-sdlpaint-stage$(EXEEXT): $(test_sdlpaint_stage_OBJECTS) $(test_sdlpaint_sta
 	@rm -f test-sdlpaint-stage$(EXEEXT)
 	$(AM_V_CCLD)$(test_sdlpaint_stage_LINK) $(test_sdlpaint_stage_OBJECTS) $(test_sdlpaint_stage_LDADD) $(LIBS)
 
+test-server-admission$(EXEEXT): $(test_server_admission_OBJECTS) $(test_server_admission_DEPENDENCIES) $(EXTRA_test_server_admission_DEPENDENCIES)
+	@rm -f test-server-admission$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_server_admission_OBJECTS) $(test_server_admission_LDADD) $(LIBS)
+
 test-server-endpoint$(EXEEXT): $(test_server_endpoint_OBJECTS) $(test_server_endpoint_DEPENDENCIES) $(EXTRA_test_server_endpoint_DEPENDENCIES)
 	@rm -f test-server-endpoint$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_server_endpoint_OBJECTS) $(test_server_endpoint_LDADD) $(LIBS)
@@ -2368,6 +2393,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_sdlmeta_primitives-test_sdlmeta_primitives.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_sdlpaint_stage-sdlpaint.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_sdlpaint_stage-test_sdlpaint_stage.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_server_admission.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_server_endpoint-server_endpoint.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_server_endpoint-test_server_endpoint.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_session_flow-session_acceptor.Po@am__quote@ # am--include-marker
@@ -4766,6 +4792,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/test_sdlmeta_primitives-test_sdlmeta_primitives.Po
 	-rm -f ./$(DEPDIR)/test_sdlpaint_stage-sdlpaint.Po
 	-rm -f ./$(DEPDIR)/test_sdlpaint_stage-test_sdlpaint_stage.Po
+	-rm -f ./$(DEPDIR)/test_server_admission.Po
 	-rm -f ./$(DEPDIR)/test_server_endpoint-server_endpoint.Po
 	-rm -f ./$(DEPDIR)/test_server_endpoint-test_server_endpoint.Po
 	-rm -f ./$(DEPDIR)/test_session_flow-session_acceptor.Po
@@ -4958,6 +4985,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/test_sdlmeta_primitives-test_sdlmeta_primitives.Po
 	-rm -f ./$(DEPDIR)/test_sdlpaint_stage-sdlpaint.Po
 	-rm -f ./$(DEPDIR)/test_sdlpaint_stage-test_sdlpaint_stage.Po
+	-rm -f ./$(DEPDIR)/test_server_admission.Po
 	-rm -f ./$(DEPDIR)/test_server_endpoint-server_endpoint.Po
 	-rm -f ./$(DEPDIR)/test_server_endpoint-test_server_endpoint.Po
 	-rm -f ./$(DEPDIR)/test_session_flow-session_acceptor.Po
@@ -5027,6 +5055,7 @@ run-sdl-core-boundary.log: \
 
 .PHONY: e2e-install
 run-e2e.log: e2e-install
+run-multiple-protocols.log: e2e-install
 e2e-install:
 	@case '$(prefix)' in \
 		/tmp/*|/var/tmp/*) $(MAKE) -C '$(abs_top_builddir)' install ;; \

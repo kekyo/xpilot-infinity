@@ -1,5 +1,7 @@
 #include "test_helpers.h"
 
+#include <string.h>
+
 #include "server_endpoint.h"
 
 static int test_endpoint_versions(void)
@@ -64,9 +66,50 @@ static int test_resume_requires_original_endpoint(void)
     return 0;
 }
 
+static int test_listener_sets(void)
+{
+    const char *valid[] = {
+        "udp:15345", "tcp:15346", "websocket:15347",
+        "udp:15345,tcp:15346", "udp:15345,websocket:15347",
+        "tcp:15346,websocket:15347",
+        "udp:15345,tcp:15346,websocket:15347"
+    };
+    const char *invalid[] = {
+        "", ",", "udp", "udp:", "udp:0", "udp:65536",
+        "udp:-1", "udp:+1", "udp:1x", "udp:99999999999999999999",
+        "sctp:15345", "udp:1,", ",udp:1", "udp:1,,tcp:2",
+        "udp:1,udp:2", "ws:1,websocket:2", "tcp:1,websocket:1"
+    };
+    server_endpoint_t endpoints[SERVER_ENDPOINT_LIMIT];
+    size_t count;
+
+    for (size_t i = 0; i < sizeof(valid) / sizeof(valid[0]); i++) {
+        TEST_CHECK(Server_endpoints_parse(valid[i], endpoints, &count) == NULL);
+        size_t expected = 1;
+        for (const char *p = valid[i]; *p; p++)
+            expected += *p == ',';
+        TEST_CHECK(count == expected);
+    }
+    TEST_CHECK(Server_endpoints_parse(
+                   " WS:65535 , UDP:1 , TCP:1 ", endpoints, &count) == NULL);
+    TEST_CHECK(count == 3);
+    TEST_CHECK(endpoints[0].contact_transport == GAME_TRANSPORT_WEBSOCKET);
+    TEST_CHECK(endpoints[0].port == 65535);
+    TEST_CHECK(endpoints[1].game_transport == GAME_TRANSPORT_UDP);
+    TEST_CHECK(endpoints[2].game_transport == GAME_TRANSPORT_TCP);
+    for (size_t i = 0; i < sizeof(invalid) / sizeof(invalid[0]); i++) {
+        count = 99;
+        TEST_CHECK(Server_endpoints_parse(
+                       invalid[i], endpoints, &count) != NULL);
+        TEST_CHECK(count == 0);
+    }
+    return 0;
+}
+
 int main(void)
 {
     TEST_CHECK(test_endpoint_versions() == 0);
     TEST_CHECK(test_resume_requires_original_endpoint() == 0);
+    TEST_CHECK(test_listener_sets() == 0);
     return 0;
 }

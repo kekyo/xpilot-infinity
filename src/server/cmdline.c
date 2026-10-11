@@ -605,6 +605,19 @@ static option_desc opts[] = {
 	OPT_MAP
     },
     {
+        "listen",
+        "listen",
+        NULL,
+        &options.listen,
+        valString,
+        tuner_none,
+        "Comma-separated protocol:port listeners, for example\n"
+        "udp:15345,tcp:15346,websocket:15347. Each protocol may appear once.\n"
+        "TCP and WebSocket must use different ports. Cannot be combined with\n"
+        "contactPort, contactTransport, or gameTransport.\n",
+        OPT_COMMAND | OPT_DEFAULTS | OPT_VISIBLE
+    },
+    {
 	"contactPort",
 	"port",
 	"15345",
