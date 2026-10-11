@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { availableParallelism } from 'node:os';
 import { resolve } from 'node:path';
 import { prepareEmsdk } from 'emsdk-env';
@@ -61,5 +61,17 @@ export const prepareServerBuild = async (
   const generated = resolve(root, 'build/generated');
   await mkdir(generated, { recursive: true });
   await writeFile(resolve(generated, 'version.h'), header);
+  const assets = resolve(root, 'public/assets');
+  await mkdir(assets, { recursive: true });
+  await cp(resolve(root, '../lib'), assets, {
+    recursive: true,
+    filter: (source) => !/(^|\/)Makefile(?:\.am|\.in)?$/.test(source),
+  });
+  await cp(
+    resolve(root, '../xpilot-browser/dist'),
+    resolve(root, 'public/web'),
+    { recursive: true }
+  );
+  await cp(resolve(root, '../COPYING'), resolve(root, 'COPYING'));
   return { prefix, generated };
 };

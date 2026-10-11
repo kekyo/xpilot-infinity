@@ -1,4 +1,5 @@
 import { assertNodeRuntime } from './runtime';
+import { isAbsolute, parse, relative, resolve, sep } from 'node:path';
 
 interface WasmModule {
   _malloc: (size: number) => number;
@@ -28,6 +29,8 @@ export interface CoreOptions {
   assets: string;
   /** Absolute writable directory owned by the server operator. */
   data: string;
+  /** Optional directory containing the built browser application. */
+  web: string | undefined;
   /** Schedule a host turn when a socket becomes ready. */
   ready: () => void;
   /** Receive a stdout or stderr line from the game. */
@@ -52,6 +55,8 @@ export interface ServerCore {
   fps: () => number;
   /** Last startup or exit status. */
   exitCode: () => number;
+  /** Map an operator-supplied host path into the virtual filesystem. */
+  hostPath: (path: string) => string;
 }
 
 /**
@@ -75,12 +80,58 @@ export const createCore = async (options: CoreOptions): Promise<ServerCore> => {
   wasm.FS.mkdir('/data');
   wasm.FS.mount(wasm.NODEFS, { root: options.data }, '/data');
   wasm.FS.chdir('/data');
+  if (options.web !== undefined) {
+    wasm.FS.mkdir('/web');
+    wasm.FS.mount(wasm.NODEFS, { root: options.web }, '/web');
+  }
+  wasm.FS.mkdir('/host');
+  const roots = new Map<string, string>();
+  const hostPath = (path: string): string => {
+    const absolute = resolve(path);
+    const root = parse(absolute).root;
+    let mount = roots.get(root);
+    if (mount === undefined) {
+      mount = `/host/${roots.size}`;
+      roots.set(root, mount);
+      wasm.FS.mkdir(mount);
+      wasm.FS.mount(wasm.NODEFS, { root }, mount);
+    }
+    return `${mount}/${relative(root, absolute).split(sep).join('/')}`;
+  };
+  const pathArguments = new Set([
+    '-map',
+    '-mapfilename',
+    '-defaults',
+    '-defaultsfilename',
+    '-passwordfilename',
+    '-robotfile',
+    '-robotfilename',
+    '-rankfilename',
+    '-rankwebpage',
+    '-rankwebpagefilename',
+    '-recordfilename',
+    '-recordfile',
+    '-webroot',
+    '-webassetroot',
+    '-adminmessagefilename',
+    '-servermotdfilename',
+  ]);
   let ready = 0;
   return {
     start: (args) => {
       const allocated: number[] = [];
       try {
-        const strings = ['xpilot-infinity', ...args].map((arg) => {
+        const mapped = args.map((arg, index) =>
+          index > 0 &&
+          pathArguments.has(args[index - 1].toLowerCase()) &&
+          isAbsolute(arg) &&
+          !['/assets/', '/data/', '/web', '/host/'].some((prefix) =>
+            arg.startsWith(prefix)
+          )
+            ? hostPath(arg)
+            : arg
+        );
+        const strings = ['xpilot-infinity', ...mapped].map((arg) => {
           const bytes = new TextEncoder().encode(arg + '\0');
           const pointer = wasm._malloc(bytes.length);
           if (!pointer) throw new Error('Out of WASM memory');
@@ -107,5 +158,6 @@ export const createCore = async (options: CoreOptions): Promise<ServerCore> => {
     robots: () => wasm._xp_server_robots(),
     fps: () => wasm._xp_server_fps(),
     exitCode: () => wasm._xp_server_status(),
+    hostPath,
   };
 };

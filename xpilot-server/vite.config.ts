@@ -4,6 +4,7 @@ import screwUp from 'screw-up';
 import emsdkEnv from 'emsdk-env/vite';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
+import { chmod } from 'node:fs/promises';
 import { prepareServerBuild, sdkVersion } from './build-support';
 import { serverSources } from './server-sources';
 
@@ -90,14 +91,20 @@ export default defineConfig(async (): Promise<UserConfig> => {
         },
       }),
       screwUp(),
+      {
+        name: 'server-cli-permissions',
+        writeBundle: async () => {
+          await chmod(resolve(root, 'dist/cli.mjs'), 0o755);
+        },
+      },
     ],
     build: {
       target: 'node26',
       minify: false,
       lib: {
-        entry: fileURLToPath(new URL('./src/runtime.ts', import.meta.url)),
+        entry: fileURLToPath(new URL('./src/cli.ts', import.meta.url)),
         formats: ['es'],
-        fileName: () => 'runtime.mjs',
+        fileName: () => 'cli.mjs',
       },
       rolldownOptions: { external: [/^node:/] },
     },

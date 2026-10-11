@@ -2,6 +2,8 @@
   "name": "xpilot-infinity",
   "description": "XPilot Infinity server and browser client.",
   "version": "0.1.0",
+  "author": "XPilot Infinity contributors",
+  "homepage": "https://github.com/kekyo/xpilot-infinity",
   "license": "GPL-2.0-only",
   "repository": {
     "type": "git",
@@ -19,9 +21,11 @@
     "node": ">=26.4.0"
   },
   "scripts": {
-    "build": "vite build",
+    "build": "npm --prefix ../xpilot-browser run build && npm run build:runtime",
+    "build:runtime": "vite build",
     "test": "npm run build && vitest run",
-    "pack": "npm run build && screw-up pack --pack-destination artifacts/",
+    "pack": "npm run build && npm run pack:built",
+    "pack:built": "screw-up pack --inheritable-fields version --no-merge-files --pack-destination artifacts/",
     "dependencies": "reskill"
   },
   "devDependencies": {
