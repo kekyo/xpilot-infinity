@@ -1,6 +1,12 @@
 #include "test_helpers.h"
 #include "xpclient.h"
 
+#ifdef _WINDOWS
+/* This fixture uses file descriptors, not xpcommon's socket aliases. */
+#undef close
+#undef write
+#endif
+
 setup_t *Setup;
 other_t *self;
 bool snooping;
@@ -25,7 +31,7 @@ size_t __wrap_fread(void *ptr, size_t size, size_t count, FILE *stream)
 
 int main(void)
 {
-    char name[] = "/tmp/xpilot-macro-XXXXXX";
+    char name[] = "xpilot-macro-XXXXXX";
     int fd = mkstemp(name);
     TEST_CHECK(fd >= 0);
     const char contents[] = "macro text";
@@ -34,6 +40,23 @@ int main(void)
     char macro[256];
     snprintf(macro, sizeof(macro), "#f[%s]", name);
     talk_fast_msgs[0] = macro;
+    TEST_CHECK(Talk_macro(0) == 0);
+    TEST_CHECK(strcmp(sent, contents) == 0);
+
+    /* A text macro has the same content with LF or CRLF line endings. */
+    FILE *fp = fopen(name, "wb");
+    TEST_CHECK(fp != NULL);
+    TEST_CHECK(fputs("macro\r\n text\r\n", fp) >= 0);
+    TEST_CHECK(fclose(fp) == 0);
+    sent[0] = '\0';
+    TEST_CHECK(Talk_macro(0) == 0);
+    TEST_CHECK(strcmp(sent, contents) == 0);
+
+    fp = fopen(name, "wb");
+    TEST_CHECK(fp != NULL);
+    TEST_CHECK(fputs("macro\n text\n", fp) >= 0);
+    TEST_CHECK(fclose(fp) == 0);
+    sent[0] = '\0';
     TEST_CHECK(Talk_macro(0) == 0);
     TEST_CHECK(strcmp(sent, contents) == 0);
 

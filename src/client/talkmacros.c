@@ -268,7 +268,8 @@ static int Talk_macro_parse_mesg(char *outbuf, char *inbuf, long pos,
 		    Talk_macro_parse_mesg(filename, tmpptr, 0,
 					  TALK_FAST_MSG_FNLEN);
 		    free(tmpptr);
-		    if ((fp = fopen(filename, "r")) == NULL) {
+		    /* Keep byte counts stable across Windows newline translation. */
+		    if ((fp = fopen(filename, "rb")) == NULL) {
 			error("Couldn't open file %s", filename);
 			free(filename);
 			break;
@@ -355,6 +356,7 @@ static int Talk_macro_parse_mesg(char *outbuf, char *inbuf, long pos,
 		    break;
 		}	/* case TALK_FAST_SPECIAL_TALK_CHAR: switch (c) */
 		break;
+	    case '\r':
 	    case '\n':
 		break;
 	    default:

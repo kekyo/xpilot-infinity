@@ -117,10 +117,10 @@ endif
 endif
 
 check_PROGRAMS += test-server-endpoint test-server-admission test-web-front \
-	test-messages test-robot-intercept
+	test-messages test-robot-intercept test-talkmacro-input
 if !COND_WINDOWS
 TESTS += test-server-endpoint run-multiple-protocols.sh test-web-front \
-	test-messages test-robot-intercept
+	test-messages test-robot-intercept test-talkmacro-input
 endif
 
 test_messages_SOURCES = test_messages.c $(top_srcdir)/src/client/messages.c \
@@ -144,8 +144,8 @@ test_robot_intercept_CFLAGS += -flto
 endif
 
 if !COND_WINDOWS
-check_PROGRAMS += test-mapdata-input test-srecord-input test-talkmacro-input
-TESTS += test-mapdata-input test-srecord-input test-talkmacro-input
+check_PROGRAMS += test-mapdata-input test-srecord-input
+TESTS += test-mapdata-input test-srecord-input
 endif
 
 test_mapdata_input_SOURCES = test_mapdata_input.c
@@ -164,6 +164,10 @@ test_talkmacro_input_SOURCES = test_talkmacro_input.c \
 test_talkmacro_input_CFLAGS = $(AM_CFLAGS) -ffunction-sections -fdata-sections
 test_talkmacro_input_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections -Wl,--wrap=fread
 test_talkmacro_input_LDADD = $(top_builddir)/src/common/libxpcommon.a
+if COND_WINDOWS
+test_talkmacro_input_CFLAGS += -flto
+test_talkmacro_input_LDADD += @W32_LIBS@
+endif
 
 test_mapedit_input_SOURCES = test_mapedit_input.c \
 	$(top_srcdir)/src/mapedit/file.c $(top_srcdir)/src/mapedit/T_Form.c

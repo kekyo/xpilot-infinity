@@ -159,9 +159,9 @@ target_triplet = @target@
 @COND_WINDOWS_FALSE@	test-web-front$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-messages$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-robot-intercept$(EXEEXT) \
+@COND_WINDOWS_FALSE@	test-talkmacro-input$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-mapdata-input$(EXEEXT) \
-@COND_WINDOWS_FALSE@	test-srecord-input$(EXEEXT) \
-@COND_WINDOWS_FALSE@	test-talkmacro-input$(EXEEXT)
+@COND_WINDOWS_FALSE@	test-srecord-input$(EXEEXT)
 @COND_WINDOWS_TRUE@check_PROGRAMS = test-framed-stream$(EXEEXT) \
 @COND_WINDOWS_TRUE@	test-websocket-transport$(EXEEXT) \
 @COND_WINDOWS_TRUE@	test-game-transport$(EXEEXT) \
@@ -187,7 +187,8 @@ target_triplet = @target@
 @COND_WINDOWS_TRUE@	test-server-admission$(EXEEXT) \
 @COND_WINDOWS_TRUE@	test-web-front$(EXEEXT) \
 @COND_WINDOWS_TRUE@	test-messages$(EXEEXT) \
-@COND_WINDOWS_TRUE@	test-robot-intercept$(EXEEXT)
+@COND_WINDOWS_TRUE@	test-robot-intercept$(EXEEXT) \
+@COND_WINDOWS_TRUE@	test-talkmacro-input$(EXEEXT)
 @COND_WINDOWS_FALSE@TESTS = test-framed-stream$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-websocket-transport$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-game-transport$(EXEEXT) \
@@ -270,9 +271,9 @@ target_triplet = @target@
 @COND_WINDOWS_FALSE@	test-web-front$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-messages$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-robot-intercept$(EXEEXT) \
+@COND_WINDOWS_FALSE@	test-talkmacro-input$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-mapdata-input$(EXEEXT) \
-@COND_WINDOWS_FALSE@	test-srecord-input$(EXEEXT) \
-@COND_WINDOWS_FALSE@	test-talkmacro-input$(EXEEXT)
+@COND_WINDOWS_FALSE@	test-srecord-input$(EXEEXT)
 @COND_WINDOWS_TRUE@TESTS = $(am__EXEEXT_1) $(am__append_4) \
 @COND_WINDOWS_TRUE@	$(am__EXEEXT_3)
 @COND_SOUND_TRUE@@COND_WINDOWS_FALSE@am__append_1 = test-audio-device
@@ -286,6 +287,8 @@ target_triplet = @target@
 # Let GCC remove them before linking these focused C test drivers.
 @COND_WINDOWS_TRUE@am__append_7 = -flto
 @COND_WINDOWS_TRUE@am__append_8 = -flto
+@COND_WINDOWS_TRUE@am__append_9 = -flto
+@COND_WINDOWS_TRUE@am__append_10 = @W32_LIBS@
 subdir = tests
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -715,7 +718,7 @@ am_test_talkmacro_input_OBJECTS =  \
 	$(top_builddir)/src/client/test_talkmacro_input-talkmacros.$(OBJEXT)
 test_talkmacro_input_OBJECTS = $(am_test_talkmacro_input_OBJECTS)
 test_talkmacro_input_DEPENDENCIES =  \
-	$(top_builddir)/src/common/libxpcommon.a
+	$(top_builddir)/src/common/libxpcommon.a $(am__DEPENDENCIES_1)
 test_talkmacro_input_LINK = $(CCLD) $(test_talkmacro_input_CFLAGS) \
 	$(CFLAGS) $(test_talkmacro_input_LDFLAGS) $(LDFLAGS) -o $@
 am_test_text_atlas_OBJECTS = test_text_atlas.$(OBJEXT) \
@@ -1506,9 +1509,11 @@ test_srecord_input_LDADD = $(top_builddir)/src/common/libxpcommon.a
 test_talkmacro_input_SOURCES = test_talkmacro_input.c \
 	$(top_srcdir)/src/client/talkmacros.c
 
-test_talkmacro_input_CFLAGS = $(AM_CFLAGS) -ffunction-sections -fdata-sections
+test_talkmacro_input_CFLAGS = $(AM_CFLAGS) -ffunction-sections \
+	-fdata-sections $(am__append_9)
 test_talkmacro_input_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections -Wl,--wrap=fread
-test_talkmacro_input_LDADD = $(top_builddir)/src/common/libxpcommon.a
+test_talkmacro_input_LDADD = $(top_builddir)/src/common/libxpcommon.a \
+	$(am__append_10)
 test_mapedit_input_SOURCES = test_mapedit_input.c \
 	$(top_srcdir)/src/mapedit/file.c $(top_srcdir)/src/mapedit/T_Form.c
 
@@ -4950,6 +4955,13 @@ test-robot-intercept.log: test-robot-intercept$(EXEEXT)
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
+test-talkmacro-input.log: test-talkmacro-input$(EXEEXT)
+	@p='test-talkmacro-input$(EXEEXT)'; \
+	b='test-talkmacro-input'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
 test-mapdata-input.log: test-mapdata-input$(EXEEXT)
 	@p='test-mapdata-input$(EXEEXT)'; \
 	b='test-mapdata-input'; \
@@ -4960,13 +4972,6 @@ test-mapdata-input.log: test-mapdata-input$(EXEEXT)
 test-srecord-input.log: test-srecord-input$(EXEEXT)
 	@p='test-srecord-input$(EXEEXT)'; \
 	b='test-srecord-input'; \
-	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
-	--log-file $$b.log --trs-file $$b.trs \
-	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
-	"$$tst" $(AM_TESTS_FD_REDIRECT)
-test-talkmacro-input.log: test-talkmacro-input$(EXEEXT)
-	@p='test-talkmacro-input$(EXEEXT)'; \
-	b='test-talkmacro-input'; \
 	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
