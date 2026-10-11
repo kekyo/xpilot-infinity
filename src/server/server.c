@@ -70,11 +70,8 @@ static void Handle_signal(int sig_no)
 
 #endif /* !defined(_WINDOWS) */
 
-int Server_initialize(int argc, char **argv)
+int Server_prepare(int argc, char **argv)
 {
-    int timer_tick_rate;
-    char *addr;
-
     /* world is a global now */
     world = &World;
 
@@ -137,6 +134,14 @@ int Server_initialize(int argc, char **argv)
     Hitmasks_init();
 
     Rank_init_saved_scores();
+
+    return 0;
+}
+
+int Server_activate(void)
+{
+    int timer_tick_rate;
+    char *addr;
 
     /*
      * Get server's official name.
@@ -217,6 +222,12 @@ int Server_initialize(int argc, char **argv)
 #endif
 
     return 0;
+}
+
+int Server_initialize(int argc, char **argv)
+{
+    int result = Server_prepare(argc, argv);
+    return result != 0 ? result : Server_activate();
 }
 
 #ifndef __EMSCRIPTEN__

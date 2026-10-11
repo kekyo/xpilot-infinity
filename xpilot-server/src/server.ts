@@ -3,7 +3,7 @@ import { createCore, type CoreOptions, type ServerCore } from './core';
 /** Running game whose resources belong to the caller. */
 export interface RunningServer {
   /** Request an orderly stop. Repeated calls have no effect. */
-  stop: () => void;
+  stop: () => Promise<void>;
   /** Exit code, resolved once the game has stopped and timers are removed. */
   closed: Promise<number>;
 }
@@ -27,44 +27,44 @@ export const startServer = async (
   const closed = new Promise<number>((resolve) => {
     finish = resolve;
   });
-  const stop = () => {
+  const stop = async () => {
     if (!running) return;
     running = false;
     if (timer !== undefined) clearTimeout(timer);
     if (input !== undefined) clearImmediate(input);
     try {
-      core!.stop();
+      await core!.stop();
       finish(failed ? 1 : core!.exitCode());
     } catch (error) {
       options.log(String(error));
       finish(1);
     }
   };
-  const pump = (frame: boolean): boolean => {
+  const pump = async (frame: boolean): Promise<boolean> => {
     try {
       if (!core!.pump(frame)) {
-        stop();
+        await stop();
         return false;
       }
       return true;
     } catch (error) {
       options.log(String(error));
       failed = true;
-      stop();
+      await stop();
       return false;
     }
   };
   const ready = () => {
     if (!running || input !== undefined) return;
-    input = setImmediate(() => {
+    input = setImmediate(async () => {
       input = undefined;
-      if (running && pump(false) && core!.hasInput()) ready();
+      if (running && (await pump(false)) && core!.hasInput()) ready();
     });
   };
   core = await createCore({ ...options, ready });
-  const result = core.start(args);
+  const result = await core.start(args);
   if (result !== 0) {
-    core.stop();
+    await core.stop();
     throw new Error(`Server initialization failed (${result}).`);
   }
   running = true;
@@ -72,10 +72,10 @@ export const startServer = async (
   const schedule = () => {
     if (!running) return;
     timer = setTimeout(
-      () => {
+      async () => {
         const now = performance.now();
         if (now >= nextFrame) {
-          if (!pump(true)) return;
+          if (!(await pump(true))) return;
           const interval = 1000 / core!.fps();
           nextFrame += interval;
           if (now - nextFrame > interval * 2) nextFrame = now + interval;

@@ -133,18 +133,13 @@
 
 /*
  * If COMPRESSED_MAPS is defined, the server will attempt to uncompress
- * maps on the fly (but only if neccessary). CONF_ZCAT_FORMAT should produce
- * a command that will unpack the given .gz file to stdout (for use in popen).
+ * maps on the fly with zlib (but only if necessary).
  * CONF_ZCAT_EXT should define the proper compressed file extension.
  */
-#ifndef _WINDOWS
+#ifdef HAVE_LIBZ
 #  define CONF_COMPRESSED_MAPS
-#else
-/* Couldn't find a popen(), also compress and gzip don't exist. */
-#  undef CONF_COMPRESSED_MAPS
 #endif
 #define CONF_ZCAT_EXT			".gz"
-#define CONF_ZCAT_FORMAT 		"gzip -d -c < %s"
 
 void Conf_print(void);
 #ifdef _WINDOWS
@@ -171,6 +166,5 @@ char *Conf_soundfile(void);
 char *Conf_localguru(void);
 char *Conf_robotfile(void);
 char *Conf_zcat_ext(void);
-char *Conf_zcat_format(void);
 
 #endif /* XPCONFIG_H */

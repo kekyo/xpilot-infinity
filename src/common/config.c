@@ -253,13 +253,6 @@ char *Conf_zcat_ext(void)
     return conf;
 }
 
-char *Conf_zcat_format(void)
-{
-    static char conf[] = CONF_ZCAT_FORMAT;
-
-    return conf;
-}
-
 #ifdef _WINDOWS
 WINDOWS_CONF_FUNCTION(Conf_sounddir, CONF_SOUNDDIR)
 WINDOWS_CONF_FUNCTION(Conf_soundfile, CONF_SOUNDFILE)
@@ -320,6 +313,5 @@ void Conf_print(void)
     warn("Conf_sounddir()           = %s", Conf_sounddir());
     warn("Conf_soundfile()          = %s", Conf_soundfile());
     warn("Conf_zcat_ext()           = %s", Conf_zcat_ext());
-    warn("Conf_zcat_format()        = %s", Conf_zcat_format());
     warn("============================================================");
 }

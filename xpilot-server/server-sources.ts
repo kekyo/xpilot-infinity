@@ -1,6 +1,7 @@
 /** Shared game and protocol sources; all paths are relative to wasm/. */
 export const serverSources = [
   'server-driver.c',
+  'host-files.c',
   ...[
     'alliance',
     'asteroid',

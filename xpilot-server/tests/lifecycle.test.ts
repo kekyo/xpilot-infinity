@@ -18,7 +18,7 @@ it('loads a map, advances robots without waiting, and stops the WASM instance', 
   });
   try {
     expect(
-      core.start([
+      await core.start([
         '-map',
         'ndh.xp2',
         '+reportToMetaServer',
@@ -44,11 +44,11 @@ it('loads a map, advances robots without waiting, and stops the WASM instance', 
     expect(core.frames()).toBe(120);
     expect(core.robots()).toBe(2);
     expect(log.some((line) => line.includes('Server runs at'))).toBe(true);
-    core.stop();
+    await core.stop();
     expect(core.pump(true)).toBe(false);
     expect(core.exitCode()).toBe(0);
   } finally {
-    core.stop();
+    await core.stop();
     await rm(data, { recursive: true, force: true });
   }
 });

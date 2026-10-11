@@ -1,5 +1,8 @@
 import { assertNodeRuntime } from './runtime';
 import { isAbsolute, parse, relative, resolve, sep } from 'node:path';
+import { lookup } from 'node:dns/promises';
+import { isIPv4 } from 'node:net';
+import { hostname, userInfo } from 'node:os';
 
 interface WasmModule {
   _malloc: (size: number) => number;
@@ -7,13 +10,17 @@ interface WasmModule {
   HEAPU8: Uint8Array;
   HEAPU32: Uint32Array;
   _xp_server_start: (argc: number, argv: number) => number;
+  _xp_server_activate: () => number;
+  _xp_server_resolve_name: (index: number) => number;
   _xp_server_pump: (frame: number) => number;
   _xp_server_stop: () => void;
+  _xp_server_close_socket: (pointer: number) => void;
   _xp_server_frames: () => number;
   _xp_server_robots: () => number;
   _xp_server_fps: () => number;
   _xp_server_status: () => number;
   NODEFS: unknown;
+  UTF8ToString: (pointer: number) => string;
   FS: {
     mkdir: (path: string) => void;
     mount: (type: unknown, options: { root: string }, path: string) => void;
@@ -40,13 +47,13 @@ export interface CoreOptions {
 /** One game instance, owned and advanced by its host. */
 export interface ServerCore {
   /** Initialize once from native server arguments, returning an exit code. */
-  start: (args: readonly string[]) => number;
+  start: (args: readonly string[]) => Promise<number>;
   /** Dispatch ready input; advance one frame when requested. False means stopped. */
   pump: (frame: boolean) => boolean;
   /** Whether the last pump dispatched descriptors and more input may be ready. */
   hasInput: () => boolean;
   /** Stop idempotently, saving state and closing listeners. */
-  stop: () => void;
+  stop: () => Promise<void>;
   /** Completed frames. */
   frames: () => number;
   /** Current robot count. */
@@ -69,11 +76,36 @@ export const createCore = async (options: CoreOptions): Promise<ServerCore> => {
   const { default: create } = await import(
     /* @vite-ignore */ options.runtime.href
   );
+  const addresses = new Map<string, string>();
+  const closing = new Set<Promise<void>>();
   const wasm: WasmModule = await create({
     noInitialRun: true,
     onSocketReady: options.ready,
     print: options.log,
     printErr: options.log,
+    userName: userInfo().username,
+    hostName: hostname(),
+    lookupAddress: (name: string) => addresses.get(name),
+    deferSocketClose: (pointer: number) => {
+      const closed = new Promise<void>((done) => {
+        setImmediate(() => {
+          wasm._xp_server_close_socket(pointer);
+          closing.delete(closed);
+          done();
+        });
+      });
+      closing.add(closed);
+    },
+    mapPath: (path: string) => {
+      if (
+        !isAbsolute(path) ||
+        ['/assets', '/data', '/web', '/host', '/dev', '/proc'].some(
+          (root) => path === root || path.startsWith(`${root}/`)
+        )
+      )
+        return path;
+      return hostPath(path);
+    },
   });
   wasm.FS.mkdir('/assets');
   wasm.FS.mount(wasm.NODEFS, { root: options.assets }, '/assets');
@@ -98,40 +130,12 @@ export const createCore = async (options: CoreOptions): Promise<ServerCore> => {
     }
     return `${mount}/${relative(root, absolute).split(sep).join('/')}`;
   };
-  const pathArguments = new Set([
-    '-map',
-    '-mapfilename',
-    '-defaults',
-    '-defaultsfilename',
-    '-passwordfilename',
-    '-robotfile',
-    '-robotfilename',
-    '-rankfilename',
-    '-rankwebpage',
-    '-rankwebpagefilename',
-    '-recordfilename',
-    '-recordfile',
-    '-webroot',
-    '-webassetroot',
-    '-adminmessagefilename',
-    '-servermotdfilename',
-  ]);
   let ready = 0;
   return {
-    start: (args) => {
+    start: async (args) => {
       const allocated: number[] = [];
       try {
-        const mapped = args.map((arg, index) =>
-          index > 0 &&
-          pathArguments.has(args[index - 1].toLowerCase()) &&
-          isAbsolute(arg) &&
-          !['/assets/', '/data/', '/web', '/host/'].some((prefix) =>
-            arg.startsWith(prefix)
-          )
-            ? hostPath(arg)
-            : arg
-        );
-        const strings = ['xpilot-infinity', ...mapped].map((arg) => {
+        const strings = ['xpilot-infinity', ...args].map((arg) => {
           const bytes = new TextEncoder().encode(arg + '\0');
           const pointer = wasm._malloc(bytes.length);
           if (!pointer) throw new Error('Out of WASM memory');
@@ -143,7 +147,29 @@ export const createCore = async (options: CoreOptions): Promise<ServerCore> => {
         if (!argv) throw new Error('Out of WASM memory');
         allocated.push(argv);
         wasm.HEAPU32.set([...strings, 0], argv / 4);
-        return wasm._xp_server_start(strings.length, argv);
+        const result = wasm._xp_server_start(strings.length, argv);
+        if (result !== 0) return result;
+        const names = new Set<string>();
+        for (let index = 0; ; index++) {
+          const pointer = wasm._xp_server_resolve_name(index);
+          if (pointer !== 0) names.add(wasm.UTF8ToString(pointer));
+          else if (index > 0) break;
+        }
+        await Promise.all(
+          [...names].map(async (name) => {
+            if (isIPv4(name)) {
+              addresses.set(name, name);
+              return;
+            }
+            try {
+              const result = await lookup(name, { family: 4 });
+              addresses.set(name, result.address);
+            } catch (error) {
+              options.log(`Could not resolve ${name}: ${String(error)}`);
+            }
+          })
+        );
+        return wasm._xp_server_activate();
       } finally {
         for (const pointer of allocated) wasm._free(pointer);
       }
@@ -153,7 +179,10 @@ export const createCore = async (options: CoreOptions): Promise<ServerCore> => {
       return ready >= 0;
     },
     hasInput: () => ready > 0,
-    stop: () => wasm._xp_server_stop(),
+    stop: async () => {
+      wasm._xp_server_stop();
+      await Promise.all([...closing]);
+    },
     frames: () => wasm._xp_server_frames(),
     robots: () => wasm._xp_server_robots(),
     fps: () => wasm._xp_server_fps(),
