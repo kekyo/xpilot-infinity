@@ -1525,7 +1525,8 @@ run_transport_mismatch()
 }
 
 mkdir -p -- "$runtime_dir/textures"
-printf 'xpilot.texturePath: %s:%s\n' \
+# The virtual display does not isolate the host's audio device.
+printf 'xpilot.sound: no\nxpilot.texturePath: %s:%s\n' \
     "$runtime_dir/textures" "$XPILOT_TEST_PKGDATADIR/textures" \
     >"$runtime_dir/xpilotrc"
 export XPILOTRC="$runtime_dir/xpilotrc"
