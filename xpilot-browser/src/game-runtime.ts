@@ -6,6 +6,7 @@
 import type { BrowserRuntime } from './browser-runtime';
 import type { BrowserTextProvider } from './browser-text';
 import type { MapAssetFiles } from './map-assets';
+import type { AudioFiles, BrowserAudio } from './browser-audio';
 
 /** C game exports and browser services borrowed by one Emscripten instance. */
 export interface GameRuntime extends Pick<
@@ -21,7 +22,33 @@ export interface GameRuntime extends Pick<
   | '_xp_browser_session_close'
 > {
   /** Public virtual filesystem API owned by this instance. */
-  FS: MapAssetFiles;
+  FS: MapAssetFiles & AudioFiles;
+  /** Audio service borrowed from the page. */
+  xpilotAudio: BrowserAudio | undefined;
+  /** Current Unicode bitmap density. */
+  xpilotTextScale: number;
+  /** Notify the host after C saves its configuration file. */
+  xpilotSettingsChanged: () => void;
+  /** Request asynchronous departure when a C menu or key selects Quit. */
+  xpilotQuit: () => void;
+  /** Request browser pointer lock, reporting asynchronous denial to the UI. */
+  xpilotPointerRequest: (enabled: boolean) => void;
+  /** Number of logically held input actions. */
+  _xp_game_held: () => number;
+  /** Logical viewport width, independent of backing pixels. */
+  _xp_game_width: () => number;
+  /** Serialize native options and notify the page. */
+  _xp_game_save_settings: () => number;
+  /** Preserve CPU copies when the graphics context is lost. */
+  _xp_game_context_lost: () => number;
+  /** Recreate graphics objects after context restoration. */
+  _xp_game_context_restored: () => number;
+  /** Evict Unicode bitmaps after a display-scale change. */
+  _xp_game_text_scale_changed: () => number;
+  /** Request relative mouse steering from a user gesture. */
+  _xp_game_pointer: (enabled: number) => number;
+  /** Request full screen from a user gesture. */
+  _xp_game_fullscreen: (enabled: number) => number;
   /** Complete map initialization after asynchronous asset installation. */
   _xp_game_assets_ready: () => number;
   /** Borrow the pending map's data URL as a UTF-8 pointer. */

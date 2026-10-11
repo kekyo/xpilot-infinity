@@ -24,6 +24,12 @@
  */
 
 #include "xpclient.h"
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+EM_JS(void, browser_request_exit, (void), {
+    queueMicrotask(() => Module.xpilotQuit());
+});
+#endif
 
 client_data_t	clData = { 0, };
 
@@ -2380,7 +2386,12 @@ int Client_check_pointer_move_interval(void)
  */
 void Client_exit(int status)
 {
+#ifdef __EMSCRIPTEN__
+    (void)status;
+    browser_request_exit();
+#else
     Net_cleanup();
     Client_cleanup();
     exit(status);
+#endif
 }

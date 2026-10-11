@@ -359,6 +359,14 @@ static int check_bitmap_ink_is_independent_of_layout(void)
     TEST_CHECK(float_equal(captured_vertices[2].x, 100));
     TEST_CHECK(float_equal(captured_vertices[2].y, 45));
     frontend.frame_active = 0;
+    TEST_CHECK(Unicode_text_renderer_clear(renderer) == RENDERER_STATUS_OK);
+    begin_frame();
+    TEST_CHECK(Unicode_text_renderer_draw(renderer, &request,
+        (RendererPoint2D){100, 50}, TEXT_GEOMETRY_ALIGN_CENTER,
+        TEXT_GEOMETRY_ALIGN_BOTTOM, (RendererColor){255,255,255,255},
+        TEXT_RENDERER_SPACE_HUD) == RENDERER_STATUS_OK);
+    TEST_CHECK(rasterize_calls == 2 && texture_create_calls == 2);
+    frontend.frame_active = 0;
     TEST_CHECK(Unicode_text_renderer_destroy(&renderer) == RENDERER_STATUS_OK);
     return 0;
 }

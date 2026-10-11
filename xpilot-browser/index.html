@@ -22,6 +22,14 @@
         ><button id="disconnect" type="button" disabled>Leave game</button>
       </form>
       <output id="connection" aria-live="polite">Disconnected</output>
+      <div class="controls">
+        <label class="check"><input id="mute" type="checkbox" /> Mute</label>
+        <button id="save" type="button">Save game settings</button>
+        <button id="mouse" type="button">Mouse steering</button>
+        <button id="fullscreen" type="button">Full screen</button>
+      </div>
+      <output id="settings" aria-live="polite"></output>
+      <output id="audio" aria-live="polite">Audio ready</output>
       <div id="viewport">
         <canvas id="game" tabindex="0" aria-label="XPilot game"></canvas>
       </div>

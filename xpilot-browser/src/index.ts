@@ -15,6 +15,8 @@ import {
 } from './game-runtime';
 import './style.css';
 import { installMapAssets } from './map-assets';
+import { createBrowserAudio, type BrowserAudio } from './browser-audio';
+import { loadSettings, saveSettings, type BrowserSettings } from './settings';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game')!;
 const viewport = document.querySelector<HTMLElement>('#viewport')!;
@@ -23,6 +25,17 @@ const connection = document.querySelector<HTMLOutputElement>('#connection')!;
 const connect = document.querySelector<HTMLButtonElement>('#connect')!;
 const disconnect = document.querySelector<HTMLButtonElement>('#disconnect')!;
 const nickname = document.querySelector<HTMLInputElement>('#nickname')!;
+const mute = document.querySelector<HTMLInputElement>('#mute')!;
+const settingsStatus = document.querySelector<HTMLOutputElement>('#settings')!;
+const audioStatus = document.querySelector<HTMLOutputElement>('#audio')!;
+let preferences: BrowserSettings = {
+  nickname: 'BrowserPilot',
+  muted: false,
+  config: '',
+};
+let audio: BrowserAudio | undefined;
+let contextLost = false;
+let windowFocused = true;
 let runtime: GameRuntime | undefined;
 let fonts: BrowserTextProvider | undefined;
 let phase: 'idle' | 'admission' | 'assets' | 'game' | 'resume' | 'quit' =
@@ -36,16 +49,63 @@ let retryPending = false;
 let animation = 0;
 let generation = 0;
 
-const resize = () =>
-  runtime?._xp_game_resize(
-    Math.max(128, viewport.clientWidth),
-    Math.max(128, viewport.clientHeight)
+const resize = () => {
+  if (!runtime || contextLost) return;
+  const scale = Math.max(1, Math.min(4, devicePixelRatio));
+  if (runtime.xpilotTextScale !== scale) {
+    runtime.xpilotTextScale = scale;
+    runtime._xp_game_text_scale_changed();
+  }
+  runtime._xp_game_resize(
+    Math.max(
+      128,
+      document.fullscreenElement ? innerWidth : viewport.clientWidth
+    ),
+    Math.max(
+      128,
+      document.fullscreenElement ? innerHeight : viewport.clientHeight
+    )
   );
+};
+const updateAudio = () => {
+  if (!audio) return;
+  const info = audio.stats();
+  audioStatus.dataset.state = info.state;
+  audioStatus.dataset.active = String(info.active);
+  audioStatus.dataset.peak = String(info.peak);
+  audioStatus.textContent = mute.checked
+    ? 'Audio muted'
+    : info.state === 'running'
+      ? 'Audio enabled'
+      : 'Audio ready';
+};
+const persist = async () => {
+  try {
+    preferences = {
+      nickname: nickname.value,
+      muted: mute.checked,
+      config: runtime
+        ? new TextDecoder().decode(
+            runtime.FS.readFile('/home/web_user/.xpilotrc')
+          )
+        : preferences.config,
+    };
+    await saveSettings(preferences);
+    settingsStatus.textContent = 'Settings saved';
+    settingsStatus.dataset.state = 'saved';
+  } catch (error) {
+    settingsStatus.textContent = String(error);
+    settingsStatus.dataset.state = 'error';
+  }
+};
 const observer = new ResizeObserver(resize);
 observer.observe(viewport);
 const stop = (message: string, state: string) => {
   generation++;
   assetRequest.abort();
+  audio?.stop();
+  updateAudio();
+  contextLost = false;
   clearTimeout(retryTimer);
   retryPending = false;
   cancelAnimationFrame(animation);
@@ -56,6 +116,7 @@ const stop = (message: string, state: string) => {
   connection.textContent = message;
   connection.dataset.state = state;
   connect.disabled = false;
+  nickname.disabled = false;
   disconnect.disabled = true;
 };
 const openSocket = () =>
@@ -89,10 +150,12 @@ const loadMap = async (game: GameRuntime) => {
     phase = 'game';
   } catch (error) {
     if (current === generation) stop(String(error), 'error');
-  } finally { clearTimeout(timeout); }
+  } finally {
+    clearTimeout(timeout);
+  }
 };
 const advance = () => {
-  if (!runtime) return;
+  if (!runtime || contextLost) return;
   try {
     if (phase === 'quit') {
       if (runtime._xp_game_quit_step() > 0 || performance.now() >= quitUntil)
@@ -168,6 +231,8 @@ const advance = () => {
       canvas.dataset.shipY = String(runtime._xp_game_position(1));
       canvas.dataset.heading = String(runtime._xp_game_heading());
       canvas.dataset.shots = String(runtime._xp_game_shots());
+      canvas.dataset.logicalWidth = String(runtime._xp_game_width());
+      canvas.dataset.held = String(runtime._xp_game_held());
       document.querySelector('#chat-message')!.textContent =
         runtime.UTF8ToString(runtime._xp_game_message());
     }
@@ -177,6 +242,7 @@ const advance = () => {
 };
 const tick = () => {
   advance();
+  updateAudio();
   if (runtime && phase !== 'idle') animation = requestAnimationFrame(tick);
 };
 const prepare = async () => {
@@ -188,6 +254,38 @@ const prepare = async () => {
     return false;
   }
   runtime = created;
+  if (!audio) {
+    try {
+      audio = await createBrowserAudio(created.FS);
+    } catch (error) {
+      audioStatus.textContent = 'Audio unavailable: ' + String(error);
+    }
+  }
+  if (current !== generation) return false;
+  created.xpilotAudio = audio;
+  audio?.mute(mute.checked || !windowFocused || document.hidden);
+  created.xpilotQuit = leave;
+  created.xpilotPointerRequest = (enabled) =>
+    queueMicrotask(async () => {
+      try {
+        if (enabled && document.pointerLockElement !== canvas)
+          await canvas.requestPointerLock();
+        else if (!enabled && document.pointerLockElement)
+          document.exitPointerLock();
+      } catch (error) {
+        if (runtime === created) created._xp_game_pointer(0);
+        connection.textContent =
+          'Mouse steering request was declined: ' + String(error);
+      }
+    });
+  created.xpilotSettingsChanged = () =>
+    queueMicrotask(async () => {
+      if (runtime === created) await persist();
+    });
+  created.FS.writeFile(
+    '/home/web_user/.xpilotrc',
+    new TextEncoder().encode(preferences.config)
+  );
   if (runtime._xp_game_init() !== 0)
     throw new Error('SDL / WebGL 2 initialization failed');
   resize();
@@ -195,9 +293,12 @@ const prepare = async () => {
 };
 const join = async () => {
   connect.disabled = true;
+  nickname.disabled = true;
   connection.textContent = 'Connecting…';
   connection.dataset.state = 'connecting';
   try {
+    await audio?.unlock();
+    await persist();
     if (!runtime && !(await prepare())) return;
     if (!runtime) return;
     runtime.xpilotSocket = openSocket();
@@ -221,7 +322,7 @@ document.querySelector('#join')!.addEventListener('submit', async (event) => {
   event.preventDefault();
   await join();
 });
-disconnect.addEventListener('click', () => {
+const leave = () => {
   if (phase !== 'game') {
     stop('Disconnected', 'disconnected');
     return;
@@ -232,7 +333,8 @@ disconnect.addEventListener('click', () => {
   connection.textContent = 'Leaving game…';
   connection.dataset.state = 'leaving';
   advance();
-});
+};
+disconnect.addEventListener('click', leave);
 document.querySelector('#chat-form')!.addEventListener('submit', (event) => {
   event.preventDefault();
   const input = document.querySelector<HTMLInputElement>('#chat')!;
@@ -244,10 +346,84 @@ document.querySelector('#chat-form')!.addEventListener('submit', (event) => {
     canvas.focus();
   }
 });
-window.addEventListener('pagehide', () => {
+const releaseInput = () => {
+  runtime?._xp_game_clear_input();
+  audio?.stop();
+  updateAudio();
+};
+canvas.addEventListener('blur', releaseInput);
+window.addEventListener('blur', () => {
+  windowFocused = false;
+  releaseInput();
+  audio?.mute(true);
+});
+window.addEventListener('focus', () => {
+  windowFocused = true;
+  audio?.mute(mute.checked || document.hidden);
+});
+document.addEventListener('visibilitychange', () => {
+  releaseInput();
+  audio?.mute(mute.checked || document.hidden || !windowFocused);
+});
+window.addEventListener('resize', resize);
+document.addEventListener('fullscreenchange', resize);
+document.addEventListener('pointerlockchange', () => {
+  if (!document.pointerLockElement) {
+    runtime?._xp_game_pointer(0);
+    releaseInput();
+  }
+});
+canvas.addEventListener('webglcontextlost', (event) => {
+  event.preventDefault();
+  contextLost = true;
+  releaseInput();
+  runtime?._xp_game_context_lost();
+  runtime?.xpilotSocket?.dispose();
+  connection.textContent = 'Restoring graphics…';
+});
+canvas.addEventListener('webglcontextrestored', () => {
+  if (runtime && runtime._xp_game_context_restored() !== 0) {
+    stop('Graphics restoration failed', 'error');
+    return;
+  }
+  contextLost = false;
+  resize();
+  advance();
+});
+nickname.addEventListener('change', persist);
+mute.addEventListener('change', async () => {
+  audio?.mute(mute.checked || document.hidden);
+  if (!mute.checked) await audio?.unlock();
+  updateAudio();
+  await persist();
+});
+document.querySelector('#save')!.addEventListener('click', async () => {
+  if (runtime) {
+    if (runtime._xp_game_save_settings() !== 0)
+      settingsStatus.textContent = 'Unable to save game settings';
+  } else await persist();
+});
+document.querySelector('#mouse')!.addEventListener('click', () => {
+  canvas.focus();
+  runtime?._xp_game_pointer(document.pointerLockElement ? 0 : 1);
+});
+document.querySelector('#fullscreen')!.addEventListener('click', () => {
+  canvas.focus();
+  if (runtime?._xp_game_fullscreen(document.fullscreenElement ? 0 : 1) === -1)
+    connection.textContent = 'Full screen request was declined';
+});
+window.addEventListener('pagehide', async (event) => {
   stop('Disconnected', 'disconnected');
+  if (!event.persisted) await audio?.dispose();
 });
 try {
+  try {
+    preferences = await loadSettings();
+  } catch (error) {
+    settingsStatus.textContent = 'Settings unavailable: ' + String(error);
+  }
+  nickname.value = preferences.nickname;
+  mute.checked = preferences.muted;
   fonts = await createBrowserTextProvider(
     new URL('fonts/VeraMoBd.ttf', document.baseURI).href,
     new URL('fonts/FreeSansBoldOblique.ttf', document.baseURI).href

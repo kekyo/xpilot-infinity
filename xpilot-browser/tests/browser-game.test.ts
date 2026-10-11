@@ -73,6 +73,7 @@ test('plays the native game in WebAssembly', async () => {
     notifyNative = done;
   });
   const streams = new Set<Socket>();
+  const httpStreams = new Set<Socket>();
   const bridge = createServer((incoming) => {
     const outgoing = connectTCP(port, '127.0.0.1');
     streams.add(incoming);
@@ -91,7 +92,10 @@ test('plays the native game in WebAssembly', async () => {
     outgoing.pipe(incoming);
   });
   const call = async (name: string, args: Record<string, unknown>) => {
-    await writeFile(resolve(output, 'last-action.json'), JSON.stringify({ name, args }));
+    await writeFile(
+      resolve(output, 'last-action.json'),
+      JSON.stringify({ name, args })
+    );
     const result = (await client.callTool({
       name,
       arguments: args,
@@ -126,6 +130,11 @@ test('plays the native game in WebAssembly', async () => {
         },
       },
     });
+    // HTTP closeAllConnections deliberately excludes upgraded WebSockets.
+    host.httpServer.on('connection', (socket) => {
+      httpStreams.add(socket);
+      socket.on('close', () => httpStreams.delete(socket));
+    });
     const addr = host.httpServer.address();
     if (!addr || typeof addr === 'string') throw new Error('No preview port');
     const configPath = resolve(output, 'mcp.json');
@@ -135,6 +144,7 @@ test('plays the native game in WebAssembly', async () => {
         browser: {
           browserName: 'chromium',
           isolated: true,
+          contextOptions: { deviceScaleFactor: 2 },
           launchOptions: {
             channel: 'chrome',
             headless: true,
@@ -166,9 +176,22 @@ test('plays the native game in WebAssembly', async () => {
     connected = true;
     await call('browser_navigate', { url: `http://127.0.0.1:${addr.port}` });
     await call('browser_wait_for', { text: 'Ready to join' });
-    await evaluate(
-      '() => { document.querySelector("#join").requestSubmit(); return true; }'
+    expect(await evaluate('() => !!document.querySelector("#mute")')).toBe(
+      true
     );
+    await evaluate(
+      '() => { const n=document.querySelector("#nickname"); n.value="StoredPilot"; n.dispatchEvent(new Event("change")); return true; }'
+    );
+    await call('browser_wait_for', { text: 'Settings saved' });
+    await call('browser_navigate', { url: `http://127.0.0.1:${addr.port}` });
+    await call('browser_wait_for', { text: 'Ready to join' });
+    expect(
+      await evaluate('() => document.querySelector("#nickname").value')
+    ).toBe('StoredPilot');
+    await evaluate(
+      '() => { document.querySelector("#nickname").value="BrowserPilot"; document.querySelector("#connect").focus(); return true; }'
+    );
+    await call('browser_press_key', { key: 'Enter' });
     await call('browser_wait_for', {
       text: 'Playing',
     });
@@ -196,6 +219,11 @@ test('plays the native game in WebAssembly', async () => {
     for (let i = 0; i < pixels.data.length; i += 4)
       colors.add(pixels.data.subarray(i, i + 3).join(','));
     expect(colors.size).toBeGreaterThan(30);
+    const dimensions = await evaluate(
+      '() => { const c=document.querySelector("#game"); return {width:c.width,css:c.getBoundingClientRect().width,logical:Number(c.dataset.logicalWidth)}; }'
+    );
+    expect(dimensions.width).toBe(Math.round(dimensions.css * 2));
+    expect(dimensions.logical).toBe(Math.round(dimensions.css));
     const steering = await evaluate(
       'async () => { const c=document.querySelector("#game"); c.focus(); const h=c.dataset.heading; c.dispatchEvent(new KeyboardEvent("keydown",{key:"a",code:"KeyA",keyCode:65,bubbles:true})); while(c.dataset.heading===h) await new Promise(requestAnimationFrame); c.dispatchEvent(new KeyboardEvent("keyup",{key:"a",code:"KeyA",keyCode:65,bubbles:true})); return c.dataset.heading !== h; }'
     );
@@ -209,14 +237,66 @@ test('plays the native game in WebAssembly', async () => {
         'async () => { const c=document.querySelector("#game"); c.dispatchEvent(new KeyboardEvent("keydown",{key:"Enter",code:"Enter",keyCode:13,bubbles:true})); while(Number(c.dataset.shots)===0) await new Promise(requestAnimationFrame); c.dispatchEvent(new KeyboardEvent("keyup",{key:"Enter",code:"Enter",keyCode:13,bubbles:true})); return Number(c.dataset.shots); }'
       )
     ).toBeGreaterThan(0);
+    await evaluate(
+      'async () => { while(Number(document.querySelector("#audio").dataset.peak)<=0) await new Promise(requestAnimationFrame); return true; }'
+    );
+    await evaluate(
+      'async () => { const c=document.querySelector("#game"); c.dispatchEvent(new KeyboardEvent("keydown",{key:"a",code:"KeyA",keyCode:65,bubbles:true})); while(Number(c.dataset.held)===0) await new Promise(requestAnimationFrame); window.dispatchEvent(new Event("blur")); while(Number(c.dataset.held)!==0) await new Promise(requestAnimationFrame); c.dispatchEvent(new KeyboardEvent("keyup",{key:"a",code:"KeyA",keyCode:65,bubbles:true})); return true; }'
+    );
+    await evaluate(
+      'async () => { const c=document.querySelector("#game"); const ext=c.getContext("webgl2").getExtension("WEBGL_lose_context"); const lost=new Promise(done=>c.addEventListener("webglcontextlost",done,{once:true})); ext.loseContext(); await lost; await new Promise(requestAnimationFrame); const restored=new Promise(done=>c.addEventListener("webglcontextrestored",done,{once:true})); ext.restoreContext(); await restored; while(document.querySelector("#connection").dataset.state!=="playing") await new Promise(requestAnimationFrame); return true; }'
+    );
+    await call('browser_take_screenshot', {
+      filename: resolve(output, 'restored.png'),
+      type: 'png',
+      target: '#game',
+    });
+    const restored = PNG.sync.read(
+      await readFile(resolve(output, 'restored.png'))
+    );
+    const restoredColors = new Set<string>();
+    for (let i = 0; i < restored.data.length; i += 4)
+      restoredColors.add(restored.data.subarray(i, i + 3).join(','));
+    expect(restoredColors.size).toBeGreaterThan(30);
+    await evaluate(
+      '() => { document.querySelector("#mouse").focus(); return true; }'
+    );
+    await call('browser_press_key', { key: 'Enter' });
+    expect(
+      await evaluate(
+        'async () => { while(!document.pointerLockElement) await new Promise(requestAnimationFrame); return document.pointerLockElement.id; }'
+      )
+    ).toBe('game');
+    expect(
+      await evaluate(
+        'async () => { const c=document.querySelector("#game"), heading=c.dataset.heading; c.dispatchEvent(new PointerEvent("pointermove",{pointerType:"mouse",pointerId:1,bubbles:true,movementX:80,movementY:0})); while(c.dataset.heading===heading) await new Promise(requestAnimationFrame); return true; }'
+      )
+    ).toBe(true);
+    await evaluate(
+      '() => { document.exitPointerLock(); document.querySelector("#fullscreen").focus(); return true; }'
+    );
+    await call('browser_press_key', { key: 'Enter' });
+    expect(
+      await evaluate(
+        'async () => { while(!document.fullscreenElement) await new Promise(requestAnimationFrame); return true; }'
+      )
+    ).toBe(true);
+    await evaluate(
+      'async () => { await document.exitFullscreen(); return true; }'
+    );
+    await call('browser_resize', { width: 1000, height: 780 });
+    await evaluate(
+      'async () => { const c=document.querySelector("#game"); while(Number(c.dataset.logicalWidth)!==document.querySelector("#viewport").clientWidth) await new Promise(requestAnimationFrame); return true; }'
+    );
     await call('browser_tabs', {
       action: 'new',
       url: `http://127.0.0.1:${addr.port}`,
     });
     await call('browser_wait_for', { text: 'Ready to join' });
     await evaluate(
-      '() => { document.querySelector("#nickname").value="SecondPilot"; document.querySelector("#join").requestSubmit(); return true; }'
+      '() => { document.querySelector("#nickname").value="SecondPilot"; document.querySelector("#connect").focus(); return true; }'
     );
+    await call('browser_press_key', { key: 'Enter' });
     await call('browser_wait_for', { text: 'Playing' });
     const nativeBinary =
       process.env.XPILOT_CLIENT_BINARY ??
@@ -228,7 +308,8 @@ test('plays the native game in WebAssembly', async () => {
         'env',
         'LIBGL_ALWAYS_SOFTWARE=1',
         'SDL_VIDEODRIVER=x11',
-        'stdbuf', '-oL',
+        'stdbuf',
+        '-oL',
         nativeBinary,
         '-geometry',
         '800x600',
@@ -293,6 +374,11 @@ test('plays the native game in WebAssembly', async () => {
     await call('browser_wait_for', { text: 'Disconnected' });
     expect(nativeLog).toContain('こんにちは XPilot é');
     if (native?.pid) process.kill(-native.pid, 'SIGTERM');
+    expect(
+      await evaluate(
+        '() => Number(document.querySelector("#audio").dataset.active)'
+      )
+    ).toBe(0);
     server.kill('SIGTERM');
     await once(server, 'exit');
     await evaluate(
@@ -345,6 +431,7 @@ test('plays the native game in WebAssembly', async () => {
     for (const stream of streams) stream.destroy();
     await bridgeClosed;
     await writeFile(resolve(output, 'cleanup.txt'), 'http');
+    for (const socket of httpStreams) socket.destroy();
     if (host && 'closeAllConnections' in host.httpServer)
       host.httpServer.closeAllConnections();
     if (host)

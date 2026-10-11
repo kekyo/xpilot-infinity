@@ -252,16 +252,13 @@ RendererStatus Unicode_text_renderer_create(
     return RENDERER_STATUS_OK;
 }
 
-RendererStatus Unicode_text_renderer_destroy(
-    UnicodeTextRenderer **text_renderer)
+RendererStatus Unicode_text_renderer_clear(UnicodeTextRenderer *renderer)
 {
-    UnicodeTextRenderer *renderer;
     UnicodeTextEntry *entry;
     RendererStatus status;
 
-    if (text_renderer == NULL || *text_renderer == NULL)
+    if (renderer == NULL)
         return RENDERER_STATUS_OK;
-    renderer = *text_renderer;
     for (entry = renderer->entries; entry != NULL; entry = entry->next) {
         if (entry->texture == NULL)
             continue;
@@ -276,7 +273,18 @@ RendererStatus Unicode_text_renderer_destroy(
         renderer->entries = entry->next;
         Unicode_text_entry_release_cpu(entry);
     }
-    free(renderer);
+    renderer->entry_count = 0;
+    return RENDERER_STATUS_OK;
+}
+
+RendererStatus Unicode_text_renderer_destroy(
+    UnicodeTextRenderer **text_renderer)
+{
+    if (text_renderer == NULL || *text_renderer == NULL)
+        return RENDERER_STATUS_OK;
+    RendererStatus status = Unicode_text_renderer_clear(*text_renderer);
+    if (status != RENDERER_STATUS_OK) return status;
+    free(*text_renderer);
     *text_renderer = NULL;
     return RENDERER_STATUS_OK;
 }

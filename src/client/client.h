@@ -700,6 +700,8 @@ void Keyboard_button_released(xp_keysym_t ks);
 int Key_init(void);
 int Key_update(void);
 void Key_clear_counts(void);
+/** @return Number of logically held game actions, excluding default shields. */
+int Key_held_count(void);
 bool Key_press(keys_t key);
 bool Key_release(keys_t key);
 void Set_auto_shield(bool on);

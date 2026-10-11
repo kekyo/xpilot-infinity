@@ -3,12 +3,18 @@
 #include "browser_session.h"
 #include "session_connection.h"
 #include "game.h"
+#include "unicode_text_renderer.h"
+#include "text.h"
 #include <emscripten.h>
 
 static int phase;
 static int initialized;
 static double deadline;
 static GameLoopState loop;
+
+EM_JS(void, Browser_pointer_request, (int enabled), {
+    Module.xpilotPointerRequest(!!enabled);
+});
 
 const char *Program_name(void) { return "xpilot-browser"; }
 int xp_game_init(void)
@@ -34,6 +40,7 @@ int xp_game_init(void)
     FILE *settings = fopen("/home/web_user/.xpilotrc", "a");
     if (settings) fclose(settings);
     Parse_options(&count, arguments);
+    sound = true;
     if (Init_window()) return -1;
     initialized = 1;
     return 0;
@@ -78,6 +85,7 @@ void xp_game_stop(void)
 {
     if (!initialized) return;
     Net_cleanup();
+    audioCleanup();
     Client_cleanup();
     initialized = 0;
     phase = 0;
@@ -104,3 +112,29 @@ int xp_game_resume_begin(void) { return Net_session_resume_begin(Browser_transpo
 int xp_game_resume_step(void) { return Net_session_resume_step(); }
 int xp_game_quit_step(void) { return Net_session_quit_step(); }
 void xp_game_clear_input(void) { Key_clear_counts(); }
+int xp_game_held(void) { return Key_held_count(); }
+int xp_game_width(void) { return draw_width; }
+int xp_game_text_scale_changed(void)
+{
+    int status = Unicode_text_renderer_clear(gamefont.unicode_renderer);
+    return status ? status : Unicode_text_renderer_clear(mapfont.unicode_renderer);
+}
+int xp_game_save_settings(void) { return Xpilotrc_write("/home/web_user/.xpilotrc"); }
+int xp_game_context_lost(void)
+{
+    return Renderer_notify_context_lost(Sdl_renderer_frontend(Get_sdl_renderer()));
+}
+int xp_game_context_restored(void)
+{
+    return Renderer_restore_context(Sdl_renderer_frontend(Get_sdl_renderer()));
+}
+int xp_game_pointer(int enabled)
+{
+    if (phase != 3) return -1;
+    Pointer_control_set_state(enabled != 0);
+    return 0;
+}
+int xp_game_fullscreen(int enabled)
+{
+    return SDL_SetWindowFullscreen(SDL_GL_GetCurrentWindow(), enabled != 0) ? 0 : -1;
+}

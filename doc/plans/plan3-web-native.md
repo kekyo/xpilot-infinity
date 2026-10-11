@@ -296,3 +296,13 @@ Playwright MCP で 2 ブラウザとネイティブ SDL クライアントを同
 通信と XPD ローダーの 8 件の単体試験、およびネイティブのゲームループ・文字ビットマップ・ソース文字コード検査の 3 件が成功。初回のネイティブ全体試験は 82/83 件成功で、新設 npm 依存ディレクトリが文字コード検査へ混入した 1 件を修正した。最終全体試験は段階 5 で改めて実行する。段階 3 の完了条件を満たし、段階 4 に進む。
 
 段階 4 の音声は、既存 `caudio.c` の効果音マッピングを使用し、ブラウザ側の Web Audio に渡す方式にする。同梱ファイルが WAV であることをコードとアセットで確認した。Emscripten OpenAL も利用可能だが、ALUT の同期デコードを追加移植するより、Web Audio の公開 API で非同期デコード・ユーザー操作による再開・ミュート・停止を管理する。音声コンテキストはページ単位、再生ノードは同時数を制限し、再参加時に停止・解放する。根拠: [Emscripten 音声](https://emscripten.org/docs/porting/Audio.html)、[Web Audio 非同期デコード](https://developer.mozilla.org/en-US/docs/Web/API/BaseAudioContext/decodeAudioData)。
+
+### 段階 4 の成果物と検証（2026-10-11）
+
+設定はオリジンごとの IndexedDB に保存し、参加名・ミュートと C クライアントの設定ファイルを復元する。画面の保存操作およびゲーム内の設定保存からトランザクションを確定する。終了イベントだけに保存を依存させない。
+
+既存の効果音定義を Web Audio でデコードし、参加操作で音声を開始する。ページ単位のコンテキストと最大 16 個の再生ノードを管理し、フォーカス喪失・終了時に停止する。入力の押下状態もフォーカス喪失時に解放する。相対マウスはページの操作から Pointer Lock を要求し、SDL3 の PointerEvent 経路でゲームへ渡す。全画面は SDL3 の公開 API を使う。論理サイズと描画ピクセルを分離し、倍率変更時に Unicode テクスチャを破棄して再生成する。WebGL コンテキスト喪失では描画を中断し、CPU 側の資源から復旧してセッションを再接続する。
+
+継続利用の UI が存在しない RED、Unicode キャッシュを再生成できない RED を確認した後に実装した。Playwright MCP で設定の再読み込み、実音声の非ゼロ PCM、押下中のフォーカス喪失、WebGL の実際の喪失と復旧、Pointer Lock とマウスによる船の旋回、全画面、高 DPI、リサイズ、退出・再参加後の音声ノード解放を確認した。復旧後の画像も目視し、図形・文字・画像の再描画を確認した。試験の HTTP サーバーは Upgrade 済みソケットも明示的に解放するようにした（[Node.js closeAllConnections の契約](https://nodejs.org/api/http.html#servercloseallconnections)）。
+
+ビルドと型検査が成功し、ブラウザ総合試験は `/tmp/xpilot-browser-stage4-final-check.log`、ネイティブのゲームループ・Unicode 描画・文字コードの 3 試験は `/tmp/xpilot-browser-stage4-native-check.log` で成功。段階 4 の完了条件を満たした。最終的な全体テストは配信統合後に実施する。

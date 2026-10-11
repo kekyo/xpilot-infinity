@@ -34,4 +34,20 @@ int xp_game_resume_step(void);
 int xp_game_quit_step(void);
 /** Release held game keys after focus loss or suspension. */
 void xp_game_clear_input(void);
+/** @return Number of currently held game actions. */
+int xp_game_held(void);
+/** @return Current logical game viewport width. */
+int xp_game_width(void);
+/** Evict Unicode bitmaps on display-density changes. @return Renderer status. */
+int xp_game_text_scale_changed(void);
+/** Serialize native options to the browser settings path. @return Zero on success. */
+int xp_game_save_settings(void);
+/** Retain CPU graphics resources after context loss. @return Renderer status. */
+int xp_game_context_lost(void);
+/** Rebuild retained graphics resources after context restoration. @return Renderer status. */
+int xp_game_context_restored(void);
+/** Set relative steering. @param enabled Boolean requested state. @return Zero on success. */
+int xp_game_pointer(int enabled);
+/** Request full screen from a user gesture. @param enabled Boolean requested state. @return Zero on success. */
+int xp_game_fullscreen(int enabled);
 #endif

@@ -17,7 +17,9 @@ struct XpTextLayout {
 
 EM_JS(int, canvas_text, (const char *text, int mono, float size, float *info, unsigned char *pixels, int capacity), {
     try {
-        const raster = Module.xpilotText.rasterize({text: UTF8ToString(text), face: mono ? 'mono' : 'oblique', size, scale: 1});
+        // Score surfaces retain their pixel-sized contract; Unicode textures
+        // carry a separate logical scale and can use the display density.
+        const raster = Module.xpilotText.rasterize({text: UTF8ToString(text), face: mono ? 'mono' : 'oblique', size, scale: mono ? 1 : (Module.xpilotTextScale || 1)});
         if (info) HEAPF32.set([raster.advance, raster.pixelWidth, raster.pixelHeight, raster.offsetX, raster.offsetY, raster.scale], info >> 2);
         if (pixels) {
             if (raster.pixels.length > capacity) return -1;

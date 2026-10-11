@@ -30,6 +30,7 @@ export const gameSources = [
   '../../src/common/utf8_names.c',
   '../../src/common/xpmemory.c',
   '../../src/client/client.c',
+  '../../src/client/caudio.c',
   '../../src/client/client_session.c',
   '../../src/client/clientcommand.c',
   '../../src/client/clientrank.c',
@@ -97,5 +98,6 @@ export const gameSources = [
   '../../vendor/mtwister/mtwister.c',
   'browser_session.c',
   'browser_text.c',
+  'browser_audio.c',
   'game.c',
 ];
