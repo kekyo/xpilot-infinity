@@ -36,6 +36,11 @@
 #include "server_endpoint.h"
 
 int Setup_net_server(void);
+/** Close remaining login/game sockets and release network state.
+ * @remarks Call after removing players and spectators. Safe before network
+ * initialization and on repeated shutdown.
+ */
+void Cleanup_net_server(void);
 void Conn_change_nick(connection_t *connp, const char *nick);
 void Destroy_connection(connection_t *connp, const char *reason);
 int Check_connection(char *real, char *nick, char *dpy, char *addr);

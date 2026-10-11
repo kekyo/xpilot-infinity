@@ -522,6 +522,24 @@ void Destroy_connection(connection_t *connp, const char *reason)
     memset(connp, 0, sizeof(*connp));
 }
 
+void Cleanup_net_server(void)
+{
+    /* A successful contact exchange can leave a socket waiting for login
+     * without any player object. An embedded host cannot rely on process exit
+     * to release these connections. */
+    if (Conn != NULL && Conn_io != NULL) {
+        for (int i = 0; i < max_connections; i++) {
+            if (Conn[i].state != CONN_FREE)
+                Destroy_connection(&Conn[i], "server exiting");
+        }
+    }
+    XFREE(Conn);
+    XFREE(Conn_io);
+    XFREE(Setup);
+    XFREE(Oldsetup);
+    max_connections = 0;
+}
+
 int Check_connection(char *user, char *nick, char *dpy, char *addr)
 {
     int i;

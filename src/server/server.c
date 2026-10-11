@@ -402,6 +402,8 @@ void End_game(void)
     record = rrecord;
     playback = rplayback;
 
+    Cleanup_net_server();
+
     if (options.recordMode != 0) {
 	options.recordMode = 0;
 	Init_recording();

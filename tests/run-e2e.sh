@@ -34,7 +34,7 @@ fi
 
 client="${XPILOT_TEST_BINDIR:?XPILOT_TEST_BINDIR is required}/xpilot-infinity-sdl"
 x11_client="${XPILOT_TEST_BINDIR}/xpilot-infinity-x11"
-server="${XPILOT_TEST_BINDIR}/xpilot-infinity-server"
+server=${XPILOT_E2E_SERVER_BINARY:-${XPILOT_TEST_BINDIR}/xpilot-infinity-server}
 map="${XPILOT_TEST_PKGDATADIR:?XPILOT_TEST_PKGDATADIR is required}/maps/ndh.xp2"
 contact_target_probe="${XPILOT_CONTACT_TARGET_PROBE:?XPILOT_CONTACT_TARGET_PROBE is required}"
 
@@ -997,7 +997,7 @@ run_tcp_reconnection_case()
     game_client_log="$runtime_dir/client-$game_case.log"
     game_client_name=SDL3TCPResume
 
-    "$server" -map "$map" -port "$port" +reportMeta \
+    "$server" -map "$map" -port "$port" +reportMeta +noQuit \
 	-serverHost 127.0.0.1 -gameTransport tcp \
 	>"$game_server_log" 2>&1 &
     server_pid=$!
@@ -1242,7 +1242,7 @@ run_fixed_session_reconnection_case()
     game_server_log="$runtime_dir/server-$game_case.log"
     game_client_log="$runtime_dir/client-$game_case.log"
 
-    "$server" -map "$map" -port "$port" +reportMeta \
+    "$server" -map "$map" -port "$port" +reportMeta +noQuit \
 	-serverHost 127.0.0.1 "$server_transport_option" \
 	>"$game_server_log" 2>&1 &
     server_pid=$!
