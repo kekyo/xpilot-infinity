@@ -56,6 +56,7 @@ xpilot_infinity_sdl_SOURCES = \
 	polygon_geometry.c polygon_geometry.h \
 	renderer.c renderer.h renderer_backend.h \
 	renderer_gl.h renderer_gl_core.c renderer_gl_core.h \
+	renderer_gl_es.h \
 	score_font.c score_font.h \
 	sdlclipboard.c sdlclipboard.h \
 	sdlcompat.c sdlcompat.h \
