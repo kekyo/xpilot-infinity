@@ -153,6 +153,7 @@ target_triplet = @target@
 @COND_WINDOWS_FALSE@	test-text-renderer$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-text-cache-adapter$(EXEEXT) \
 @COND_WINDOWS_FALSE@	$(am__EXEEXT_1) $(am__EXEEXT_2) \
+@COND_WINDOWS_FALSE@	$(am__EXEEXT_3) \
 @COND_WINDOWS_FALSE@	test-server-endpoint$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-server-admission$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-web-front$(EXEEXT) \
@@ -181,7 +182,7 @@ target_triplet = @target@
 @COND_WINDOWS_TRUE@	test-score-font$(EXEEXT) \
 @COND_WINDOWS_TRUE@	test-native-text$(EXEEXT) \
 @COND_WINDOWS_TRUE@	test-game-input$(EXEEXT) $(am__EXEEXT_1) \
-@COND_WINDOWS_TRUE@	$(am__EXEEXT_2) \
+@COND_WINDOWS_TRUE@	$(am__EXEEXT_2) $(am__EXEEXT_3) \
 @COND_WINDOWS_TRUE@	test-server-endpoint$(EXEEXT) \
 @COND_WINDOWS_TRUE@	test-server-admission$(EXEEXT) \
 @COND_WINDOWS_TRUE@	test-web-front$(EXEEXT) \
@@ -263,6 +264,7 @@ target_triplet = @target@
 @COND_WINDOWS_FALSE@	run-container-publish.sh \
 @COND_WINDOWS_FALSE@	run-container-image.sh run-quadlet.sh \
 @COND_WINDOWS_FALSE@	run-e2e.sh $(am__EXEEXT_1) $(am__append_4) \
+@COND_WINDOWS_FALSE@	$(am__EXEEXT_3) \
 @COND_WINDOWS_FALSE@	test-server-endpoint$(EXEEXT) \
 @COND_WINDOWS_FALSE@	run-multiple-protocols.sh \
 @COND_WINDOWS_FALSE@	test-web-front$(EXEEXT) \
@@ -271,11 +273,14 @@ target_triplet = @target@
 @COND_WINDOWS_FALSE@	test-mapdata-input$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-srecord-input$(EXEEXT) \
 @COND_WINDOWS_FALSE@	test-talkmacro-input$(EXEEXT)
-@COND_WINDOWS_TRUE@TESTS = $(am__EXEEXT_1) $(am__append_4)
+@COND_WINDOWS_TRUE@TESTS = $(am__EXEEXT_1) $(am__append_4) \
+@COND_WINDOWS_TRUE@	$(am__EXEEXT_3)
 @COND_SOUND_TRUE@@COND_WINDOWS_FALSE@am__append_1 = test-audio-device
 @COND_SOUND_TRUE@@COND_WINDOWS_FALSE@am__append_2 = test-audio-device
 @COND_WINDOWS_FALSE@@COND_X11_CLIENT_TRUE@am__append_3 = test-x11-text
 @COND_WINDOWS_FALSE@@COND_X11_CLIENT_TRUE@am__append_4 = run-x11-text.sh
+@COND_WINDOWS_FALSE@@COND_XP_MAPEDIT_TRUE@am__append_5 = test-mapedit-input
+@COND_WINDOWS_FALSE@@COND_XP_MAPEDIT_TRUE@am__append_6 = test-mapedit-input
 subdir = tests
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -288,6 +293,7 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 @COND_SOUND_TRUE@@COND_WINDOWS_FALSE@am__EXEEXT_1 = test-audio-device$(EXEEXT)
 @COND_WINDOWS_FALSE@@COND_X11_CLIENT_TRUE@am__EXEEXT_2 = test-x11-text$(EXEEXT)
+@COND_WINDOWS_FALSE@@COND_XP_MAPEDIT_TRUE@am__EXEEXT_3 = test-mapedit-input$(EXEEXT)
 am_test_audio_device_OBJECTS =  \
 	test_audio_device-test_audio_device.$(OBJEXT)
 test_audio_device_OBJECTS = $(am_test_audio_device_OBJECTS)
@@ -382,6 +388,15 @@ test_mapdata_input_DEPENDENCIES =  \
 	$(top_builddir)/src/common/libxpcommon.a
 test_mapdata_input_LINK = $(CCLD) $(test_mapdata_input_CFLAGS) \
 	$(CFLAGS) $(test_mapdata_input_LDFLAGS) $(LDFLAGS) -o $@
+am_test_mapedit_input_OBJECTS =  \
+	test_mapedit_input-test_mapedit_input.$(OBJEXT) \
+	test_mapedit_input-file.$(OBJEXT) \
+	test_mapedit_input-T_Form.$(OBJEXT)
+test_mapedit_input_OBJECTS = $(am_test_mapedit_input_OBJECTS)
+test_mapedit_input_DEPENDENCIES =  \
+	$(top_builddir)/src/common/libxpcommon.a
+test_mapedit_input_LINK = $(CCLD) $(test_mapedit_input_CFLAGS) \
+	$(CFLAGS) $(test_mapedit_input_LDFLAGS) $(LDFLAGS) -o $@
 am_test_messages_OBJECTS = test_messages-test_messages.$(OBJEXT) \
 	test_messages-messages.$(OBJEXT) \
 	test_messages-clientcommand.$(OBJEXT)
@@ -801,6 +816,9 @@ am__depfiles_remade = ./$(DEPDIR)/SDL_console.Po \
 	./$(DEPDIR)/test_images-strdup.Po \
 	./$(DEPDIR)/test_images-test_images.Po \
 	./$(DEPDIR)/test_mapdata_input-test_mapdata_input.Po \
+	./$(DEPDIR)/test_mapedit_input-T_Form.Po \
+	./$(DEPDIR)/test_mapedit_input-file.Po \
+	./$(DEPDIR)/test_mapedit_input-test_mapedit_input.Po \
 	./$(DEPDIR)/test_messages-clientcommand.Po \
 	./$(DEPDIR)/test_messages-messages.Po \
 	./$(DEPDIR)/test_messages-test_messages.Po \
@@ -935,8 +953,9 @@ SOURCES = $(test_audio_device_SOURCES) $(test_checknames_SOURCES) \
 	$(test_glwidgets_primitives_SOURCES) \
 	$(test_glwidgets_scissor_SOURCES) \
 	$(test_image_geometry_SOURCES) $(test_images_SOURCES) \
-	$(test_mapdata_input_SOURCES) $(test_messages_SOURCES) \
-	$(test_meta_environment_SOURCES) $(test_micro_delay_SOURCES) \
+	$(test_mapdata_input_SOURCES) $(test_mapedit_input_SOURCES) \
+	$(test_messages_SOURCES) $(test_meta_environment_SOURCES) \
+	$(test_micro_delay_SOURCES) \
 	$(test_native_socket_handle_SOURCES) \
 	$(test_native_text_SOURCES) $(test_paint_transform_SOURCES) \
 	$(test_paintmap_vdecor_SOURCES) \
@@ -986,8 +1005,9 @@ DIST_SOURCES = $(test_audio_device_SOURCES) $(test_checknames_SOURCES) \
 	$(test_glwidgets_primitives_SOURCES) \
 	$(test_glwidgets_scissor_SOURCES) \
 	$(test_image_geometry_SOURCES) $(test_images_SOURCES) \
-	$(test_mapdata_input_SOURCES) $(test_messages_SOURCES) \
-	$(test_meta_environment_SOURCES) $(test_micro_delay_SOURCES) \
+	$(test_mapdata_input_SOURCES) $(test_mapedit_input_SOURCES) \
+	$(test_messages_SOURCES) $(test_meta_environment_SOURCES) \
+	$(test_micro_delay_SOURCES) \
 	$(test_native_socket_handle_SOURCES) \
 	$(test_native_text_SOURCES) $(test_paint_transform_SOURCES) \
 	$(test_paintmap_vdecor_SOURCES) \
@@ -1456,6 +1476,15 @@ test_talkmacro_input_SOURCES = test_talkmacro_input.c \
 test_talkmacro_input_CFLAGS = $(AM_CFLAGS) -ffunction-sections -fdata-sections
 test_talkmacro_input_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections -Wl,--wrap=fread
 test_talkmacro_input_LDADD = $(top_builddir)/src/common/libxpcommon.a
+test_mapedit_input_SOURCES = test_mapedit_input.c \
+	$(top_srcdir)/src/mapedit/file.c $(top_srcdir)/src/mapedit/T_Form.c
+
+test_mapedit_input_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/src/mapedit
+test_mapedit_input_CFLAGS = $(AM_CFLAGS) -ffunction-sections -fdata-sections \
+	-Werror=discarded-qualifiers
+
+test_mapedit_input_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections
+test_mapedit_input_LDADD = $(top_builddir)/src/common/libxpcommon.a
 test_web_front_SOURCES = test_web_front.c $(top_srcdir)/src/server/web_front.c
 test_web_front_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/src/server
 test_web_front_LDADD = $(top_builddir)/src/common/libxpcommon.a @W32_LIBS@
@@ -2162,6 +2191,10 @@ test-mapdata-input$(EXEEXT): $(test_mapdata_input_OBJECTS) $(test_mapdata_input_
 	@rm -f test-mapdata-input$(EXEEXT)
 	$(AM_V_CCLD)$(test_mapdata_input_LINK) $(test_mapdata_input_OBJECTS) $(test_mapdata_input_LDADD) $(LIBS)
 
+test-mapedit-input$(EXEEXT): $(test_mapedit_input_OBJECTS) $(test_mapedit_input_DEPENDENCIES) $(EXTRA_test_mapedit_input_DEPENDENCIES)
+	@rm -f test-mapedit-input$(EXEEXT)
+	$(AM_V_CCLD)$(test_mapedit_input_LINK) $(test_mapedit_input_OBJECTS) $(test_mapedit_input_LDADD) $(LIBS)
+
 test-messages$(EXEEXT): $(test_messages_OBJECTS) $(test_messages_DEPENDENCIES) $(EXTRA_test_messages_DEPENDENCIES)
 	@rm -f test-messages$(EXEEXT)
 	$(AM_V_CCLD)$(test_messages_LINK) $(test_messages_OBJECTS) $(test_messages_LDADD) $(LIBS)
@@ -2452,6 +2485,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_images-strdup.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_images-test_images.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_mapdata_input-test_mapdata_input.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_mapedit_input-T_Form.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_mapedit_input-file.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_mapedit_input-test_mapedit_input.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_messages-clientcommand.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_messages-messages.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_messages-test_messages.Po@am__quote@ # am--include-marker
@@ -2919,6 +2955,48 @@ test_mapdata_input-test_mapdata_input.obj: test_mapdata_input.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='test_mapdata_input.c' object='test_mapdata_input-test_mapdata_input.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_mapdata_input_CFLAGS) $(CFLAGS) -c -o test_mapdata_input-test_mapdata_input.obj `if test -f 'test_mapdata_input.c'; then $(CYGPATH_W) 'test_mapdata_input.c'; else $(CYGPATH_W) '$(srcdir)/test_mapdata_input.c'; fi`
+
+test_mapedit_input-test_mapedit_input.o: test_mapedit_input.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_mapedit_input_CPPFLAGS) $(CPPFLAGS) $(test_mapedit_input_CFLAGS) $(CFLAGS) -MT test_mapedit_input-test_mapedit_input.o -MD -MP -MF $(DEPDIR)/test_mapedit_input-test_mapedit_input.Tpo -c -o test_mapedit_input-test_mapedit_input.o `test -f 'test_mapedit_input.c' || echo '$(srcdir)/'`test_mapedit_input.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_mapedit_input-test_mapedit_input.Tpo $(DEPDIR)/test_mapedit_input-test_mapedit_input.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='test_mapedit_input.c' object='test_mapedit_input-test_mapedit_input.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_mapedit_input_CPPFLAGS) $(CPPFLAGS) $(test_mapedit_input_CFLAGS) $(CFLAGS) -c -o test_mapedit_input-test_mapedit_input.o `test -f 'test_mapedit_input.c' || echo '$(srcdir)/'`test_mapedit_input.c
+
+test_mapedit_input-test_mapedit_input.obj: test_mapedit_input.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_mapedit_input_CPPFLAGS) $(CPPFLAGS) $(test_mapedit_input_CFLAGS) $(CFLAGS) -MT test_mapedit_input-test_mapedit_input.obj -MD -MP -MF $(DEPDIR)/test_mapedit_input-test_mapedit_input.Tpo -c -o test_mapedit_input-test_mapedit_input.obj `if test -f 'test_mapedit_input.c'; then $(CYGPATH_W) 'test_mapedit_input.c'; else $(CYGPATH_W) '$(srcdir)/test_mapedit_input.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_mapedit_input-test_mapedit_input.Tpo $(DEPDIR)/test_mapedit_input-test_mapedit_input.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='test_mapedit_input.c' object='test_mapedit_input-test_mapedit_input.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_mapedit_input_CPPFLAGS) $(CPPFLAGS) $(test_mapedit_input_CFLAGS) $(CFLAGS) -c -o test_mapedit_input-test_mapedit_input.obj `if test -f 'test_mapedit_input.c'; then $(CYGPATH_W) 'test_mapedit_input.c'; else $(CYGPATH_W) '$(srcdir)/test_mapedit_input.c'; fi`
+
+test_mapedit_input-file.o: $(top_srcdir)/src/mapedit/file.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_mapedit_input_CPPFLAGS) $(CPPFLAGS) $(test_mapedit_input_CFLAGS) $(CFLAGS) -MT test_mapedit_input-file.o -MD -MP -MF $(DEPDIR)/test_mapedit_input-file.Tpo -c -o test_mapedit_input-file.o `test -f '$(top_srcdir)/src/mapedit/file.c' || echo '$(srcdir)/'`$(top_srcdir)/src/mapedit/file.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_mapedit_input-file.Tpo $(DEPDIR)/test_mapedit_input-file.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$(top_srcdir)/src/mapedit/file.c' object='test_mapedit_input-file.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_mapedit_input_CPPFLAGS) $(CPPFLAGS) $(test_mapedit_input_CFLAGS) $(CFLAGS) -c -o test_mapedit_input-file.o `test -f '$(top_srcdir)/src/mapedit/file.c' || echo '$(srcdir)/'`$(top_srcdir)/src/mapedit/file.c
+
+test_mapedit_input-file.obj: $(top_srcdir)/src/mapedit/file.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_mapedit_input_CPPFLAGS) $(CPPFLAGS) $(test_mapedit_input_CFLAGS) $(CFLAGS) -MT test_mapedit_input-file.obj -MD -MP -MF $(DEPDIR)/test_mapedit_input-file.Tpo -c -o test_mapedit_input-file.obj `if test -f '$(top_srcdir)/src/mapedit/file.c'; then $(CYGPATH_W) '$(top_srcdir)/src/mapedit/file.c'; else $(CYGPATH_W) '$(srcdir)/$(top_srcdir)/src/mapedit/file.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_mapedit_input-file.Tpo $(DEPDIR)/test_mapedit_input-file.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$(top_srcdir)/src/mapedit/file.c' object='test_mapedit_input-file.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_mapedit_input_CPPFLAGS) $(CPPFLAGS) $(test_mapedit_input_CFLAGS) $(CFLAGS) -c -o test_mapedit_input-file.obj `if test -f '$(top_srcdir)/src/mapedit/file.c'; then $(CYGPATH_W) '$(top_srcdir)/src/mapedit/file.c'; else $(CYGPATH_W) '$(srcdir)/$(top_srcdir)/src/mapedit/file.c'; fi`
+
+test_mapedit_input-T_Form.o: $(top_srcdir)/src/mapedit/T_Form.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_mapedit_input_CPPFLAGS) $(CPPFLAGS) $(test_mapedit_input_CFLAGS) $(CFLAGS) -MT test_mapedit_input-T_Form.o -MD -MP -MF $(DEPDIR)/test_mapedit_input-T_Form.Tpo -c -o test_mapedit_input-T_Form.o `test -f '$(top_srcdir)/src/mapedit/T_Form.c' || echo '$(srcdir)/'`$(top_srcdir)/src/mapedit/T_Form.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_mapedit_input-T_Form.Tpo $(DEPDIR)/test_mapedit_input-T_Form.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$(top_srcdir)/src/mapedit/T_Form.c' object='test_mapedit_input-T_Form.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_mapedit_input_CPPFLAGS) $(CPPFLAGS) $(test_mapedit_input_CFLAGS) $(CFLAGS) -c -o test_mapedit_input-T_Form.o `test -f '$(top_srcdir)/src/mapedit/T_Form.c' || echo '$(srcdir)/'`$(top_srcdir)/src/mapedit/T_Form.c
+
+test_mapedit_input-T_Form.obj: $(top_srcdir)/src/mapedit/T_Form.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_mapedit_input_CPPFLAGS) $(CPPFLAGS) $(test_mapedit_input_CFLAGS) $(CFLAGS) -MT test_mapedit_input-T_Form.obj -MD -MP -MF $(DEPDIR)/test_mapedit_input-T_Form.Tpo -c -o test_mapedit_input-T_Form.obj `if test -f '$(top_srcdir)/src/mapedit/T_Form.c'; then $(CYGPATH_W) '$(top_srcdir)/src/mapedit/T_Form.c'; else $(CYGPATH_W) '$(srcdir)/$(top_srcdir)/src/mapedit/T_Form.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_mapedit_input-T_Form.Tpo $(DEPDIR)/test_mapedit_input-T_Form.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$(top_srcdir)/src/mapedit/T_Form.c' object='test_mapedit_input-T_Form.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_mapedit_input_CPPFLAGS) $(CPPFLAGS) $(test_mapedit_input_CFLAGS) $(CFLAGS) -c -o test_mapedit_input-T_Form.obj `if test -f '$(top_srcdir)/src/mapedit/T_Form.c'; then $(CYGPATH_W) '$(top_srcdir)/src/mapedit/T_Form.c'; else $(CYGPATH_W) '$(srcdir)/$(top_srcdir)/src/mapedit/T_Form.c'; fi`
 
 test_messages-test_messages.o: test_messages.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_messages_CFLAGS) $(CFLAGS) -MT test_messages-test_messages.o -MD -MP -MF $(DEPDIR)/test_messages-test_messages.Tpo -c -o test_messages-test_messages.o `test -f 'test_messages.c' || echo '$(srcdir)/'`test_messages.c
@@ -4870,6 +4948,13 @@ test-audio-device.log: test-audio-device$(EXEEXT)
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
+test-mapedit-input.log: test-mapedit-input$(EXEEXT)
+	@p='test-mapedit-input$(EXEEXT)'; \
+	b='test-mapedit-input'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
 test-server-endpoint.log: test-server-endpoint$(EXEEXT)
 	@p='test-server-endpoint$(EXEEXT)'; \
 	b='test-server-endpoint'; \
@@ -5058,6 +5143,9 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/test_images-strdup.Po
 	-rm -f ./$(DEPDIR)/test_images-test_images.Po
 	-rm -f ./$(DEPDIR)/test_mapdata_input-test_mapdata_input.Po
+	-rm -f ./$(DEPDIR)/test_mapedit_input-T_Form.Po
+	-rm -f ./$(DEPDIR)/test_mapedit_input-file.Po
+	-rm -f ./$(DEPDIR)/test_mapedit_input-test_mapedit_input.Po
 	-rm -f ./$(DEPDIR)/test_messages-clientcommand.Po
 	-rm -f ./$(DEPDIR)/test_messages-messages.Po
 	-rm -f ./$(DEPDIR)/test_messages-test_messages.Po
@@ -5262,6 +5350,9 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/test_images-strdup.Po
 	-rm -f ./$(DEPDIR)/test_images-test_images.Po
 	-rm -f ./$(DEPDIR)/test_mapdata_input-test_mapdata_input.Po
+	-rm -f ./$(DEPDIR)/test_mapedit_input-T_Form.Po
+	-rm -f ./$(DEPDIR)/test_mapedit_input-file.Po
+	-rm -f ./$(DEPDIR)/test_mapedit_input-test_mapedit_input.Po
 	-rm -f ./$(DEPDIR)/test_messages-clientcommand.Po
 	-rm -f ./$(DEPDIR)/test_messages-messages.Po
 	-rm -f ./$(DEPDIR)/test_messages-test_messages.Po

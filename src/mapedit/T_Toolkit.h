@@ -133,7 +133,7 @@ void T_PopButton(Window win, int x, int y, int width,
 void T_DrawTextButton(Window win, int x, int y, int width,
 		      int height, int zheight, char *string);
 void T_DrawString(Window win, int x, int y, int width,
-		  int height, GC gc, char *string, int justify,
+		  int height, GC gc, const char *string, int justify,
 		  int crop, int cursorpos);
 void T_DrawText(Window win, int x, int y, int width, int height,
 		GC gc, char *text);
@@ -149,26 +149,26 @@ void CallFieldHandler(T_Form_t * form, T_Field_t * field, int x,
 void T_FormClear(Window win);
 void T_FormCloseWindow(Window win);
 T_Form_t **SeekForm(Window win, short add);
-void ChangeField(Window win, char *name, char *label,
+void ChangeField(Window win, const char *name, const char *label,
 		 short type, short active, short x, short y, short width,
 		 short height, short x2, short y2, handler_t handler,
 		 int *intvar, char *charvar, int charvar_length,
 		 short null);
-void T_FormButton(Window win, char *name, short x, short y, short width,
-		  short height, char *label, handler_t handler);
-void T_FormHoldButton(Window win, char *name, short x, short y,
-		      short width, short height, char *label,
+void T_FormButton(Window win, const char *name, short x, short y, short width,
+		  short height, const char *label, handler_t handler);
+void T_FormHoldButton(Window win, const char *name, short x, short y,
+		      short width, short height, const char *label,
 		      handler_t handler);
-void T_FormMultiButton(Window win, char *name, short x, short y,
+void T_FormMultiButton(Window win, const char *name, short x, short y,
 		       short width, short height, short x2, short y2,
-		       char *label, int *intvar, short no_null);
-void T_FormScrollArea(Window win, char *name, short type, short x, short y,
+		       const char *label, int *intvar, short no_null);
+void T_FormScrollArea(Window win, const char *name, short type, short x, short y,
 		      short width, short height, handler_t handler);
-void T_FormText(Window win, char *name, short x, short y, short width,
-		short height, char *label, short justify);
-void T_FormStringEntry(Window win, char *name, short x, short y,
+void T_FormText(Window win, const char *name, short x, short y, short width,
+		short height, const char *label, short justify);
+void T_FormStringEntry(Window win, const char *name, short x, short y,
 		       short width, short height, short x2, short y2,
-		       char *label, char *charvar, int charvar_length,
+		       const char *label, char *charvar, int charvar_length,
 		       handler_t handler);
 void T_DrawEntryField(T_Form_t * form, T_Field_t * field);
 void T_SetEntryField(T_Form_t * form, T_Field_t * field, int x);

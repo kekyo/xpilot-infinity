@@ -338,7 +338,7 @@ extern xpmap_t map;
 typedef struct {
     const char *name, *altname, *label;
     int length, type;
-    const char *charvar;
+    char *charvar;
     int *intvar;
     int row, column, sheet, space;
 } prefs_t;

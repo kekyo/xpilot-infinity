@@ -187,7 +187,7 @@ int SaveMap(char *file)
 	case POSFLOAT:
 	case COORD:
 
-	    if (strlen(prefs[n].charvar) != (int) NULL)
+	    if (prefs[n].charvar[0] != '\0')
 		fprintf(ofile, "%s : %s\n", prefs[n].name,
 			prefs[n].charvar);
 	    break;
@@ -388,76 +388,73 @@ int LoadMap(char *file)
 /*   file                                                                  */
 /* Purpose : Load a version 2 map                                          */
 /***************************************************************************/
+static bool ParseMapDimension(const char *text, int *dimension)
+{
+    char *end;
+    errno = 0;
+    long value = strtol(text, &end, 10);
+    if (errno != 0 || end == text || value < 1 || value > MAX_MAP_SIZE)
+        return false;
+    while (isspace((unsigned char)*end))
+        end++;
+    if (*end != '\0')
+        return false;
+    *dimension = (int)value;
+    return true;
+}
+
 int LoadXbmFile(char *file)
 {
-    FILE *fp;
-    max_str_t line;
-    char *tmpstr, *tmp;
-    int bits, x = 0, y = 0;
-
-    if ((fp = fopen(file, "r")) == NULL) {
-	tmpstr = (char *) malloc(strlen(file) + 21);
-	sprintf(tmpstr, "Couldn't find file: %s", file);
-	T_PopupAlert(1, tmpstr, NULL, NULL, NULL, NULL);
-	free(tmpstr);
-	return 1;
+    FILE *fp = fopen(file, "r");
+    if (fp == NULL) {
+        T_PopupAlert(1, "Couldn't open bitmap file.", NULL, NULL, NULL, NULL);
+        return 1;
     }
-    fgets(line, sizeof(max_str_t), fp);
-    tmp = strrchr(line, (int) ' ');
-    if (tmp == NULL)
-	return 1;
-    tmp++;
-    map.width = atoi(tmp);
-    sprintf(map.width_str, "%d", map.width);
+    max_str_t line, name, dimension;
+    int width, height;
+    if (!fgets(line, sizeof(line), fp) ||
+        sscanf(line, "#define %254s %254s", name, dimension) != 2 ||
+        !ParseMapDimension(dimension, &width) ||
+        !fgets(line, sizeof(line), fp) ||
+        sscanf(line, "#define %254s %254s", name, dimension) != 2 ||
+        !ParseMapDimension(dimension, &height))
+        goto corrupted;
 
-    fgets(line, sizeof(max_str_t), fp);
-    tmp = strrchr(line, (int) ' ');
-    if (tmp == NULL)
-	return 1;
-    tmp++;
-    map.height = atoi(tmp);
-    sprintf(map.height_str, "%d", map.height);
-
-    while ((fgets(line, sizeof(max_str_t), fp)) != 0) {
-	tmp = strstr(line, "0x");
-	while (tmp != NULL) {
-	    tmp += 2;
-	    if ((int) tmp[0] > 96) {
-		bits = ((int) (tmp[0]) - 87) * 16;
-	    } else {
-		bits = ((int) (tmp[0]) - 48) * 16;
-	    }
-	    if ((int) tmp[1] > 96) {
-		bits += (int) (tmp[1]) - 87;
-	    } else {
-		bits += (int) (tmp[1]) - 48;
-	    }
-	    if ((bits & 128) == 128)
-		map.data[x + 7][y] = 'x';
-	    if ((bits & 64) == 64)
-		map.data[x + 6][y] = 'x';
-	    if ((bits & 32) == 32)
-		map.data[x + 5][y] = 'x';
-	    if ((bits & 16) == 16)
-		map.data[x + 4][y] = 'x';
-	    if ((bits & 8) == 8)
-		map.data[x + 3][y] = 'x';
-	    if ((bits & 4) == 4)
-		map.data[x + 2][y] = 'x';
-	    if ((bits & 2) == 2)
-		map.data[x + 1][y] = 'x';
-	    if ((bits & 1) == 1)
-		map.data[x][y] = 'x';
-	    x += 8;
-	    if (x >= map.width) {
-		y++;
-		x = 0;
-	    }
-	    tmp = strstr(tmp, "0x");
-	}
+    map.width = width;
+    map.height = height;
+    snprintf(map.width_str, sizeof(map.width_str), "%d", width);
+    snprintf(map.height_str, sizeof(map.height_str), "%d", height);
+    int x = 0, y = 0;
+    while (fgets(line, sizeof(line), fp)) {
+        char *p = line;
+        while ((p = strstr(p, "0x")) != NULL) {
+            char *end;
+            p += 2;
+            errno = 0;
+            unsigned long bits = strtoul(p, &end, 16);
+            if (y >= height || errno != 0 || end == p || bits > 255 ||
+                (*end != ',' && *end != '}' && !isspace((unsigned char)*end)))
+                goto corrupted;
+            /* The final byte in each row may contain padding bits. */
+            for (int bit = 0; bit < 8 && x + bit < width; bit++)
+                map.data[x + bit][y] = (bits & (1UL << bit)) ? 'x' : ' ';
+            x += 8;
+            if (x >= width) {
+                x = 0;
+                y++;
+            }
+            p = end;
+        }
     }
+    if (ferror(fp) || y != height || x != 0)
+        goto corrupted;
     fclose(fp);
     return 0;
+
+corrupted:
+    fclose(fp);
+    T_PopupAlert(1, "Corrupted bitmap file.", NULL, NULL, NULL, NULL);
+    return 1;
 }
 
 /***************************************************************************/
@@ -468,71 +465,75 @@ int LoadXbmFile(char *file)
 /***************************************************************************/
 int LoadOldMap(char *file)
 {
-    FILE *fp;
-    max_str_t line, filenm;
-    int x, y, shortline, corrupted;
-    int fchr = 32, rule;
-    char *tmpstr;
-
-    strcpy(filenm, file);
-    if ((fp = fopen(filenm, "r")) == NULL) {
-	tmpstr = (char *) malloc(strlen(file) + 21);
-	sprintf(tmpstr, "Couldn't find file: %s", file);
-	T_PopupAlert(1, tmpstr, NULL, NULL, NULL, NULL);
-	free(tmpstr);
-	return 1;
+    FILE *fp = fopen(file, "r");
+    if (fp == NULL) {
+        T_PopupAlert(1, "Couldn't open map file.", NULL, NULL, NULL, NULL);
+        return 1;
     }
+    max_str_t line;
+    int width, height;
     /* read in map x and y size */
-    fgets(line, sizeof(max_str_t), fp);
-    tmpstr = (char *) strstr(line, "x");
-    tmpstr++;
-    map.height = atoi(tmpstr);
-    strncpy(map.height_str, tmpstr, strlen(tmpstr) - 1);
-    tmpstr = (char *) strstr(line, "x");
-    (*tmpstr) = '\0';
-    map.width = atoi(line);
-    strcpy(map.width_str, line);
-/* read in map rule */
-    fgets(line, sizeof(max_str_t), fp);
-    rule = atoi(line);
-    switch (rule) {
-    case 6:
-	map.edgeWrap = 2;
-	break;
-    }
-/* get map name and author */
-    fgets(line, sizeof(max_str_t), fp);
-    strncpy(map.mapName, line, strlen(line) - 1);
-    map.mapName[strlen(line) - 1] = '\0';
-    fgets(line, sizeof(max_str_t), fp);
-    strncpy(map.mapAuthor, line, strlen(line) - 1);
-    map.mapAuthor[strlen(line) - 1] = '\0';
+    if (!fgets(line, sizeof(line), fp))
+        goto corrupted;
+    char *separator = strchr(line, 'x');
+    if (separator == NULL)
+        goto corrupted;
+    *separator++ = '\0';
+    if (!ParseMapDimension(line, &width) || !ParseMapDimension(separator, &height))
+        goto corrupted;
+    map.width = width;
+    map.height = height;
+    snprintf(map.width_str, sizeof(map.width_str), "%d", width);
+    snprintf(map.height_str, sizeof(map.height_str), "%d", height);
+    /* read in map rule */
+    if (!fgets(line, sizeof(line), fp))
+        goto corrupted;
+    char *end;
+    errno = 0;
+    long rule = strtol(line, &end, 10);
+    if (errno != 0 || end == line)
+        goto corrupted;
+    while (isspace((unsigned char)*end))
+        end++;
+    if (*end != '\0')
+        goto corrupted;
+    if (rule == 6)
+        map.edgeWrap = 2;
+    /* get map name and author */
+    if (!fgets(line, sizeof(line), fp) || strchr(line, '\n') == NULL)
+        goto corrupted;
+    line[strcspn(line, "\r\n")] = '\0';
+    strlcpy(map.mapName, line, sizeof(map.mapName));
+    if (!fgets(line, sizeof(line), fp) || strchr(line, '\n') == NULL)
+        goto corrupted;
+    line[strcspn(line, "\r\n")] = '\0';
+    strlcpy(map.mapAuthor, line, sizeof(map.mapAuthor));
 
-/* read in map */
-    shortline = corrupted = 0;
-    for (y = 0; y < (map.height); y++) {
-	for (x = 0; x < (map.width); x++) {
-	    if (shortline == 0)
-		fchr = fgetc(fp);
-	    if (fchr == '.')
-		fchr = ' ';
-	    else if ((fchr == '\n') || (fchr == EOF))
-		shortline = corrupted = 1;
-	    if (shortline == 0)
-		map.data[x][y] = oldmap[fchr - 32];
-	    else
-		map.data[x][y] = ' ';
-	}
-	if (shortline == 0)
-	    fgetc(fp);
-	shortline = 0;
+    /* read in map */
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            int c = fgetc(fp);
+            if (c == '.')
+                c = ' ';
+            if (c < 32 || c - 32 >= (int)sizeof(oldmap))
+                goto corrupted;
+            map.data[x][y] = oldmap[c - 32];
+        }
+        int c = fgetc(fp);
+        if (c == '\r')
+            c = fgetc(fp);
+        if (c != '\n' && !(c == EOF && y == height - 1))
+            goto corrupted;
     }
-
-    if (corrupted == 1) {
-	T_PopupAlert(1, "Corrupted map file.", NULL, NULL, NULL, NULL);
-    }
+    if (ferror(fp))
+        goto corrupted;
     fclose(fp);
     return 0;
+
+corrupted:
+    fclose(fp);
+    T_PopupAlert(1, "Corrupted map file.", NULL, NULL, NULL, NULL);
+    return 1;
 }
 
 /***************************************************************************/
@@ -673,7 +674,6 @@ int ParseLine(FILE * ifile)
 	/* only add comment lines not created by xmapedit */
 	if (strstr(commentline, "Created by") == NULL) {
 	    if (map.comments == NULL) {
-		map.comments = malloc(strlen(commentline) + 1);
 		map.comments = commentline;
 	    } else {
 		tmp =
@@ -683,7 +683,8 @@ int ParseLine(FILE * ifile)
 		free(commentline);
 		map.comments = tmp;
 	    }
-	}
+	} else
+	    free(commentline);
 	free(s);
 	return 0;
     }
@@ -772,19 +773,15 @@ int ParseLine(FILE * ifile)
 /*    value                                                                */
 /* Purpose :                                                               */
 /***************************************************************************/
-int AddOption(char *name, char *value)
+int AddOption(const char *name, const char *value)
 {
-    int option, i;
+    int option;
     char *tmp;
 
-    for (i = 0; i < strlen(name); i++) {
-	if (isupper(name[i]))
-	    name[i] = tolower(name[i]);
-    }
     for (option = 0; option < numprefs; option++) {
-	if (!strcmp(name, prefs[option].name))
+	if (!strcasecmp(name, prefs[option].name))
 	    break;
-	if (!strcmp(name, prefs[option].altname))
+	if (!strcasecmp(name, prefs[option].altname))
 	    break;
     }
     if (option >= numprefs) {
@@ -808,18 +805,20 @@ int AddOption(char *name, char *value)
 	return (LoadMapData(value));
 
     case MAPWIDTH:
-	map.width = atoi(value);
-	strncpy(map.width_str, value, 3);
+	if (!ParseMapDimension(value, &map.width))
+	    return 1;
+	strlcpy(map.width_str, value, sizeof(map.width_str));
 	return 0;
 
     case MAPHEIGHT:
-	map.height = atoi(value);
-	strncpy(map.height_str, value, 3);
+	if (!ParseMapDimension(value, &map.height))
+	    return 1;
+	strlcpy(map.height_str, value, sizeof(map.height_str));
 	return 0;
 
     case STRING:
     case COORD:
-	strncpy(prefs[option].charvar, value, prefs[option].length);
+	strlcpy(prefs[option].charvar, value, prefs[option].length + 1);
 	return 0;
 
     case YESNO:
@@ -830,8 +829,11 @@ int AddOption(char *name, char *value)
     case POSINT:
     case FLOAT:
     case POSFLOAT:
-	strcpy(prefs[option].charvar, StrToNum(value, prefs[option].length,
-					       prefs[option].type));
+	tmp = StrToNum(value, prefs[option].length, prefs[option].type);
+	if (tmp == NULL)
+	    return 1;
+	strcpy(prefs[option].charvar, tmp);
+	free(tmp);
 	return 0;
     }
     return 1;
@@ -843,7 +845,7 @@ int AddOption(char *name, char *value)
 /*   val                                                                   */
 /* Purpose :                                                               */
 /***************************************************************************/
-int YesNo(char *val)
+int YesNo(const char *val)
 {
     if ((tolower(val[0]) == 'y') || (tolower(val[0]) == 't'))
 	return 1;
@@ -858,37 +860,27 @@ int YesNo(char *val)
 /*   type                                                                  */
 /* Purpose :                                                               */
 /***************************************************************************/
-char *StrToNum(char *string, int len, int type)
+char *StrToNum(const char *string, int len, int type)
 {
-    char *returnval;
-
-    returnval = (char *) malloc(len + 1);
-    returnval[0] = '\0';
-
-    if (type == FLOAT || type == INT) {
-
-	if ((string[0] == '-')
-	    || ((string[0] >= '0') && (string[0] <= '9')))
-	    sprintf(returnval, "%s%c", returnval, string[0]);
-
-    } else if ((string[0] == '-') || ((string[0] >= '0') &&
-				      (string[0] <= '9'))
-	       || (string[0] == '.'))
-	sprintf(returnval, "%s%c", returnval, string[0]);
-
-    string++;
-    while ((string[0] != '\0') && (strlen(returnval) <= (len - 1))) {
-
-	if (type == FLOAT || type == POSFLOAT) {
-	    /*         if ( ((string[0] >= '0') && (string[0] <= '9')) || (string[0] == '.')) */
-	    sprintf(returnval, "%s%c", returnval, string[0]);
-
-	} else if ((string[0] >= '0') && (string[0] <= '9'))
-	    sprintf(returnval, "%s%c", returnval, string[0]);
-
-	string++;
+    size_t capacity = len > 0 ? (size_t)len : 0;
+    char *returnval = malloc(capacity + 1);
+    if (returnval == NULL)
+	return NULL;
+    size_t used = 0;
+    bool decimal = false;
+    for (const char *p = string; *p != '\0' && used < capacity; p++) {
+	if (*p >= '0' && *p <= '9')
+	    returnval[used++] = *p;
+	else if (*p == '-' && p == string && (type == FLOAT || type == INT))
+	    returnval[used++] = *p;
+	else if (*p == '.' && !decimal && (type == FLOAT || type == POSFLOAT)) {
+	    /* Floating-point fields accept digits and a single decimal point. */
+	    returnval[used++] = *p;
+	    decimal = true;
+	}
     }
-    return (char *) returnval;
+    returnval[used] = '\0';
+    return returnval;
 }
 
 /***************************************************************************/
@@ -897,7 +889,7 @@ char *StrToNum(char *string, int len, int type)
 /*   value                                                                 */
 /* Purpose :                                                               */
 /***************************************************************************/
-int LoadMapData(char *value)
+int LoadMapData(const char *value)
 {
     int x = 0, y = 0;
 

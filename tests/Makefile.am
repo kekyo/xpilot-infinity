@@ -110,6 +110,10 @@ if COND_X11_CLIENT
 check_PROGRAMS += test-x11-text
 TESTS += run-x11-text.sh
 endif
+if COND_XP_MAPEDIT
+check_PROGRAMS += test-mapedit-input
+TESTS += test-mapedit-input
+endif
 endif
 
 check_PROGRAMS += test-server-endpoint test-server-admission test-web-front \
@@ -153,6 +157,14 @@ test_talkmacro_input_SOURCES = test_talkmacro_input.c \
 test_talkmacro_input_CFLAGS = $(AM_CFLAGS) -ffunction-sections -fdata-sections
 test_talkmacro_input_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections -Wl,--wrap=fread
 test_talkmacro_input_LDADD = $(top_builddir)/src/common/libxpcommon.a
+
+test_mapedit_input_SOURCES = test_mapedit_input.c \
+	$(top_srcdir)/src/mapedit/file.c $(top_srcdir)/src/mapedit/T_Form.c
+test_mapedit_input_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/src/mapedit
+test_mapedit_input_CFLAGS = $(AM_CFLAGS) -ffunction-sections -fdata-sections \
+	-Werror=discarded-qualifiers
+test_mapedit_input_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections
+test_mapedit_input_LDADD = $(top_builddir)/src/common/libxpcommon.a
 
 test_web_front_SOURCES = test_web_front.c $(top_srcdir)/src/server/web_front.c
 test_web_front_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/src/server
