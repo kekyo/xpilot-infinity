@@ -1,5 +1,26 @@
 # Browser hosting
 
+The npm release includes a Node.js/WASM server and the browser application.
+After `npm install ./xpilot-infinity-VERSION.tgz`, run `npx xpilot-infinity`
+with Node.js 26.4 or later and open `http://localhost:15347/`. See the
+[Node.js package guide](../xpilot-server/README.md) for options and saved data.
+
+Native release packages also include the browser application. On Debian/Ubuntu:
+
+```sh
+xpilot-infinity-server -noQuit +reportMeta \
+  -listen udp:15345,tcp:15346,websocket:15347 \
+  -webRoot /usr/share/games/xpilot-infinity/browser
+```
+
+On Windows, from the installation directory:
+
+```bat
+xpilot-infinity-server.exe -noQuit +reportMeta -listen udp:15345,tcp:15346,websocket:15347 -webRoot lib/browser
+```
+
+Both commands serve the browser on `http://localhost:15347/`.
+
 XPilot Infinity serves its browser client from the native server's WebSocket listener. Players open that address and join the same server. The [browser guide](../xpilot-browser/README.md) describes building the files, controls and saved settings.
 
 ## Server options

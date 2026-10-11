@@ -30,6 +30,8 @@ node_modules/
 /xpilot-browser/dist/
 /xpilot-browser/public/runtime/
 /xpilot-browser/public/fonts/
+/xpilot-browser/public/licenses/
+/xpilot-browser/public/build-info.json
 /xpilot-browser/test-results/
 /xpilot-browser/artifacts/
 !/xpilot-browser/wasm/Makefile

@@ -55,6 +55,9 @@ printf 'fixture usage\n' > "$source_dir/README.md"
 printf 'fixture usage ja\n' > "$source_dir/README_ja.md"
 printf 'fixture OpenAL\n' > "$dependency_prefix/bin/OpenAL32.dll"
 printf 'fixture freealut\n' > "$dependency_prefix/bin/alut.dll"
+mkdir -p "$source_dir/xpilot-browser/dist/runtime"
+printf 'browser entry\n' > "$source_dir/xpilot-browser/dist/index.html"
+printf 'browser wasm\n' > "$source_dir/xpilot-browser/dist/runtime/game.wasm"
 
 "$XPILOT_WINDOWS_PACKAGER" \
     --source-dir "$source_dir" \
@@ -72,6 +75,8 @@ for expected_file in \
     "$package_dir/alut.dll" \
     "$package_dir/licenses/OpenAL-Soft-COPYING" \
     "$package_dir/licenses/freealut-COPYING" \
+    "$package_dir/lib/browser/index.html" \
+    "$package_dir/lib/browser/runtime/game.wasm" \
     "$package_dir/lib/sound/sounds.txt"
 do
     test -f "$expected_file" \

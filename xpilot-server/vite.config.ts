@@ -46,6 +46,7 @@ export default defineConfig(async (): Promise<UserConfig> => {
               '-Wl,--wrap=sock_get_local_hostname',
               '-Wl,--wrap=sock_get_addr_by_name',
               '-Wl,--wrap=sock_close',
+              '-Wl,--wrap=Contact_configure',
               ...['fopen', 'open', 'access', 'stat', 'rename', 'remove'].map(
                 (name) => `-Wl,--wrap=${name}`
               ),
@@ -88,7 +89,7 @@ export default defineConfig(async (): Promise<UserConfig> => {
             ],
           },
           'socket-probe': {
-            outFile: 'socket-probe.mjs',
+            outFile: resolve(root, 'build/test-runtime/socket-probe.mjs'),
             sources: ['socket-probe.c'],
             options: ['-std=c99', '-O2', '-Wall', '-Wextra', '-Werror'],
             linkOptions: ['--no-entry', '-O2'],

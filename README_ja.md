@@ -1,5 +1,14 @@
 # XPilot Infinity
 
+ネイティブクライアントに加えて、ブラウザでもプレイできます。[Node.js 版](xpilot-server/README.md)は WASM サーバーとブラウザクライアントを同梱し、Node.js 26.4 以降で実行できます。
+
+```sh
+npm install ./xpilot-infinity-VERSION.tgz
+npx xpilot-infinity
+```
+
+`http://localhost:15347/` を開くと参加できます。ネイティブクライアントは UDP 15345・TCP 15346・WebSocket 15347 に接続できます。終了は Ctrl+C、保存先は既定で `~/.xpilot-infinity` です。`--data-dir` で変更できます。実行時にコンパイラーや別のネイティブサーバーは必要ありません。
+
 ブラウザクライアントは本リポジトリの一部です。起動・ビルド方法は [xpilot-browser](xpilot-browser/README.md) を参照してください。
 
 1991 年から続くマルチプレイヤー・オンライン・スペースアクション。

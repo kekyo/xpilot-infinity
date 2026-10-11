@@ -19,7 +19,8 @@ it.runIf(process.env.XPILOT_CLIENT_BINARY !== undefined)(
     const ports = reservations.map((socket) => socket.address().port);
     for (const socket of reservations) socket.close();
     const server = spawn(process.execPath, [
-      fileURLToPath(new URL('../dist/cli.mjs', import.meta.url)),
+      process.env.XPILOT_NODE_SERVER_BINARY ??
+        fileURLToPath(new URL('../dist/cli.mjs', import.meta.url)),
       '--data-dir',
       data,
       '-listen',

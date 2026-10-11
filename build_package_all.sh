@@ -5,6 +5,7 @@ set -eu
 project_root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 package_script=${BUILD_PACKAGE_SCRIPT:-$project_root/build_package.sh}
 windows_package_script=${BUILD_WINDOWS_PACKAGE_SCRIPT:-$project_root/build.sh}
+npm_package_script=${BUILD_NPM_PACKAGE_SCRIPT:-$project_root/build_package_npm.sh}
 metadata_resolver=${XPILOT_BUILD_METADATA_RESOLVER:-$project_root/config/resolve-build-metadata.sh}
 
 print_usage()
@@ -12,9 +13,9 @@ print_usage()
     cat <<'EOF'
 Usage: ./build_package_all.sh [OPTIONS]
 
-Build every distributable XPilot Infinity package: the complete Debian and
-Ubuntu matrix followed by the Windows x86 and x86_64 ZIP archives and NSIS
-installers.
+Build the Node.js npm package and shared browser assets, then the complete
+Debian/Ubuntu matrix and Windows x86 and x86_64 ZIP archives and NSIS installers.
+The npm build requires Node.js 26.4 or later and uses emsdk-env for Emscripten.
 
 Options:
   --version VERSION  Product version override (default: screw-up-derived version)
@@ -89,7 +90,7 @@ inspect_options "$@"
 test -x "$metadata_resolver" \
     || fail "build metadata resolver is unavailable: $metadata_resolver"
 resolved_metadata=$(XPILOT_VERSION=$windows_package_version \
-    XPILOT_COMMIT_ID=${XPILOT_COMMIT_ID:-} "$metadata_resolver")
+    XPILOT_COMMIT_ID=${XPILOT_COMMIT_ID:-} "$metadata_resolver" --force)
 resolved_version=$(printf '%s\n' "$resolved_metadata" | sed -n '1p')
 resolved_commit=$(printf '%s\n' "$resolved_metadata" | sed -n '2p')
 
@@ -103,7 +104,11 @@ if test -z "$windows_package_version"; then
 fi
 windows_package_version=$resolved_version
 XPILOT_COMMIT_ID=$resolved_commit
-export XPILOT_COMMIT_ID
+XPILOT_VERSION=$resolved_version
+export XPILOT_COMMIT_ID XPILOT_VERSION
+
+printf '%s\n' "===== build: npm package and shared browser assets ====="
+"$npm_package_script"
 
 printf '%s\n' "===== build: Debian and Ubuntu packages ====="
 "$package_script" --target deb "$@"
@@ -118,4 +123,4 @@ if test "$windows_build_type" = Debug; then
 fi
 
 printf '%s\n' "===== build: Windows x86 and x86_64 packages ====="
-exec "$@"
+"$@"

@@ -38,5 +38,17 @@ export const prepareBrowserMetadata = async (root: string): Promise<string> => {
   const output = resolve(root, 'build/generated');
   await mkdir(output, { recursive: true });
   await writeFile(resolve(output, 'version.h'), text);
+  const info = await runScriptOnceToText(
+    '{"version":"{{version}}","commit":"{{commit}}"}\n',
+    {
+      variables: buildCandidateVariables({ version, commit }),
+      logs: [],
+      sourceId: 'build-info.json',
+    }
+  );
+  if (info === undefined)
+    throw new Error('Could not generate browser build metadata');
+  await mkdir(resolve(root, 'public'), { recursive: true });
+  await writeFile(resolve(root, 'public/build-info.json'), info);
   return output;
 };

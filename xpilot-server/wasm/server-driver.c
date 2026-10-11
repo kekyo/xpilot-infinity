@@ -11,6 +11,40 @@ static int status;
 static int inside_host_call;
 static int prepared;
 
+extern bool __real_Contact_configure(void);
+
+static bool option_is_default(const char *name)
+{
+    optOrigin origin = OPT_INIT;
+    Option_get_value(name, &origin);
+    return origin == OPT_INIT;
+}
+
+EM_JS(char *, browser_root, (void), {
+    return Module['browserRoot'] ? stringToNewUTF8(Module['browserRoot']) : 0;
+});
+
+/** Apply host defaults only after native configuration precedence is resolved.
+ * Explicit options in either files or argv remain authoritative. */
+bool __wrap_Contact_configure(void)
+{
+    if (option_is_default("noQuit")) options.NoQuit = true;
+    if (option_is_default("reportToMetaServer")) options.reportToMetaServer = false;
+    if (option_is_default("listen") && option_is_default("contactPort")
+        && option_is_default("contactTransport") && option_is_default("gameTransport"))
+        options.listen = xp_strdup("udp:15345,tcp:15346,websocket:15347");
+    bool result = __real_Contact_configure();
+    if (result && option_is_default("webRoot")) {
+        for (size_t i = 0; i < Contact_endpoint_count(); i++) {
+            if (Contact_endpoint(i)->contact_transport == GAME_TRANSPORT_WEBSOCKET) {
+                options.webRoot = browser_root();
+                break;
+            }
+        }
+    }
+    return result;
+}
+
 extern int __real_sock_close(sock_t *socket);
 
 EM_JS(void, defer_socket_close, (sock_t *socket), {

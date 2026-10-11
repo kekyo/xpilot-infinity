@@ -62,5 +62,32 @@ export const prepareBrowserDependencies = async (
     });
   for (const name of ['shipshapes.txt', 'defaults.txt'])
     await cp(resolve(root, '../lib', name), resolve(assets, name));
+  const licenses = resolve(root, 'public/licenses');
+  await mkdir(licenses, { recursive: true });
+  await cp(
+    resolve(sdk, 'upstream/emscripten/LICENSE'),
+    resolve(licenses, 'Emscripten.txt')
+  );
+  await cp(
+    resolve(sdk, 'upstream/emscripten/system/lib/libc/musl/COPYRIGHT'),
+    resolve(licenses, 'musl.txt')
+  );
+  for (const [source, name] of [
+    ['COPYING', 'XPilot-Infinity.txt'],
+    ['debian/copyright', 'Third-party-notices.txt'],
+    ['vendor/sdl3/SDL/LICENSE.txt', 'SDL3.txt'],
+    ['vendor/sdl3/SDL_image/LICENSE.txt', 'SDL3-image.txt'],
+    ['vendor/sdl3/SDL_ttf/LICENSE.txt', 'SDL3-ttf.txt'],
+    ['vendor/sdl3/SDL_ttf/external/freetype/docs/FTL.TXT', 'FreeType.txt'],
+    ['vendor/sdl3/SDL_ttf/external/harfbuzz/COPYING', 'HarfBuzz.txt'],
+    ['vendor/libtess2/LICENSE.txt', 'libtess2.txt'],
+    ['vendor/mtwister/README.md', 'mtwister.md'],
+    ['vendor/zlib/README', 'zlib.txt'],
+  ] as const)
+    await cp(resolve(root, '..', source), resolve(licenses, name));
+  await cp(
+    resolve(root, 'node_modules/async-primitives/LICENSE'),
+    resolve(licenses, 'async-primitives.txt')
+  );
   return prefix;
 };

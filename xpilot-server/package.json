@@ -25,7 +25,7 @@
     "build:runtime": "vite build",
     "test": "npm run build && vitest run",
     "pack": "npm run build && npm run pack:built",
-    "pack:built": "screw-up pack --inheritable-fields version --no-merge-files --pack-destination artifacts/",
+    "pack:built": "node pack.ts",
     "dependencies": "reskill"
   },
   "devDependencies": {

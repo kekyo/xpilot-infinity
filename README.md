@@ -1,6 +1,8 @@
 # XPilot Infinity
 
-The browser client is part of this repository. See [xpilot-browser](xpilot-browser/README.md) for joining and hosting browser games, and [browser hosting](doc/BROWSER.md) for HTTPS/WSS deployment.
+Play using the native client or a browser. The [Node.js package](xpilot-server/README.md)
+includes a WASM server and browser client and requires Node.js 26.4 or later.
+See [browser hosting](doc/BROWSER.md) for native hosting and HTTPS/WSS deployment.
 
 Multiplayer online space action since 1991.
 
@@ -62,8 +64,23 @@ The supported package matrix is:
 | Ubuntu | 24.04 | amd64, arm64 |
 | Ubuntu | 26.04 | amd64, arm64 |
 | Windows | - | x86 (32bit), x86_64 (64bit) |
+| Node.js / npm | 26.4 or later | Platforms supported by Node.js |
 
 - Environment: SDL3, OpenGL 3.3 and OpenAL (sound)
+
+### Node.js and browser installation
+
+Install the npm release archive, then start a game:
+
+```sh
+npm install ./xpilot-infinity-VERSION.tgz
+npx xpilot-infinity
+```
+
+Open `http://localhost:15347/`. UDP 15345 and TCP 15346 are also available for
+native clients. Stop the server with Ctrl+C. This package runs with Node.js and
+a browser; it needs no native compiler or separate native server. Settings and
+saved data belong in `--data-dir`, which defaults to `~/.xpilot-infinity`.
 
 The Debian and Ubuntu packages add **XPilot Infinity** to XDG-compatible
 application menus. The launcher uses the packaged application icon and opens

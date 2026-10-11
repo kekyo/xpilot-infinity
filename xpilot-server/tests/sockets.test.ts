@@ -37,7 +37,10 @@ describe('Node.js public socket backend', () => {
 
   beforeAll(async () => {
     assertNodeRuntime();
-    const url = new URL('../dist/runtime/socket-probe.mjs', import.meta.url);
+    const url = new URL(
+      '../build/test-runtime/socket-probe.mjs',
+      import.meta.url
+    );
     const { default: create } = await import(/* @vite-ignore */ url.href);
     probe = await create({
       onSocketReady: () => {

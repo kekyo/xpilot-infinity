@@ -3,8 +3,8 @@
 #define XP_NODE_PLATFORM_H
 #include "../../xpilot-browser/wasm/platform.h"
 #undef CONF_DATADIR
-#define CONF_DATADIR "/assets/"
-#define CONF_LOGFILE "/data/log.txt"
+#define CONF_DATADIR "/.xpilot-wasm/assets/"
+#define CONF_LOGFILE "/.xpilot-wasm/data/log.txt"
 #define SELECT_SCHED 1
 #define HAVE_LIBEXPAT 1
 #define HAVE_ZLIB_H 1

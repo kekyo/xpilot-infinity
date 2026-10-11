@@ -85,6 +85,7 @@ export const createCore = async (options: CoreOptions): Promise<ServerCore> => {
     printErr: options.log,
     userName: userInfo().username,
     hostName: hostname(),
+    browserRoot: options.web === undefined ? undefined : '/.xpilot-wasm/web',
     lookupAddress: (name: string) => addresses.get(name),
     deferSocketClose: (pointer: number) => {
       const closed = new Promise<void>((done) => {
@@ -99,31 +100,32 @@ export const createCore = async (options: CoreOptions): Promise<ServerCore> => {
     mapPath: (path: string) => {
       if (
         !isAbsolute(path) ||
-        ['/assets', '/data', '/web', '/host', '/dev', '/proc'].some(
+        ['/.xpilot-wasm', '/dev', '/proc'].some(
           (root) => path === root || path.startsWith(`${root}/`)
         )
       )
-        return path;
+        return path.split(sep).join('/');
       return hostPath(path);
     },
   });
-  wasm.FS.mkdir('/assets');
-  wasm.FS.mount(wasm.NODEFS, { root: options.assets }, '/assets');
-  wasm.FS.mkdir('/data');
-  wasm.FS.mount(wasm.NODEFS, { root: options.data }, '/data');
-  wasm.FS.chdir('/data');
+  wasm.FS.mkdir('/.xpilot-wasm');
+  wasm.FS.mkdir('/.xpilot-wasm/assets');
+  wasm.FS.mount(wasm.NODEFS, { root: options.assets }, '/.xpilot-wasm/assets');
+  wasm.FS.mkdir('/.xpilot-wasm/data');
+  wasm.FS.mount(wasm.NODEFS, { root: options.data }, '/.xpilot-wasm/data');
+  wasm.FS.chdir('/.xpilot-wasm/data');
   if (options.web !== undefined) {
-    wasm.FS.mkdir('/web');
-    wasm.FS.mount(wasm.NODEFS, { root: options.web }, '/web');
+    wasm.FS.mkdir('/.xpilot-wasm/web');
+    wasm.FS.mount(wasm.NODEFS, { root: options.web }, '/.xpilot-wasm/web');
   }
-  wasm.FS.mkdir('/host');
+  wasm.FS.mkdir('/.xpilot-wasm/host');
   const roots = new Map<string, string>();
   const hostPath = (path: string): string => {
     const absolute = resolve(path);
     const root = parse(absolute).root;
     let mount = roots.get(root);
     if (mount === undefined) {
-      mount = `/host/${roots.size}`;
+      mount = `/.xpilot-wasm/host/${roots.size}`;
       roots.set(root, mount);
       wasm.FS.mkdir(mount);
       wasm.FS.mount(wasm.NODEFS, { root }, mount);
