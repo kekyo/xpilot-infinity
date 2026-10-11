@@ -33,6 +33,7 @@
 #include "session_acceptor.h"
 #include "session_protocol.h"
 #include "websocket_transport.h"
+#include "web_front.h"
 
 #define MAX_PENDING_SESSIONS 4
 #define MAX_PENDING_PER_IP 2
@@ -101,6 +102,7 @@ static contact_listener_t *legacy_listener;
 static sockbuf_t ibuf;
 static bool contact_initialized;
 static pending_session_t pending_sessions[MAX_PENDING_SESSIONS];
+static web_front_t *web_front;
 
 static bool Owner(int request, char *user_name, char *host_addr,
 		  int host_port, int pass);
@@ -116,6 +118,8 @@ static void Contact_process(const server_endpoint_t *endpoint,
 static int Contact_stream_request(sockbuf_t *request, sockbuf_t *reply,
 			  const char *peer_address, int peer_port);
 static void Contact_accept_session(socket_handle_t fd, void *arg);
+static void Contact_web_upgrade(sock_t *socket, const char *address, int port,
+                                const server_endpoint_t *endpoint);
 static void Contact_session_poll(void);
 static void Pending_cleanup(pending_session_t *pending);
 static bool Queue_name_in_use(const char *nick);
@@ -221,6 +225,8 @@ void Contact_cleanup(void)
 {
     if (!contact_initialized)
         return;
+    Web_front_destroy(web_front);
+    web_front = NULL;
     for (int i = 0; i < MAX_PENDING_SESSIONS; i++) {
         if (pending_sessions[i].active)
             Pending_cleanup(&pending_sessions[i]);
@@ -289,6 +295,23 @@ int Contact_init(void)
     for (size_t i = 0; i < listener_count; i++)
         sock_init(&listeners[i].socket);
     contact_initialized = true;
+    bool has_websocket = false;
+    for (size_t i = 0; i < listener_count; i++)
+        has_websocket |= listeners[i].endpoint.contact_transport == GAME_TRANSPORT_WEBSOCKET;
+    if (!has_websocket && (options.webRoot || options.webOrigin || options.webTrustedProxy)) {
+        warn("webRoot, webOrigin and webTrustedProxy require a WebSocket listener");
+        Contact_cleanup();
+        return false;
+    }
+    if (has_websocket) {
+        web_front = Web_front_create(options.webRoot, options.webOrigin,
+                                     options.webTrustedProxy, Contact_web_upgrade);
+        if (!web_front) {
+            error("Invalid web configuration or unreadable webRoot");
+            Contact_cleanup();
+            return false;
+        }
+    }
     for (size_t i = 0; i < listener_count; i++) {
         contact_listener_t *listener = &listeners[i];
         if (!Contact_open_listener(listener)) {
@@ -550,6 +573,15 @@ int Contact_attach_transport(record_transport_t *transport,
     return 0;
 }
 
+static void Contact_web_upgrade(sock_t *socket, const char *address, int port,
+                                const server_endpoint_t *endpoint)
+{
+    record_transport_t *transport = Record_transport_create_websocket_server(
+        socket, SERVER_RECV_SIZE, SERVER_SEND_SIZE);
+    if (!transport) sock_close(socket);
+    else Contact_attach_transport(transport, address, port, endpoint);
+}
+
 static void Contact_accept_session(socket_handle_t fd, void *arg)
 {
     sock_t accepted;
@@ -580,16 +612,17 @@ static void Contact_accept_session(socket_handle_t fd, void *arg)
 	    sock_close(&accepted);
 	    continue;
 	}
+	if (endpoint->contact_transport == GAME_TRANSPORT_WEBSOCKET) {
+	    Web_front_accept(web_front, &accepted, address, peer_port, endpoint);
+	    continue;
+	}
 	if (sock_set_receive_buffer_size(
 		&accepted, SERVER_RECV_SIZE + 256) == SOCK_IS_ERROR)
 	    error("Cannot set session receive buffer size");
 	if (sock_set_send_buffer_size(
 		&accepted, SERVER_SEND_SIZE + 256) == SOCK_IS_ERROR)
 	    error("Cannot set session send buffer size");
-	transport = endpoint->contact_transport == GAME_TRANSPORT_WEBSOCKET
-	    ? Record_transport_create_websocket_server(
-		&accepted, SERVER_RECV_SIZE, SERVER_SEND_SIZE)
-	    : Record_transport_create_tcp(
+	transport = Record_transport_create_tcp(
 		&accepted, SERVER_RECV_SIZE, SERVER_SEND_SIZE);
 	if (transport == NULL) {
 	    sock_close(&accepted);
@@ -785,7 +818,9 @@ static bool Session_control_is_public(unsigned char command)
 
 static bool Session_control_is_owner(const pending_session_t *pending)
 {
-    return (strncmp(pending->address, "127.", 4) == 0
+    /* A public browser/proxy connection can never claim local administration. */
+    return pending->endpoint.contact_transport != GAME_TRANSPORT_WEBSOCKET
+        && (strncmp(pending->address, "127.", 4) == 0
 	    || strcmp(pending->address, "::1") == 0)
 	&& strcmp(pending->control.user, Server.owner) == 0;
 }
@@ -1155,6 +1190,8 @@ static void Process_pending_session(pending_session_t *pending)
 static void Contact_session_poll(void)
 {
     int i;
+
+    Web_front_step(web_front);
 
     for (i = 0; i < MAX_PENDING_SESSIONS; i++) {
 	if (pending_sessions[i].active)

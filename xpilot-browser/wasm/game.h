@@ -6,15 +6,15 @@ int xp_game_init(void);
 int xp_game_begin(const char *nickname);
 /** Advance once. @return 0 starting, 1 playing, 2 awaiting assets, -1 ended. */
 int xp_game_step(void);
-/** Send one UTF-8 chat message. @return Zero or positive on success. */
+/** Send one UTF-8 chat message. @param text Borrowed null-terminated text. @return Zero or positive on success. */
 int xp_game_chat(const char *text);
 /** Stop the game, release all native client resources. */
 void xp_game_stop(void);
-/** Request a logical canvas size. @return Zero on success. */
+/** Request a logical canvas size. @param width CSS width. @param height CSS height. @return Zero on success. */
 int xp_game_resize(int width, int height);
 /** @return The last processed server frame number. */
 long xp_game_frame(void);
-/** @return Current ship coordinate on the requested axis (zero x, one y). */
+/** @param axis Coordinate selector: zero x, one y. @return Current ship coordinate. */
 int xp_game_position(int axis);
 /** @return Last server-confirmed ship heading. */
 int xp_game_heading(void);
@@ -26,7 +26,7 @@ const char *xp_game_message(void);
 const char *xp_game_map_url(void);
 /** Finish map initialization after assets arrive. @return Zero on success. */
 int xp_game_assets_ready(void);
-/** Begin token-based resumption on the newly installed browser socket. */
+/** Begin token-based resumption on the newly installed browser socket. @return Zero on success, -1 on failure. */
 int xp_game_resume_begin(void);
 /** Advance resumption: 0 pending, 1 resumed, -1 rejected. */
 int xp_game_resume_step(void);

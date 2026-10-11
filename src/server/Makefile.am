@@ -24,7 +24,7 @@ xpilot_infinity_server_SOURCES = \
 	showtime.c srecord.c srecord.h suibotdef.c \
 	tag.c target.c target.h teamcup.h teamcup.c tuner.c tuner.h \
 	treasure.c update.c \
-	walls.c walls.h wormhole.c wormhole.h \
+	walls.c walls.h wormhole.c wormhole.h web_front.c web_front.h \
 	windows_service.c windows_service.h xp2map.c xpmap.c xpserver.h
 
 xpilot_infinity_server_LDADD =  $(top_builddir)/src/common/libxpcommon.a @X_EXTRA_LIBS@ @W32_LIBS@

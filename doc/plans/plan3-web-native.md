@@ -308,3 +308,39 @@ Playwright MCP で 2 ブラウザとネイティブ SDL クライアントを同
 ビルドと型検査が成功し、ブラウザ総合試験は `/tmp/xpilot-browser-stage4-final-check.log`、ネイティブのゲームループ・Unicode 描画・文字コードの 3 試験は `/tmp/xpilot-browser-stage4-native-check.log` で成功。段階 4 の完了条件を満たした。最終的な全体テストは配信統合後に実施する。
 
 段階 5 の最終レビューで、再参加用 WASM インスタンスの寿命を SDL の document イベント登録も含めて扱う必要があると確認した。段階 4 の資源解放条件の補強として、同期的な SDL 初期化中の登録を所有し、通常終了・初期化失敗時に解放する。登録 API は初期化から戻る前に元に戻し、ベンダーコードや内部 API は変更しない。[SDL の Emscripten マウス実装](../../vendor/sdl3/SDL/src/video/emscripten/SDL_emscriptenmouse.c) と公開 DOM API の契約を確認した。再参加 3 回で以前のコールバックが発火しないこと、および初期化失敗時の解放を RED→GREEN で検証した。補強後のブラウザ全体試験 32 件も成功した。
+
+### 段階 5 の成果物と検証（2026-10-11）
+
+ネイティブの WebSocket 待受へ HTTP の入口を追加した。`webRoot` を指定すると GET／HEAD でブラウザの成果物を配信し、`/xpilot` は既存のトランスポートへ引き渡す。HTML・JavaScript・WASM・フォント・画像・音声等の MIME を設定した。ファイルを丸ごとメモリーへ読み込まず、送信量を 1 フレーム 256 KiB、保留接続を全体 64 件／直接接続元 16 件に制限する。ヘッダーは 8 KiB、ファイルは 64 MiB、ヘッダー待ち・送信停止・全体送信には期限を設けた。静的配信を指定しない運用も維持する。
+
+配信パスは一度だけデコードし、ドット・非正規のパスやルート外への参照を拒否する。POSIX はディレクトリ記述子と `openat`／`O_NOFOLLOW`、Windows は開いたハンドルの解決済みパスを使って制限する。異常に大きいヘッダーの拒否時には、未読入力を残して即 close すると TCP リセットでエラー応答が失われることを、npm 全体試験と追加した C テストで確認した。送信側を shutdown し、期限付きで入力を排出してから close する方式に修正し、RED→GREEN を確認した。
+
+`webOrigin` は完全一致する公開オリジン、`webTrustedProxy` は実 IP を供給できる単一の数値アドレスを指定する。信頼した相手からの WebSocket 要求には単一の有効な `X-Real-IP` を必須とし、その他の相手の転送ヘッダーは信用しない。IPv6 の表記差と IPv4-mapped IPv6 を正規化してから既存の参加・再接続処理へ渡す。WebSocket からは loopback と所有者名を名乗っても管理操作を許可しない。公開情報の取得とゲーム参加、および既存の TCP／UDP の管理認可は維持する。
+
+Playwright MCP で、Vite を介さずネイティブサーバーの `dist/` 配信から起動・設定保存と復元・参加・退出を検証した。TLS フロントを用意した HTTPS／WSS の試験でも同じ成果物を読み込み、切断後のセッション復帰、信頼された実 IP、WASM／データ配信を確認した。2 ブラウザとネイティブ SDL クライアントの同時プレイは総合試験にも含む。公開手順は [ブラウザガイド](../../xpilot-browser/README.md) と [配信設定](../BROWSER.md) に記載した。
+
+最終検証結果:
+
+| 検証 | 結果と記録 |
+| --- | --- |
+| `XPILOT_SERVER_BINARY=/tmp/xpilot-multiple/native-build/src/server/xpilot-infinity-server npm --prefix xpilot-browser test` | WASM／Vite ビルド・型検査成功。12 ファイル、32 件すべて成功。`/tmp/xpilot-plan3-final-npm-check4.log`。 |
+| `make -C /tmp/xpilot-multiple/native-build -j8 check` | tray 10 件＋本体 84 件、計 94 件すべて成功。失敗・スキップなし。`/tmp/xpilot-plan3-final-native-check2.log`。 |
+| `make -C xpilot-browser/wasm check NATIVE_PKG_CONFIG_PATH=/tmp/xpilot-multiple/vendor-prefix/lib/pkgconfig` | 実 GLES3 ドライバー成功。`/tmp/xpilot-plan3-final-gles-check.log`。 |
+| HTTP の POSIX／MinGW ビルドと Wine 実行 | GET／HEAD、巨大ヘッダー拒否、配信範囲、Upgrade 引継ぎ、実 IP 正規化の C ドライバー成功。`/tmp/xpilot-web-close-green.log`、`/tmp/xpilot-web-win-final-check.log`。Windows 全製品 E2E を今回新たに実行したという意味ではない。 |
+| 静的配信と公開入口の機能試験 | MIME・内容・HEAD・存在しないパス・シンボリックリンク・サイズ制限・同時要求・Origin・管理操作・信頼 IP・転送ヘッダー偽装・実 IP ごとの人数制限が成功。npm 全体 32 件に含む。 |
+| ブラウザ画像と動画 | `xpilot-browser/test-results/browser-game/` と `browser-hosting-http/`、`browser-hosting-https/` に保存。復旧後と HTTPS のプレイ画像を目視した。操作結果・画面推移を検証し、動画を記録した。生成物はコミット対象外。 |
+
+全体 npm 試験の再実行時に、テストサーバーの配置が標準パスと異なるこの環境で `XPILOT_SERVER_BINARY` の指定を省いた実行があった。その実行は起動エラーで失敗し、上表は明示したバイナリーで全件再実行した結果である。既存のビルド警告は成功判定と区別し、未実行の OS／ブラウザ全組合せの対応確認を主張しない。
+
+### 完了条件の照合
+
+| 段階 | 判定 |
+| --- | --- |
+| 1: WASM 描画ドライバー | 完了。実 Renderer、WebGL 2、同梱フォントと Canvas フォールバック、入力、リサイズと倍率 1／2 を確認。 |
+| 1a: 本体への正式統合 | 完了。`xpilot-browser/`、独立 npm lockfile、実装・計画・テストは本体にあり、親は本体への実行案内を行う。 |
+| 2: 配信元への WebSocket 参加 | 完了。同一オリジン・指定サブプロトコル・レコード境界・キュー制限・非同期参加と失敗表示を確認。 |
+| 3: 既存ゲーム実装の移植 | 完了。描画、操縦、射撃、マップ、Unicode チャット、複数クライアント、再接続と正常終了を確認。 |
+| 4: 継続利用 | 完了。設定永続化、実音声、ミュート、入力解放、相対マウス、全画面、高 DPI、描画復旧と再参加時の資源解放を確認。 |
+| 5: 配信と全体検証 | 完了。ネイティブ静的配信と Upgrade、HTTPS／WSS、Origin・実 IP・認可境界、公開手順、npm／ネイティブ全体検証を確認。 |
+
+計画内の未実装項目はない。初期対象は引き続き WebGL 2 とキーボード・マウスを備えたデスクトップブラウザとし、Node.js＋WASM サーバー、タッチ専用 UI、WebGL 1、新たな RTL 対応は当初の対象外である。外部 vendor コード・参照は変更していない。

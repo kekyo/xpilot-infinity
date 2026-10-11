@@ -737,6 +737,26 @@ int sock_read(sock_t *sock, char *buf, int len)
     return count;
 }
 
+int sock_peek(sock_t *sock, char *buf, int len)
+{
+    int count = recv(sock->fd, buf, len, MSG_PEEK);
+    if (count == SOCK_IS_ERROR)
+        sock_set_native_error(sock, SOCK_CALL_IO, __LINE__);
+    return count;
+}
+
+int sock_shutdown_write(sock_t *sock)
+{
+#ifdef _WINDOWS
+    int result = shutdown(sock->fd, SD_SEND);
+#else
+    int result = shutdown(sock->fd, SHUT_WR);
+#endif
+    if (result == SOCK_IS_ERROR)
+        sock_set_native_error(sock, SOCK_CALL_IO, __LINE__);
+    return result;
+}
+
 int sock_receive_any(sock_t *sock, char *buf, int len)
 {
     int			count;

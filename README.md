@@ -1,6 +1,6 @@
 # XPilot Infinity
 
-The browser client is part of this repository. See [xpilot-browser](xpilot-browser/README.md) for the preview and browser build instructions.
+The browser client is part of this repository. See [xpilot-browser](xpilot-browser/README.md) for joining and hosting browser games, and [browser hosting](doc/BROWSER.md) for HTTPS/WSS deployment.
 
 Multiplayer online space action since 1991.
 
@@ -213,9 +213,11 @@ through the long options or metaserver advertisements.
 
 WebSocket uses RFC 6455 binary messages at `/xpilot` with the
 `xpilot-infinity-v1` subprotocol; each message carries one logical XPilot
-record. Only unencrypted `ws://` is currently implemented. The native clients
-exercise this transport; browser client integration is intentionally a
-separate step.
+record. Native clients support direct `ws://` connections. The browser client
+uses the same-origin WebSocket endpoint, including `wss://` through a TLS
+frontend. Use `-webRoot PATH` to serve the browser build from this listener;
+see [browser hosting](doc/BROWSER.md) for Origin and trusted-proxy settings.
+WebSocket connections cannot claim loopback-based server administration.
 
 Multiple targets are tried in command-line order, for example
 `ws://server1 tcp://server2 udp://server3`. This is explicit fallback between

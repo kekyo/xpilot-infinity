@@ -119,8 +119,8 @@ am_xpilot_infinity_server_OBJECTS = alliance.$(OBJEXT) \
 	showtime.$(OBJEXT) srecord.$(OBJEXT) suibotdef.$(OBJEXT) \
 	tag.$(OBJEXT) target.$(OBJEXT) teamcup.$(OBJEXT) \
 	tuner.$(OBJEXT) treasure.$(OBJEXT) update.$(OBJEXT) \
-	walls.$(OBJEXT) wormhole.$(OBJEXT) windows_service.$(OBJEXT) \
-	xp2map.$(OBJEXT) xpmap.$(OBJEXT)
+	walls.$(OBJEXT) wormhole.$(OBJEXT) web_front.$(OBJEXT) \
+	windows_service.$(OBJEXT) xp2map.$(OBJEXT) xpmap.$(OBJEXT)
 xpilot_infinity_server_OBJECTS = $(am_xpilot_infinity_server_OBJECTS)
 xpilot_infinity_server_DEPENDENCIES =  \
 	$(top_builddir)/src/common/libxpcommon.a
@@ -165,8 +165,9 @@ am__depfiles_remade = ./$(DEPDIR)/alliance.Po ./$(DEPDIR)/asteroid.Po \
 	./$(DEPDIR)/target.Po ./$(DEPDIR)/teamcup.Po \
 	./$(DEPDIR)/treasure.Po ./$(DEPDIR)/tuner.Po \
 	./$(DEPDIR)/update.Po ./$(DEPDIR)/walls.Po \
-	./$(DEPDIR)/windows_service.Po ./$(DEPDIR)/wormhole.Po \
-	./$(DEPDIR)/xp2map.Po ./$(DEPDIR)/xpmap.Po
+	./$(DEPDIR)/web_front.Po ./$(DEPDIR)/windows_service.Po \
+	./$(DEPDIR)/wormhole.Po ./$(DEPDIR)/xp2map.Po \
+	./$(DEPDIR)/xpmap.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -384,7 +385,7 @@ xpilot_infinity_server_SOURCES = \
 	showtime.c srecord.c srecord.h suibotdef.c \
 	tag.c target.c target.h teamcup.h teamcup.c tuner.c tuner.h \
 	treasure.c update.c \
-	walls.c walls.h wormhole.c wormhole.h \
+	walls.c walls.h wormhole.c wormhole.h web_front.c web_front.h \
 	windows_service.c windows_service.h xp2map.c xpmap.c xpserver.h
 
 xpilot_infinity_server_LDADD = $(top_builddir)/src/common/libxpcommon.a @X_EXTRA_LIBS@ @W32_LIBS@
@@ -525,6 +526,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tuner.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/update.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/walls.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web_front.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/windows_service.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wormhole.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xp2map.Po@am__quote@ # am--include-marker
@@ -726,6 +728,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/tuner.Po
 	-rm -f ./$(DEPDIR)/update.Po
 	-rm -f ./$(DEPDIR)/walls.Po
+	-rm -f ./$(DEPDIR)/web_front.Po
 	-rm -f ./$(DEPDIR)/windows_service.Po
 	-rm -f ./$(DEPDIR)/wormhole.Po
 	-rm -f ./$(DEPDIR)/xp2map.Po
@@ -825,6 +828,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/tuner.Po
 	-rm -f ./$(DEPDIR)/update.Po
 	-rm -f ./$(DEPDIR)/walls.Po
+	-rm -f ./$(DEPDIR)/web_front.Po
 	-rm -f ./$(DEPDIR)/windows_service.Po
 	-rm -f ./$(DEPDIR)/wormhole.Po
 	-rm -f ./$(DEPDIR)/xp2map.Po

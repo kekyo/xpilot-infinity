@@ -620,6 +620,26 @@ static option_desc opts[] = {
         OPT_COMMAND | OPT_DEFAULTS | OPT_VISIBLE
     },
     {
+        "webRoot", "webRoot", NULL, &options.webRoot, valString, tuner_none,
+        "Static browser files served on WebSocket listeners (GET and HEAD).\n"
+        "Omit to disable file serving. Only files below this directory are served.\n",
+        OPT_COMMAND | OPT_DEFAULTS
+    },
+    {
+        "webOrigin", "webOrigin", NULL, &options.webOrigin, valString, tuner_none,
+        "Exact allowed browser origin, e.g. https://game.example.\n"
+        "Defaults to http://Host. Native WebSocket clients may omit Origin.\n",
+        OPT_COMMAND | OPT_DEFAULTS | OPT_VISIBLE
+    },
+    {
+        "webTrustedProxy", "webTrustedProxy", NULL, &options.webTrustedProxy,
+        valString, tuner_none,
+        "Single numeric trusted proxy IP; requires webOrigin. Its WebSocket\n"
+        "requests must contain one numeric X-Real-IP header. Other peers'\n"
+        "forwarded addresses are ignored. WebSocket administration is disabled.\n",
+        OPT_COMMAND | OPT_DEFAULTS
+    },
+    {
 	"contactPort",
 	"port",
 	"15345",
