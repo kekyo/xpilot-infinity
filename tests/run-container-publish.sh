@@ -76,7 +76,7 @@ cat > "$fixture_bin/screw-up" <<'EOF'
 
 set -eu
 
-test "$#" -eq 1 && test "$1" = format \
+test "$#" -eq 2 && test "$1" = format && test "$2" = --force \
     || { echo "unexpected screw-up invocation: $*" >&2; exit 1; }
 IFS= read -r version_template
 IFS= read -r revision_template
