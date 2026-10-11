@@ -57,7 +57,7 @@ bool			mute_baseless = false;
 time_t			gameOverTime = 0;
 time_t			serverStartTime = 0;
 
-#if !defined(_WINDOWS)
+#if !defined(_WINDOWS) && !defined(__EMSCRIPTEN__)
 
 /* The terminating signal, or zero if no signal. */
 static volatile int termsig = 0;
@@ -70,7 +70,7 @@ static void Handle_signal(int sig_no)
 
 #endif /* !defined(_WINDOWS) */
 
-static int Server_run(int argc, char **argv)
+int Server_initialize(int argc, char **argv)
 {
     int timer_tick_rate;
     char *addr;
@@ -172,7 +172,7 @@ static int Server_run(int argc, char **argv)
     if (Setup_net_server() == -1)
 	End_game();
 
-#ifndef _WINDOWS
+#if !defined(_WINDOWS) && !defined(__EMSCRIPTEN__)
     if (options.NoQuit)
 	signal(SIGHUP, SIG_IGN);
     else
@@ -216,6 +216,14 @@ static int Server_run(int argc, char **argv)
 # endif
 #endif
 
+    return 0;
+}
+
+#ifndef __EMSCRIPTEN__
+static int Server_run(int argc, char **argv)
+{
+    int result = Server_initialize(argc, argv);
+    if (result != 0) return result;
     sched();
     End_game();
 
@@ -249,6 +257,7 @@ int main(int argc, char **argv)
     return Server_run(argc, argv);
 }
 #endif
+#endif /* !__EMSCRIPTEN__ */
 
 void Main_loop(void)
 {
@@ -351,7 +360,7 @@ void End_game(void)
     player_t *pl;
     char msg[MSG_LEN];
 
-#if !defined(_WINDOWS)
+#if !defined(_WINDOWS) && !defined(__EMSCRIPTEN__)
     if (termsig != 0)
 	warn("Terminating on signal %d", termsig);
 #endif
@@ -409,7 +418,7 @@ void End_game(void)
     Windows_service_prepare_clean_exit();
 #endif
 
-#if !defined(_WINDOWS)
+#if !defined(_WINDOWS) && !defined(__EMSCRIPTEN__)
     if (termsig != 0) {
 	signal(termsig, SIG_DFL);
 	raise(termsig);

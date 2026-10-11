@@ -55,6 +55,16 @@ void sched(void);
 /** Request an orderly stop of the server scheduler. */
 void stop_sched(void);
 
+#ifdef __EMSCRIPTEN__
+/**
+ * Process ready input without waiting and optionally advance one game frame.
+ * @param frame Nonzero when the host's next frame deadline has been reached.
+ * @return Number of ready descriptors dispatched; no readiness means zero.
+ * @remarks Call only after Server_initialize, from the owning Node event loop.
+ */
+int sched_pump(int frame);
+#endif
+
 #ifdef SELECT_SCHED
 
 void install_timer_tick(void (*func)(void), int freq);

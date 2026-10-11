@@ -370,6 +370,15 @@ void Tune_asteroid_prob(void);
  * Prototypes for server.c
  */
 void End_game(void);
+/**
+ * Initialize one game without entering the platform's scheduler.
+ * @param argc Number of command-line arguments, including the program name.
+ * @param argv Arguments borrowed for initialization.
+ * @return Zero on success, nonzero on failure. Fatal legacy errors call exit.
+ * @remarks The caller owns the game until End_game. Only one game is supported
+ * per process or WASM instance; a stopped instance must not be initialized again.
+ */
+int Server_initialize(int argc, char **argv);
 int Pick_team(int pick_for_type);
 void Server_info(char *str, size_t max_size);
 void Log_game(const char *heading);
