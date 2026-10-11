@@ -63,3 +63,44 @@ clean:
 		"$(PREFIX)/include/SDL3" \
 		"$(PREFIX)/lib/cmake/SDL3" \
 		"$(PREFIX)/lib/pkgconfig/sdl3.pc"
+
+.PHONY: game-dependencies
+game-dependencies: dependencies
+	flock "$(BUILD_DIR)/dependencies.lock" \
+		$(MAKE) --no-print-directory -C "$(CURDIR)" \
+		"$(PREFIX)/lib/libSDL3_ttf.a" "$(PREFIX)/lib/libSDL3_image.a" \
+		"$(PREFIX)/lib/libz.a" \
+		EMSDK_ROOT="$(EMSDK_ROOT)" BUILD_DIR="$(BUILD_DIR)" \
+		PREFIX="$(PREFIX)" JOBS="$(JOBS)"
+
+$(PREFIX)/lib/libSDL3_ttf.a: $(PREFIX)/lib/libSDL3.a
+	EM_CONFIG="$(EMSDK_ROOT)/.emscripten" "$(EMCMAKE)" cmake \
+		-S "$(CURDIR)/../../vendor/sdl3/SDL_ttf" -B "$(BUILD_DIR)/sdl3-ttf" \
+		-DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$(PREFIX)" \
+		-DSDL3_DIR="$(PREFIX)/lib/cmake/SDL3" -DBUILD_SHARED_LIBS=OFF \
+		-DSDLTTF_VENDORED=ON -DSDLTTF_HARFBUZZ=OFF \
+		-DSDLTTF_PLUTOSVG=OFF -DSDLTTF_SAMPLES=OFF -DSDLTTF_INSTALL=ON
+	EM_CONFIG="$(EMSDK_ROOT)/.emscripten" cmake --build "$(BUILD_DIR)/sdl3-ttf" --parallel "$(JOBS)"
+	EM_CONFIG="$(EMSDK_ROOT)/.emscripten" cmake --install "$(BUILD_DIR)/sdl3-ttf"
+
+$(PREFIX)/lib/libSDL3_image.a: $(PREFIX)/lib/libSDL3.a
+	EM_CONFIG="$(EMSDK_ROOT)/.emscripten" "$(EMCMAKE)" cmake \
+		-S "$(CURDIR)/../../vendor/sdl3/SDL_image" -B "$(BUILD_DIR)/sdl3-image" \
+		-DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$(PREFIX)" \
+		-DSDL3_DIR="$(PREFIX)/lib/cmake/SDL3" -DBUILD_SHARED_LIBS=OFF \
+		-DSDLIMAGE_BACKEND_STB=ON -DSDLIMAGE_PNG_LIBPNG=OFF \
+		-DSDLIMAGE_AVIF=OFF -DSDLIMAGE_JXL=OFF -DSDLIMAGE_TIF=OFF \
+		-DSDLIMAGE_WEBP=OFF -DSDLIMAGE_SAMPLES=OFF -DSDLIMAGE_TESTS=OFF \
+		-DSDLIMAGE_INSTALL=ON
+	EM_CONFIG="$(EMSDK_ROOT)/.emscripten" cmake --build "$(BUILD_DIR)/sdl3-image" --parallel "$(JOBS)"
+	EM_CONFIG="$(EMSDK_ROOT)/.emscripten" cmake --install "$(BUILD_DIR)/sdl3-image"
+
+$(PREFIX)/lib/libz.a:
+	mkdir -p "$(BUILD_DIR)/zlib-source"
+	cp -a "$(CURDIR)/../../vendor/zlib/." "$(BUILD_DIR)/zlib-source/"
+	EM_CONFIG="$(EMSDK_ROOT)/.emscripten" "$(EMCMAKE)" cmake \
+		-S "$(BUILD_DIR)/zlib-source" -B "$(BUILD_DIR)/zlib-build" \
+		-DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$(PREFIX)" \
+		-DZLIB_BUILD_SHARED=OFF -DZLIB_BUILD_TESTING=OFF
+	EM_CONFIG="$(EMSDK_ROOT)/.emscripten" cmake --build "$(BUILD_DIR)/zlib-build" --parallel "$(JOBS)"
+	EM_CONFIG="$(EMSDK_ROOT)/.emscripten" cmake --install "$(BUILD_DIR)/zlib-build"

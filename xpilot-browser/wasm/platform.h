@@ -2,6 +2,12 @@
  * are used by the browser application; networking enters through records. */
 #ifndef XP_BROWSER_PLATFORM_H
 #define XP_BROWSER_PLATFORM_H
+#define _POSIX_C_SOURCE 200809L
+#define _DEFAULT_SOURCE 1
+#define HAVE_GETHOSTNAME 1
+#define HAVE_GETHOSTBYNAME 1
+#define HAVE_GETHOSTBYADDR 1
+#define HAVE_INET_NTOA 1
 #define STDC_HEADERS 1
 #define HAVE_STDARG_H 1
 #define HAVE_STDINT_H 1
@@ -35,6 +41,7 @@
 #define HAVE_LIBZ 1
 #define RETSIGTYPE void
 #define CONF_DATADIR "/assets/"
+#define PACKAGE "xpilot-infinity"
 #define PACKAGE_BUGREPORT "https://github.com/kekyo/xpilot-infinity/issues"
 #define SDL_DISABLE_OLD_NAMES 1
 #endif

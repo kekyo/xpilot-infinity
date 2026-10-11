@@ -92,7 +92,7 @@ test.each([1, 2])(
       if (address === null || typeof address === 'string')
         throw new Error('No HTTP port');
       await call('browser_navigate', {
-        url: `http://127.0.0.1:${address.port}`,
+        url: `http://127.0.0.1:${address.port}/preview.html`,
       });
       expect(
         await evaluate('() => Boolean(document.querySelector("#game"))')
@@ -139,7 +139,9 @@ test.each([1, 2])(
         function: '() => document.querySelector("#game").focus()',
       });
       await call('browser_press_key', { key: 'ArrowRight' });
-      const after = await evaluate(`async () => { while (Number(document.querySelector("#game").dataset.sceneX) <= ${before}) await new Promise(requestAnimationFrame); return Number(document.querySelector("#game").dataset.sceneX); }`);
+      const after = await evaluate(
+        `async () => { while (Number(document.querySelector("#game").dataset.sceneX) <= ${before}) await new Promise(requestAnimationFrame); return Number(document.querySelector("#game").dataset.sceneX); }`
+      );
       expect(after).toBeGreaterThan(before);
       await call('browser_take_screenshot', {
         type: 'png',

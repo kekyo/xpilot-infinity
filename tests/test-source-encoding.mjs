@@ -14,6 +14,11 @@ const ignoredRootDirectories = new Set([
   'build',
   'vendor',
 ]);
+// Package-manager and generated browser trees are not project source.
+const ignoredBrowserDirectories = new Set([
+  'xpilot-browser/node_modules', 'xpilot-browser/build', 'xpilot-browser/dist',
+  'xpilot-browser/public', 'xpilot-browser/test-results', 'xpilot-browser/artifacts',
+]);
 const binaryExtensions = new Set([
   '.bmp',
   '.gif',
@@ -66,6 +71,7 @@ const inspectDirectory = async (directory) => {
   for (const entry of entries) {
     const path = join(directory, entry.name);
     if (entry.isDirectory()) {
+      if (ignoredBrowserDirectories.has(relative(sourceRoot, path))) continue;
       if (
         directory !== sourceRoot ||
         !ignoredRootDirectories.has(entry.name)

@@ -368,6 +368,11 @@ static int Mapdata_extract(const char *name)
 
 static int Mapdata_download(const URL *url, const char *filePath)
 {
+#ifdef __EMSCRIPTEN__
+    /* Browser assets must be installed by the same-origin asynchronous loader. */
+    (void)url; (void)filePath;
+    return false;
+#else
     char buf[1024];
     int rv, header, c, len, i;
     sock_t s;
@@ -503,6 +508,7 @@ static int Mapdata_download(const URL *url, const char *filePath)
 	    error("Error closing texture file %s", filePath);
     sock_close(&s);
     return rv;
+#endif
 }
 
 

@@ -115,6 +115,12 @@ typedef struct XpTextBitmap {
     int height;
     /** Number of bytes between adjacent pixel rows. */
     size_t pitch;
+    /** Physical pixels per logical pixel; native providers use one. */
+    float scale;
+    /** Bitmap left relative to the logical layout origin. */
+    float offset_x;
+    /** Bitmap top relative to the logical layout origin (not baseline). */
+    float offset_y;
 } XpTextBitmap;
 
 /**

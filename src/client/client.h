@@ -651,6 +651,8 @@ extern debris_t		*debris_ptr[DEBRIS_TYPES];
 extern int		 num_debris[DEBRIS_TYPES],
 			 max_debris[DEBRIS_TYPES];
 extern debris_t		*fastshot_ptr[DEBRIS_TYPES * 2];
+/** Cumulative received shot particles, including those already rendered. */
+extern unsigned long received_fastshots;
 extern int		 num_fastshot[DEBRIS_TYPES * 2],
 			 max_fastshot[DEBRIS_TYPES * 2];
 extern vdecor_t		*vdecor_ptr;

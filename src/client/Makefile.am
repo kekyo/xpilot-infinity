@@ -37,7 +37,7 @@ libxpclient_a_SOURCES = \
 	talk.h talkmacros.c textinterface.c \
 	micro_delay.c micro_delay.h micro_delay_test_support.h \
 	native_text.c native_text.h native_text_internal.h \
-	text_config.c text_config.h \
+	text_config.c text_config.h text_utf8.c \
 	xpclient.h
 
 if COND_SOUND

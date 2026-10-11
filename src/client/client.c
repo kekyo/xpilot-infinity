@@ -1873,8 +1873,11 @@ int Handle_item(int x, int y, int type)
     return 0;
 
 
+unsigned long received_fastshots;
+
 int Handle_fastshot(int type, u_byte *p, int n)
 {
+    if (n > 0) received_fastshots += (unsigned)n;
 #define num_		(num_fastshot[type])
 #define max_		(max_fastshot[type])
 #define ptr_		(fastshot_ptr[type])

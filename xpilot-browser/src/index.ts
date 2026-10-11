@@ -7,213 +7,257 @@ import {
   createBrowserTextProvider,
   type BrowserTextProvider,
 } from './browser-text';
-import { loadBrowserRuntime, type BrowserRuntime } from './browser-runtime';
-import './style.css';
 import { createBrowserSocket, sameOriginEndpoint } from './browser-socket';
+import {
+  loadGameRuntime,
+  withGameString,
+  type GameRuntime,
+} from './game-runtime';
+import './style.css';
+import { installMapAssets } from './map-assets';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game')!;
 const viewport = document.querySelector<HTMLElement>('#viewport')!;
 const status = document.querySelector<HTMLOutputElement>('#status')!;
-const text = document.querySelector<HTMLInputElement>('#preview-text')!;
-const face = document.querySelector<HTMLSelectElement>('#preview-font')!;
-let runtime: BrowserRuntime | undefined;
-let fonts: BrowserTextProvider | undefined;
-let animation = 0;
-let lastTime: number | undefined;
-let lastScale = 0;
-let disposed = false;
-let suspended = false;
-let joining = false;
 const connection = document.querySelector<HTMLOutputElement>('#connection')!;
 const connect = document.querySelector<HTMLButtonElement>('#connect')!;
-const leave = () => {
-  joining = false;
-  runtime?._xp_browser_session_close();
-  runtime?.xpilotSocket?.dispose();
-  connection.textContent = 'Disconnected';
-  connection.dataset.state = 'disconnected';
-  connect.disabled = false;
-};
-document.querySelector('#disconnect')!.addEventListener('click', leave);
-document.querySelector('#join')!.addEventListener('submit', (event) => {
-  event.preventDefault();
-  if (!runtime) return;
-  leave();
-  runtime.xpilotSocket = createBrowserSocket(
-    new WebSocket(sameOriginEndpoint(location.href), 'xpilot-infinity-v1')
-  );
-  const bytes = new TextEncoder().encode(
-    document.querySelector<HTMLInputElement>('#nickname')!.value + '\0'
-  );
-  const pointer = runtime._malloc(bytes.length);
-  runtime.HEAPU8.set(bytes, pointer);
-  const result = runtime._xp_browser_session_begin(pointer);
-  runtime._free(pointer);
-  joining = result === 0;
-  connect.disabled = joining;
-  connection.textContent = 'Connecting…';
-  connection.dataset.state = 'connecting';
-});
+const disconnect = document.querySelector<HTMLButtonElement>('#disconnect')!;
+const nickname = document.querySelector<HTMLInputElement>('#nickname')!;
+let runtime: GameRuntime | undefined;
+let fonts: BrowserTextProvider | undefined;
+let phase: 'idle' | 'admission' | 'assets' | 'game' | 'resume' | 'quit' =
+  'idle';
+let assetRequest = new AbortController();
+let resumeUntil = 0;
+let attemptUntil = 0;
+let quitUntil = 0;
+let retryTimer = 0;
+let retryPending = false;
+let animation = 0;
+let generation = 0;
 
-const stop = () => {
-  disposed = true;
+const resize = () =>
+  runtime?._xp_game_resize(
+    Math.max(128, viewport.clientWidth),
+    Math.max(128, viewport.clientHeight)
+  );
+const observer = new ResizeObserver(resize);
+observer.observe(viewport);
+const stop = (message: string, state: string) => {
+  generation++;
+  assetRequest.abort();
+  clearTimeout(retryTimer);
+  retryPending = false;
   cancelAnimationFrame(animation);
-  observer.disconnect();
-  text.removeEventListener('input', updateText);
-  face.removeEventListener('change', updateText);
+  phase = 'idle';
   runtime?._xp_browser_session_close();
-  runtime?._xp_browser_shutdown();
+  runtime?._xp_game_stop();
   runtime = undefined;
-  fonts?.dispose();
-  fonts = undefined;
+  connection.textContent = message;
+  connection.dataset.state = state;
+  connect.disabled = false;
+  disconnect.disabled = true;
 };
-
-const uploadText = () => {
-  if (runtime === undefined || fonts === undefined) return;
-  const scale = Math.min(8, window.devicePixelRatio || 1);
-  const lines = [
-    { text: 'XPilot Infinity', face: 'mono' as const, size: 24, scale },
-    {
-      text: text.value,
-      face: face.value === 'mono' ? ('mono' as const) : ('oblique' as const),
-      size: 24,
-      scale,
-    },
-  ];
-  for (const [slot, request] of lines.entries()) {
-    const raster = fonts.rasterize(request);
-    const pointer = runtime._malloc(raster.pixels.byteLength);
-    if (pointer === 0) throw new Error('Unable to allocate text pixels');
-    try {
-      runtime.HEAPU8.set(raster.pixels, pointer);
-      if (
-        runtime._xp_browser_upload_text(
-          slot,
-          pointer,
-          raster.pixelWidth,
-          raster.pixelHeight,
-          raster.pixelWidth * 4,
-          raster.pixelWidth / scale,
-          raster.pixelHeight / scale,
-          raster.offsetX,
-          raster.offsetY
-        ) !== 0
-      )
-        throw new Error('Unable to upload text');
-    } finally {
-      runtime._free(pointer);
-    }
-  }
-  lastScale = scale;
+const openSocket = () =>
+  createBrowserSocket(
+    new WebSocket(sameOriginEndpoint(location.href), 'xpilot-infinity-v1'),
+    () => queueMicrotask(advance)
+  );
+const resumeAttempt = () => {
+  if (!runtime || phase !== 'resume') return;
+  retryPending = false;
+  runtime.xpilotSocket = openSocket();
+  attemptUntil = performance.now() + 5000;
+  if (runtime._xp_game_resume_begin() < 0)
+    stop('Cannot resume this session', 'error');
 };
-
-const fail = (error: unknown) => {
-  stop();
-  status.textContent = `Rendering failed: ${error instanceof Error ? error.message : String(error)}`;
-  status.dataset.state = 'error';
-};
-
-const render = (time: number) => {
+const loadMap = async (game: GameRuntime) => {
+  const current = generation;
+  assetRequest = new AbortController();
+  const request = assetRequest;
+  const timeout = window.setTimeout(() => request.abort(), 15000);
   try {
-    if (runtime === undefined || disposed || suspended) return;
-    if (Math.min(8, window.devicePixelRatio || 1) !== lastScale) uploadText();
-    if (joining) {
-      const progress = runtime._xp_browser_session_step();
-      if (progress !== 0) {
-        joining = false;
-        connect.disabled = false;
-        connection.dataset.state = progress > 0 ? 'admitted' : 'error';
-        connection.textContent =
-          progress > 0
-            ? 'Session admitted; initial data received'
-            : runtime.UTF8ToString(runtime._xp_browser_session_error());
-        if (progress < 0) runtime._xp_browser_session_close();
+    await installMapAssets(
+      game.FS,
+      game.UTF8ToString(game._xp_game_map_url()),
+      location.href,
+      assetRequest.signal
+    );
+    if (current !== generation) return;
+    if (game._xp_game_assets_ready() !== 0)
+      throw new Error('Unable to initialize map');
+    phase = 'game';
+  } catch (error) {
+    if (current === generation) stop(String(error), 'error');
+  } finally { clearTimeout(timeout); }
+};
+const advance = () => {
+  if (!runtime) return;
+  try {
+    if (phase === 'quit') {
+      if (runtime._xp_game_quit_step() > 0 || performance.now() >= quitUntil)
+        stop('Disconnected', 'disconnected');
+      return;
+    }
+    if (phase === 'resume') {
+      if (performance.now() >= resumeUntil) {
+        stop('Reconnection timed out', 'error');
+        return;
+      }
+      if (retryPending) return;
+      const result = runtime._xp_game_resume_step();
+      if (result === 1) {
+        phase = 'game';
+        connection.dataset.state = 'playing';
+        connection.textContent = 'Playing';
+      } else if (result < 0 || performance.now() >= attemptUntil) {
+        runtime.xpilotSocket?.dispose();
+        retryPending = true;
+        retryTimer = window.setTimeout(resumeAttempt, 500);
+        return;
+      } else return;
+    }
+    if (phase === 'admission') {
+      const result = runtime._xp_browser_session_step();
+      if (result < 0) {
+        stop(
+          runtime.UTF8ToString(runtime._xp_browser_session_error()),
+          'error'
+        );
+        return;
+      }
+      if (result > 0) {
+        if (
+          withGameString(runtime, nickname.value, runtime._xp_game_begin) !== 0
+        )
+          throw new Error('Unable to initialize game session');
+        phase = 'game';
+        connection.textContent = 'Loading map…';
+        connection.dataset.state = 'setup';
       }
     }
-    const delta =
-      lastTime === undefined ? 0 : Math.min((time - lastTime) / 1000, 0.05);
-    lastTime = time;
-    if (runtime._xp_browser_frame(delta) !== 0)
-      throw new Error('The renderer could not draw a frame');
-    canvas.dataset.sceneX = String(runtime._xp_browser_scene_x());
-    canvas.dataset.sceneY = String(runtime._xp_browser_scene_y());
-    animation = requestAnimationFrame(render);
-  } catch (error) {
-    fail(error);
-  }
-};
-
-const dimensions = () => ({
-  width: Math.max(128, Math.floor(viewport.clientWidth)),
-  height: Math.max(128, Math.floor(viewport.clientHeight)),
-});
-
-const observer = new ResizeObserver(() => {
-  if (runtime === undefined || fonts === undefined) return;
-  const { width, height } = dimensions();
-  if (runtime._xp_browser_resize(width, height) !== 0)
-    fail(new Error('Unable to resize the canvas'));
-});
-
-const updateText = () => {
-  try {
-    uploadText();
-  } catch (error) {
-    fail(error);
-  }
-};
-
-const start = async () => {
-  try {
-    const loadedRuntime = await loadBrowserRuntime(canvas);
-    if (disposed) {
-      loadedRuntime._xp_browser_shutdown();
-      return;
+    if (phase === 'game') {
+      const result = runtime._xp_game_step();
+      if (result === 2) {
+        phase = 'assets';
+        queueMicrotask(async () => {
+          if (runtime) await loadMap(runtime);
+        });
+        return;
+      }
+      if (result < 0) {
+        if (
+          connection.dataset.state === 'playing' &&
+          runtime.xpilotSocket?.state() === 'closed'
+        ) {
+          runtime._xp_game_clear_input();
+          phase = 'resume';
+          resumeUntil = performance.now() + 30000;
+          connection.dataset.state = 'reconnecting';
+          connection.textContent = 'Reconnecting…';
+          resumeAttempt();
+        } else stop('Game ended. Join to play again.', 'disconnected');
+        return;
+      }
+      if (result > 0) {
+        connection.textContent = 'Playing';
+        connection.dataset.state = 'playing';
+      }
+      canvas.dataset.frame = String(runtime._xp_game_frame());
+      canvas.dataset.shipX = String(runtime._xp_game_position(0));
+      canvas.dataset.shipY = String(runtime._xp_game_position(1));
+      canvas.dataset.heading = String(runtime._xp_game_heading());
+      canvas.dataset.shots = String(runtime._xp_game_shots());
+      document.querySelector('#chat-message')!.textContent =
+        runtime.UTF8ToString(runtime._xp_game_message());
     }
-    runtime = loadedRuntime;
-    const loadedFonts = await createBrowserTextProvider(
-      new URL('fonts/VeraMoBd.ttf', document.baseURI).href,
-      new URL('fonts/FreeSansBoldOblique.ttf', document.baseURI).href
+  } catch (error) {
+    stop(String(error), 'error');
+  }
+};
+const tick = () => {
+  advance();
+  if (runtime && phase !== 'idle') animation = requestAnimationFrame(tick);
+};
+const prepare = async () => {
+  const current = ++generation;
+  if (!fonts) throw new Error('Fonts are unavailable');
+  const created = await loadGameRuntime(canvas, fonts);
+  if (current !== generation) {
+    created._xp_game_stop();
+    return false;
+  }
+  runtime = created;
+  if (runtime._xp_game_init() !== 0)
+    throw new Error('SDL / WebGL 2 initialization failed');
+  resize();
+  return true;
+};
+const join = async () => {
+  connect.disabled = true;
+  connection.textContent = 'Connecting…';
+  connection.dataset.state = 'connecting';
+  try {
+    if (!runtime && !(await prepare())) return;
+    if (!runtime) return;
+    runtime.xpilotSocket = openSocket();
+    if (
+      withGameString(runtime, nickname.value, (pointer) =>
+        runtime!._xp_browser_session_begin(pointer)
+      ) < 0
+    )
+      throw new Error('Cannot start admission');
+    phase = 'admission';
+    connection.textContent = 'Connecting…';
+    connection.dataset.state = 'connecting';
+    disconnect.disabled = false;
+    canvas.focus();
+    animation = requestAnimationFrame(tick);
+  } catch (error) {
+    stop(String(error), 'error');
+  }
+};
+document.querySelector('#join')!.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  await join();
+});
+disconnect.addEventListener('click', () => {
+  if (phase !== 'game') {
+    stop('Disconnected', 'disconnected');
+    return;
+  }
+  phase = 'quit';
+  quitUntil = performance.now() + 5000;
+  disconnect.disabled = true;
+  connection.textContent = 'Leaving game…';
+  connection.dataset.state = 'leaving';
+  advance();
+});
+document.querySelector('#chat-form')!.addEventListener('submit', (event) => {
+  event.preventDefault();
+  const input = document.querySelector<HTMLInputElement>('#chat')!;
+  if (runtime && connection.dataset.state === 'playing' && input.value) {
+    withGameString(runtime, input.value, (pointer) =>
+      runtime!._xp_game_chat(pointer)
     );
-    if (disposed) {
-      loadedFonts.dispose();
-      return;
-    }
-    fonts = loadedFonts;
-    const { width, height } = dimensions();
-    if (runtime._xp_browser_init(width, height) !== 0)
-      throw new Error('WebGL 2 initialization failed');
-    uploadText();
-    observer.observe(viewport);
-    text.addEventListener('input', updateText);
-    face.addEventListener('change', updateText);
-    status.textContent = 'Rendering ready';
+    input.value = '';
+    canvas.focus();
+  }
+});
+window.addEventListener('pagehide', () => {
+  stop('Disconnected', 'disconnected');
+});
+try {
+  fonts = await createBrowserTextProvider(
+    new URL('fonts/VeraMoBd.ttf', document.baseURI).href,
+    new URL('fonts/FreeSansBoldOblique.ttf', document.baseURI).href
+  );
+  if (await prepare()) {
+    status.textContent = 'Ready to join';
     status.dataset.state = 'ready';
     connect.disabled = false;
-    if (!suspended) animation = requestAnimationFrame(render);
-  } catch (error) {
-    fail(error);
   }
-};
-
-window.addEventListener('pagehide', (event) => {
-  cancelAnimationFrame(animation);
-  lastTime = undefined;
-  suspended = true;
-  // A retained page owns its resources until it is discarded, not merely hidden.
-  if (!event.persisted) stop();
-});
-window.addEventListener('pageshow', (event) => {
-  if (!event.persisted || disposed) return;
-  suspended = false;
-  if (status.dataset.state === 'ready') {
-    cancelAnimationFrame(animation);
-    animation = requestAnimationFrame(render);
-  }
-});
-await start();
-
-// xpilot-infinity - XPilot Infinity browser client.
-// Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
-// Under GPL-2.0-only
-// https://github.com/kekyo/xpilot-infinity/
+} catch (error) {
+  status.textContent = String(error);
+  status.dataset.state = 'error';
+}

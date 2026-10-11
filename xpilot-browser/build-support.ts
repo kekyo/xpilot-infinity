@@ -4,7 +4,7 @@
 // https://github.com/kekyo/xpilot-infinity/
 
 import { spawn } from 'node:child_process';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { availableParallelism } from 'node:os';
 import { resolve } from 'node:path';
 import { prepareEmsdk } from 'emsdk-env';
@@ -30,7 +30,7 @@ export const prepareBrowserDependencies = async (
       [
         '-C',
         resolve(root, 'wasm'),
-        'dependencies',
+        'game-dependencies',
         `EMSDK_ROOT=${sdk}`,
         `BUILD_DIR=${build}`,
         `PREFIX=${prefix}`,
@@ -50,5 +50,17 @@ export const prepareBrowserDependencies = async (
     const source = await readFile(resolve(root, '../lib/fonts', name));
     await writeFile(resolve(fonts, name), normalizeWebFont(source));
   }
+  const assets = resolve(root, 'build/assets');
+  await mkdir(assets, { recursive: true });
+  for (const directory of ['fonts', 'textures', 'sound', 'maps'])
+    await cp(resolve(root, '../lib', directory), resolve(assets, directory), {
+      recursive: true,
+      filter: (source) =>
+        !source.endsWith('Makefile') &&
+        !source.endsWith('Makefile.am') &&
+        !source.endsWith('Makefile.in'),
+    });
+  for (const name of ['shipshapes.txt', 'defaults.txt'])
+    await cp(resolve(root, '../lib', name), resolve(assets, name));
   return prefix;
 };

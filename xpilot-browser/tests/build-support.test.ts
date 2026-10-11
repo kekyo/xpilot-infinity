@@ -24,6 +24,7 @@ vi.mock('node:child_process', () => ({
   },
 }));
 vi.mock('node:fs/promises', () => ({
+  cp: async () => undefined,
   mkdir: async () => undefined,
   readFile: async () => new Uint8Array(12),
   writeFile: async () => undefined,

@@ -31,10 +31,6 @@ static void Check_pointer_move_interval(void)
 static GameLoopResult Refresh_network_fd(GameLoopState *state)
 {
     state->network_fd = Net_fd();
-    if (state->network_fd == SOCK_FD_INVALID) {
-	error("Bad socket filedescriptor");
-	return GAME_LOOP_STOP;
-    }
     return GAME_LOOP_CONTINUE;
 }
 
@@ -104,6 +100,10 @@ void Game_loop(void)
 	return;
 
     while (1) {
+        if (state.network_fd == SOCK_FD_INVALID) {
+            error("Native game loop requires a socket filedescriptor");
+            return;
+        }
 	FD_ZERO(&rfds);
 	FD_SET(state.network_fd, &rfds);
 	tv.tv_sec = 0;

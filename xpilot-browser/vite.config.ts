@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { prepareBrowserDependencies, sdkVersion } from './build-support';
 import { prepareBrowserMetadata } from './build-metadata';
+import { gameSources } from './game-sources';
 
 export default defineConfig(async () => {
   const root = fileURLToPath(new URL('.', import.meta.url));
@@ -24,6 +25,71 @@ export default defineConfig(async () => {
         generatedLoader: { enable: false },
         outDir: 'public/runtime',
         targets: {
+          'xpilot-game': {
+            outFile: 'xpilot-game.mjs',
+            sources: gameSources,
+            options: [
+              '-O2',
+              '-std=c99',
+              '-include',
+              resolve(root, 'wasm/platform.h'),
+            ],
+            includeDirs: [
+              generated,
+              resolve(root, 'wasm'),
+              resolve(root, '../src/common'),
+              resolve(root, '../src/client'),
+              resolve(root, '../src/client/sdl'),
+              resolve(root, '../vendor/libtess2/Include'),
+              resolve(root, '../vendor/mtwister'),
+              resolve(prefix, 'include'),
+            ],
+            linkOptions: [
+              '-O2',
+              '--no-entry',
+              resolve(prefix, 'lib/libSDL3_ttf.a'),
+              resolve(prefix, 'lib/libSDL3_image.a'),
+              resolve(prefix, 'lib/libSDL3.a'),
+              resolve(prefix, 'lib/libz.a'),
+              '-lm',
+              '--preload-file',
+              resolve(root, 'build/assets') + '@/assets',
+            ],
+            linkDirectives: {
+              MODULARIZE: 1,
+              EXPORT_ES6: 1,
+              ENVIRONMENT: 'web',
+              MIN_WEBGL_VERSION: 2,
+              MAX_WEBGL_VERSION: 2,
+              ALLOW_MEMORY_GROWTH: 1,
+              EXPORTED_RUNTIME_METHODS: ['HEAPU8', 'UTF8ToString', 'FS'],
+            },
+            exports: [
+              '_malloc',
+              '_free',
+              '_xp_browser_session_begin',
+              '_xp_browser_session_step',
+              '_xp_browser_session_error',
+              '_xp_browser_session_close',
+              '_xp_game_resume_begin',
+              '_xp_game_resume_step',
+              '_xp_game_quit_step',
+              '_xp_game_clear_input',
+              '_xp_game_init',
+              '_xp_game_begin',
+              '_xp_game_step',
+              '_xp_game_stop',
+              '_xp_game_resize',
+              '_xp_game_chat',
+              '_xp_game_frame',
+              '_xp_game_position',
+              '_xp_game_heading',
+              '_xp_game_shots',
+              '_xp_game_message',
+              '_xp_game_map_url',
+              '_xp_game_assets_ready',
+            ],
+          },
           'xpilot-browser': {
             outFile: 'xpilot-browser.mjs',
             sources: [
@@ -102,6 +168,10 @@ export default defineConfig(async () => {
     build: {
       rolldownOptions: {
         external: [],
+        input: {
+          game: resolve(root, 'index.html'),
+          preview: resolve(root, 'preview.html'),
+        },
       },
       target: 'es2022',
       sourcemap: true,

@@ -156,9 +156,10 @@ static int Test_step_reports_each_stop_condition(void)
     Reset_test_state();
     state.previous_network_result = 1;
     net_fd_result = SOCK_FD_INVALID;
-    TEST_CHECK(Game_loop_step(&state, 0) == GAME_LOOP_STOP);
+    TEST_CHECK(Game_loop_step(&state, 0) == GAME_LOOP_CONTINUE);
     TEST_CHECK(net_fd_calls == 1);
-    TEST_CHECK(error_calls == 1);
+    TEST_CHECK(error_calls == 0);
+    TEST_CHECK(Game_loop_prepare(&state) == GAME_LOOP_CONTINUE);
     return 0;
 }
 

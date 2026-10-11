@@ -4,29 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="data:," />
-    <title>XPilot Infinity Browser</title>
+    <title>XPilot Infinity</title>
   </head>
   <body>
     <main>
       <h1>XPilot Infinity</h1>
-      <p>
-        Renderer preview · Click the scene, then use the arrow keys to move.
-      </p>
-      <output id="status" aria-live="polite">Loading renderer…</output>
-      <div class="controls">
-        <label
-          >Preview text
-          <input id="preview-text" value="Flight: 日本語 é" maxlength="128"
-        /></label>
-        <label
-          >Font
-          <select id="preview-font">
-            <option value="oblique">FreeSans Bold Oblique</option>
-            <option value="mono">Vera Mono Bold</option>
-          </select></label
-        >
-      </div>
-      <form id="join">
+      <output id="status" aria-live="polite">Loading game…</output>
+      <form id="join" class="controls">
         <label
           >Name
           <input
@@ -34,13 +18,22 @@
             value="BrowserPilot"
             maxlength="24"
             required /></label
-        ><button id="connect" disabled>Join server</button
-        ><button id="disconnect" type="button">Disconnect</button>
+        ><button id="connect" disabled>Join game</button
+        ><button id="disconnect" type="button" disabled>Leave game</button>
       </form>
       <output id="connection" aria-live="polite">Disconnected</output>
       <div id="viewport">
-        <canvas id="game" tabindex="0" aria-label="XPilot renderer"></canvas>
+        <canvas id="game" tabindex="0" aria-label="XPilot game"></canvas>
       </div>
+      <form id="chat-form" class="controls">
+        <label>Chat <input id="chat" maxlength="240" /></label
+        ><button>Send</button>
+      </form>
+      <output id="chat-message" aria-live="polite"></output>
+      <p>
+        Click the game to focus. A / S: turn · Shift: thrust · Enter: fire ·
+        Space: shield.
+      </p>
     </main>
     <script type="module" src="/src/index.ts"></script>
   </body>

@@ -50,9 +50,13 @@ export const sameOriginEndpoint = (pageURL: string): string => {
 /**
  * Adapt a newly created XPilot WebSocket without waiting for it to open.
  * @param peer Socket owned by the returned adapter.
+ * @param onActivity Called after connection or incoming-record progress.
  * @returns Record operations with a 1 MiB / 256 record incoming limit.
  */
-export const createBrowserSocket = (peer: BrowserSocketPeer): BrowserSocket => {
+export const createBrowserSocket = (
+  peer: BrowserSocketPeer,
+  onActivity: () => void = () => {}
+): BrowserSocket => {
   const maximumBytes = 1024 * 1024;
   const queue: Uint8Array[] = [];
   let bytes = 0;
@@ -66,9 +70,11 @@ export const createBrowserSocket = (peer: BrowserSocketPeer): BrowserSocket => {
   };
   const onOpen = () => {
     if (peer.protocol !== 'xpilot-infinity-v1') fail();
+    onActivity();
   };
   const onClose = () => {
     closed = true;
+    onActivity();
   };
   const onMessage = (event: Event) => {
     if (closed) return;
@@ -85,6 +91,7 @@ export const createBrowserSocket = (peer: BrowserSocketPeer): BrowserSocket => {
     }
     queue.push(new Uint8Array(data));
     bytes += data.byteLength;
+    onActivity();
   };
   peer.addEventListener('open', onOpen);
   peer.addEventListener('message', onMessage);

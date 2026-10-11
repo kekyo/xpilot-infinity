@@ -117,7 +117,9 @@ test('admits the browser to the native game through its content origin', async (
       })
     );
     connected = true;
-    await call('browser_navigate', { url: `http://127.0.0.1:${addr.port}` });
+    await call('browser_navigate', {
+      url: `http://127.0.0.1:${addr.port}/preview.html`,
+    });
     await call('browser_wait_for', { text: 'Rendering ready' });
     await evaluate(
       '() => { document.querySelector("#join").requestSubmit(); return true; }'
