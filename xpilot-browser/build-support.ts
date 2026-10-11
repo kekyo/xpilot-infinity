@@ -8,7 +8,7 @@ import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { availableParallelism } from 'node:os';
 import { resolve } from 'node:path';
 import { prepareEmsdk } from 'emsdk-env';
-import { normalizeWebFont } from './web-font';
+import { normalizeWebFont } from './web-font.ts';
 
 /** Emscripten version used by the browser runtime and its native dependencies. */
 export const sdkVersion = '5.0.1';

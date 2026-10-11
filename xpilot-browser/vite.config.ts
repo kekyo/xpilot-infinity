@@ -9,9 +9,9 @@ import screwUp from 'screw-up';
 import emsdkEnv from 'emsdk-env/vite';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
-import { prepareBrowserDependencies, sdkVersion } from './build-support';
-import { prepareBrowserMetadata } from './build-metadata';
-import { gameSources } from './game-sources';
+import { prepareBrowserDependencies, sdkVersion } from './build-support.ts';
+import { prepareBrowserMetadata } from './build-metadata.ts';
+import { gameSources } from './game-sources.ts';
 
 export default defineConfig(async () => {
   const root = fileURLToPath(new URL('.', import.meta.url));

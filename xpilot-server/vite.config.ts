@@ -5,8 +5,8 @@ import emsdkEnv from 'emsdk-env/vite';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { chmod } from 'node:fs/promises';
-import { prepareServerBuild, sdkVersion } from './build-support';
-import { serverSources } from './server-sources';
+import { prepareServerBuild, sdkVersion } from './build-support.ts';
+import { serverSources } from './server-sources.ts';
 
 export default defineConfig(async (): Promise<UserConfig> => {
   const root = fileURLToPath(new URL('.', import.meta.url));
