@@ -1,8 +1,6 @@
 # Playing in a browser
 
-[日本語](../ja/browser.md) · [Back to README](../../README.md)
-
-Use a desktop browser with WebGL 2, a keyboard, and a mouse.
+Use a desktop browser with WebGL 2.
 You can join a game without installing a client.
 
 ## Join a game
@@ -37,10 +35,16 @@ If the keys do not respond, click the game to focus it.
 
 ## Start a server on your PC
 
-You need Node.js 26.4 or later, npm, and the distributed `xpilot-infinity-VERSION.tgz` archive. Run these commands in the directory containing the archive, replacing `VERSION` with the actual filename's version:
+You need Node.js 26.4 or later and npm. Install the package globally and start the server:
 
 ```sh
-npm install ./xpilot-infinity-VERSION.tgz
+npm install -g xpilot-infinity
+xpilot-infinity
+```
+
+Alternatively, start it with npx:
+
+```sh
 npx xpilot-infinity
 ```
 

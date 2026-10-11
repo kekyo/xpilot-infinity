@@ -5,10 +5,16 @@ includes the WebAssembly server, browser client, maps, fonts, and other game
 assets. Node.js 26.4 or later is required. No compiler or native addon is needed
 to install or run the package.
 
-Install a release archive and start the server:
+Install the npm package globally and start the server:
 
 ```sh
-npm install ./xpilot-infinity-VERSION.tgz
+npm install -g xpilot-infinity
+xpilot-infinity
+```
+
+Alternatively, start it with npx:
+
+```sh
 npx xpilot-infinity
 ```
 

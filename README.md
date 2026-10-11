@@ -1,12 +1,5 @@
 # XPilot Infinity
 
-Play using the native client or a browser. See [Playing in a browser](docs/en/browser.md)
-for joining a game, controls, and starting your own server.
-
-The [Node.js package](xpilot-server/README.md)
-includes a WASM server and browser client and requires Node.js 26.4 or later.
-See [browser hosting](doc/BROWSER.md) for native hosting and HTTPS/WSS deployment.
-
 Multiplayer online space action since 1991.
 
 ![XPilot Infinity](./images/xpilot-infinity.png)
@@ -71,12 +64,29 @@ The supported package matrix is:
 
 - Environment: SDL3, OpenGL 3.3 and OpenAL (sound)
 
-### Node.js and browser installation
+The Debian and Ubuntu packages add **XPilot Infinity** to XDG-compatible
+application menus. The launcher uses the packaged application icon and opens
+the SDL server browser without additional arguments.
 
-Install the npm release archive, then start a game:
+### Play on Node.js and browser
+
+Play using the native client or a browser. See [Playing in a browser](docs/en/browser.md)
+for joining a game, controls, and starting your own server.
+
+The [Node.js package](xpilot-server/README.md)
+includes a WASM server and browser client and requires Node.js 26.4 or later.
+See [browser hosting](doc/BROWSER.md) for native hosting and HTTPS/WSS deployment.
+
+Install the npm package globally and start the server:
 
 ```sh
-npm install ./xpilot-infinity-VERSION.tgz
+npm install -g xpilot-infinity
+xpilot-infinity
+```
+
+Alternatively, start it with npx:
+
+```sh
 npx xpilot-infinity
 ```
 
@@ -85,9 +95,7 @@ native clients. Stop the server with Ctrl+C. This package runs with Node.js and
 a browser; it needs no native compiler or separate native server. Settings and
 saved data belong in `--data-dir`, which defaults to `~/.xpilot-infinity`.
 
-The Debian and Ubuntu packages add **XPilot Infinity** to XDG-compatible
-application menus. The launcher uses the packaged application icon and opens
-the SDL server browser without additional arguments.
+For instructions on how to join, basic operations, and how to start your own server, see [Play in a Browser](docs/en/browser.md).
 
 ### Windows installation
 

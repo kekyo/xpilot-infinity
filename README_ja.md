@@ -1,16 +1,5 @@
 # XPilot Infinity
 
-ネイティブクライアントに加えて、ブラウザでもプレイできます。[Node.js 版](xpilot-server/README.md)は WASM サーバーとブラウザクライアントを同梱し、Node.js 26.4 以降で実行できます。
-
-```sh
-npm install ./xpilot-infinity-VERSION.tgz
-npx xpilot-infinity
-```
-
-`http://localhost:15347/` を開くと参加できます。ネイティブクライアントは UDP 15345・TCP 15346・WebSocket 15347 に接続できます。終了は Ctrl+C、保存先は既定で `~/.xpilot-infinity` です。`--data-dir` で変更できます。実行時にコンパイラーや別のネイティブサーバーは必要ありません。
-
-参加手順、基本操作、自分でサーバーを起動する方法は [ブラウザでプレイする](docs/ja/browser.md) を参照してください。
-
 1991 年から続くマルチプレイヤー・オンライン・スペースアクション。
 
 ![XPilot Infinity](./images/xpilot-infinity.png)
@@ -81,6 +70,31 @@ XPilot には独自の新しい要素も数多くあります。
 Debian および Ubuntu パッケージは、XDG 互換のアプリケーションメニューに
 **XPilot Infinity** を追加します。ランチャーはパッケージ付属のアプリケーション
 アイコンを使用し、追加の引数なしで SDL サーバーブラウザーを開きます。
+
+### Node.js/ブラウザ環境でのプレイ
+
+ネイティブクライアントに加えて、ブラウザでもプレイできます。
+[Node.js 版](xpilot-server/README.md)は WASM サーバーとブラウザクライアントを同梱し、Node.js 26.4 以降で実行できます。
+
+グローバルにインストールして起動するには、次のコマンドを実行します。
+
+```sh
+npm install -g xpilot-infinity
+xpilot-infinity
+```
+
+または、npx で起動できます。
+
+```sh
+npx xpilot-infinity
+```
+
+`http://localhost:15347/` を開くと参加できます。
+ネイティブクライアントは UDP 15345・TCP 15346・WebSocket 15347 に接続できます。
+終了は Ctrl+C、保存先は既定で `~/.xpilot-infinity` です。
+`--data-dir` で変更できます。実行時にコンパイラーや別のネイティブサーバーは必要ありません。
+
+参加手順、基本操作、自分でサーバーを起動する方法は [ブラウザでプレイする](docs/ja/browser.md) を参照してください。
 
 ### Windows へのインストール
 

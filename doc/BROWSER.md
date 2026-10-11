@@ -1,8 +1,9 @@
 # Browser hosting
 
 The npm release includes a Node.js/WASM server and the browser application.
-After `npm install ./xpilot-infinity-VERSION.tgz`, run `npx xpilot-infinity`
-with Node.js 26.4 or later and open `http://localhost:15347/`. See the
+With Node.js 26.4 or later, run `npx xpilot-infinity` and open
+`http://localhost:15347/`. Alternatively, install it globally with
+`npm install -g xpilot-infinity` and start it with `xpilot-infinity`. See the
 [Node.js package guide](../xpilot-server/README.md) for options and saved data.
 
 Native release packages also include the browser application. On Debian/Ubuntu:

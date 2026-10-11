@@ -1,8 +1,6 @@
 # ブラウザでプレイする
 
-[English](../en/browser.md) · [README に戻る](../../README_ja.md)
-
-WebGL 2 に対応した PC 向けブラウザと、キーボード・マウスを用意してください。
+WebGL 2 に対応した PC 向けブラウザが必要です。
 ゲームへの参加には、クライアントのインストールは不要です。
 
 ## ゲームに参加する
@@ -37,10 +35,16 @@ WebGL 2 に対応した PC 向けブラウザと、キーボード・マウス�
 
 ## 自分の PC でサーバーを起動する
 
-Node.js 26.4 以降と npm、配布された `xpilot-infinity-VERSION.tgz` を用意し、アーカイブを保存したディレクトリで実行します。`VERSION` は実際のファイル名に置き換えてください。
+Node.js 26.4 以降と npm を用意してください。グローバルにインストールして起動するには、次のコマンドを実行します。
 
 ```sh
-npm install ./xpilot-infinity-VERSION.tgz
+npm install -g xpilot-infinity
+xpilot-infinity
+```
+
+または、npx で起動できます。
+
+```sh
 npx xpilot-infinity
 ```
 
