@@ -126,7 +126,13 @@ const stop = (message: string, state: string) => {
 const openSocket = () =>
   createBrowserSocket(
     new WebSocket(sameOriginEndpoint(location.href), 'xpilot-infinity-v1'),
-    () => queueMicrotask(advance)
+    () => {
+      // Gameplay renders from tick, once per display frame. Rendering on each
+      // message can starve input when a large canvas cannot keep up with the
+      // server. Native Net_input already discards superseded game frames.
+      // Hidden pages still service the session while animation frames pause.
+      if (phase !== 'game' || document.hidden) queueMicrotask(advance);
+    }
   );
 const resumeAttempt = () => {
   if (!runtime || phase !== 'resume') return;

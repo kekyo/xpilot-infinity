@@ -344,3 +344,17 @@ Playwright MCP で、Vite を介さずネイティブサーバーの `dist/` 配
 | 5: 配信と全体検証 | 完了。ネイティブ静的配信と Upgrade、HTTPS／WSS、Origin・実 IP・認可境界、公開手順、npm／ネイティブ全体検証を確認。 |
 
 計画内の未実装項目はない。初期対象は引き続き WebGL 2 とキーボード・マウスを備えたデスクトップブラウザとし、Node.js＋WASM サーバー、タッチ専用 UI、WebGL 1、新たな RTL 対応は当初の対象外である。外部 vendor コード・参照は変更していない。
+
+### 全画面入力遅延の追補（2026-10-11）
+
+Firefox の Full screen 操作後にキー入力が遅延するとの報告を受け、段階 4 の検証不足を補った。従来の試験は全画面への切り替えが成立することまでで、拡大後の連続入力と描画頻度を確認していなかった。
+
+原因は、段階 3 で追加した WebSocket 受信時のゲーム前進が描画も実行し、画面更新とは別にフレームを描き続ける点にあった。Firefox の大画面で画面更新 1 回の間に 7〜10 回程度の描画を観測した。キーイベントとフォーカスは届いており、入力の送り先を変更する対処は行わない。表示中のゲームは既存の animation frame で前進させ、受信の通知で再描画しない方式に修正した。古いゲームフレームの整理は既存の `Net_input` が行う。参加・復帰・退出と非表示時の受信処理は継続する。[非表示タブでの requestAnimationFrame の停止](https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame)を考慮した分岐とする。
+
+完了条件は、全画面中の描画が画面更新 1 回につき最大 1 回となり、旋回・推進・キー解放が全画面中と解除後の両方で機能すること、および既存の参加・再接続・ライフサイクル試験が成功することとした。
+
+Playwright MCP による Firefox と Chrome の回帰試験を追加した。Firefox は Xvfb とソフトウェア描画で 3840×1600 のブラウザを実際に全画面化し、Chrome は 1280×800 の回帰確認とした。変更前の Firefox は描画回数のアサートで RED（最大 3 回）となった。初回の Chrome も大画面のソフトウェア描画で実行したが操作がタイムアウトしたため、Chrome の回帰確認は通常サイズに分け、大画面の再現は Firefox が担う。操作判定は固定の経過時間ではなくサーバーから届いた方向・位置と入力解放の状態を待ち、動画も記録する。
+
+対応する検証用 Firefox は `npm exec -- playwright install firefox` で導入する。Playwright MCP と異なる版の既存 Firefox はプロトコルが一致しなかったため流用しない（[Playwright のブラウザ導入](https://playwright.dev/docs/browsers#install-browsers)）。単独の新規 2 試験が GREEN となり、WASM／Vite ビルド・型検査とブラウザ全体 13 ファイル・34 件も成功した。ログは `/tmp/xpilot-fullscreen-red.log`、`/tmp/xpilot-fullscreen-green.log`、`/tmp/xpilot-fullscreen-all-browser.log`。動画と描画回数は `xpilot-browser/test-results/browser-fullscreen-firefox/` と `browser-fullscreen-chromium/` に保存し、Firefox の全画面表示も目視した。
+
+ネイティブ全体も `make -C /tmp/xpilot-multiple/native-build -j8 check` で再実行し、tray 10 件＋本体 84 件の計 94 件が成功した（`/tmp/xpilot-fullscreen-all-native.log`、失敗・スキップなし）。追加の完了条件を満たした。ベンダーコードとネイティブ実装には変更を加えていない。
