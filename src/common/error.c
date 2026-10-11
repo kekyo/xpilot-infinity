@@ -26,9 +26,7 @@ static char progname[MAX_PROG_LENGTH];
 static const char *prog_basename(const char *prog)
 {
 #ifndef _WINDOWS
-    char *p;
-
-    p = strrchr(prog, '/');
+    const char *p = strrchr(prog, '/');
 
     return (p != NULL) ? (p + 1) : prog;
 #else

@@ -800,9 +800,7 @@ static void Option_parse_node(hash_node *np)
     case valIPos:
 	{
 	    ipos_t	*ptr = (ipos_t *)desc->variable;
-	    char	*s;
-
-	    s = strchr(value, ',');
+	    const char	*s = strchr(value, ',');
 	    if (!s) {
 		error("Invalid coordinate pair for %s - %s\n",
 		      desc->name, value);

@@ -101,7 +101,6 @@ typedef struct {
 /* recursive descent parser for messages */
 static bool Msg_match_fmt(const char *msg, const char *fmt, msgnames_t *mn)
 {
-    char *fp;
     int i;
     size_t len;
 
@@ -109,7 +108,7 @@ static bool Msg_match_fmt(const char *msg, const char *fmt, msgnames_t *mn)
     DP(printf("Msg_match_fmt - msg = '%s'\n", msg));
 
     /* check that msg and fmt match to % */
-    fp = strstr(fmt, "%");
+    const char *fp = strstr(fmt, "%");
     if (fp == NULL) {
 	/* NOTE: if msg contains stuff beyond fmt, don't care */
 	if (strncmp(msg, fmt, strlen(fmt)) == 0)
