@@ -3,7 +3,7 @@
 set -eu
 
 if test "${1:-}" != --inside-xvfb; then
-    for command_name in xvfb-run xdotool xwininfo node; do
+    for command_name in xvfb-run xdotool xwininfo node stdbuf; do
         if ! command -v "$command_name" >/dev/null 2>&1; then
             echo "Missing E2E dependency: $command_name" >&2
             exit 1
@@ -1075,13 +1075,29 @@ run_multiple_protocol_game()
     game_server_log="$runtime_dir/server-multiple.log"
     proxy_state="$runtime_dir/multiple-proxy.state"
     proxy_trigger="$runtime_dir/multiple.trigger"
-    "$server" -map "$map" -noQuit +reportMeta -serverHost 127.0.0.1 \
+    node -e '
+      const fs = require("node:fs");
+      const socket = require("node:dgram").createSocket("udp4");
+      const dir = process.argv[1];
+      socket.on("message", (packet, peer) => {
+        const text = packet.toString().replace(/\0/g, "");
+        const kind = text.includes("\nremove") ? "removed" : "update";
+        fs.writeFileSync(dir + "/multiple-meta-" + peer.port + "." + kind, text);
+      });
+      socket.bind(0, "127.0.0.1", () => fs.writeFileSync(
+        dir + "/multiple-meta.port", String(socket.address().port)));
+    ' "$runtime_dir" >"$runtime_dir/multiple-meta.log" 2>&1 &
+    meta_report_fixture_pid=$!
+    wait_until "mixed metaserver fixture" 10 test -s "$runtime_dir/multiple-meta.port"
+    XPILOT_META_REPORT_HOST=127.0.0.1 XPILOT_META_REPORT_HOST_TWO=127.0.0.1 \
+    XPILOT_META_REPORT_PORT=$(cat "$runtime_dir/multiple-meta.port") \
+    "$server" -map "$map" -noQuit -reportMeta -serverHost 127.0.0.1 \
         -listen "udp:$udp_port,tcp:$tcp_port,websocket:$ws_port" \
         >"$game_server_log" 2>&1 &
     server_pid=$!
     wait_until "multiple protocol server readiness" 20 server_ready
     node "$(dirname "$0")/session-reconnect-proxy.mjs" \
-        127.0.0.1 127.0.0.2 "$tcp_port" "$proxy_trigger" "$proxy_state" tcp \
+        127.0.0.1 127.0.0.2 "$tcp_port" "$proxy_trigger" "$proxy_state" tcp "$ws_port" \
         >"$runtime_dir/multiple-proxy.log" 2>&1 &
     tcp_proxy_pid=$!
     wait_until "multiple protocol proxy readiness" 10 grep -q '^ready$' "$proxy_state"
@@ -1114,6 +1130,11 @@ run_multiple_protocol_game()
         wait_until "$mode mixed semantic game frame" 20 game_frame_ready
     done
 
+    for report_port in "$udp_port" "$tcp_port" "$ws_port"; do
+        wait_until "shared three-player advertisement on $report_port" 10 \
+            grep -qx 'add users 3' "$runtime_dir/multiple-meta-$report_port.update"
+    done
+
     for mode in udp tcp ws; do
         window_owner_pid=$(cat "$runtime_dir/multiple-$mode.pid")
         wait_until "$mode mixed game window" 10 find_game_window
@@ -1132,6 +1153,8 @@ run_multiple_protocol_game()
         grep -q 'tcp gameplay session suspended.*MixedTCP' "$game_server_log"
     wait_until "mixed TCP invalid token rejection" 10 \
         grep -q '^invalid-rejected$' "$proxy_state"
+    wait_until "TCP token rejected on WebSocket listener" 10 \
+        grep -q '^wrong-protocol-rejected$' "$proxy_state"
     wait_until "mixed TCP resumption" 15 \
         grep -q 'tcp gameplay session resumed.*MixedTCP' "$game_server_log"
     test "$(grep -c 'Welcome .*MixedTCP' "$game_server_log")" -eq 1 \
@@ -1139,7 +1162,7 @@ run_multiple_protocol_game()
     window_owner_pid=$(cat "$runtime_dir/multiple-tcp.pid")
     wait_until "resumed TCP window" 10 find_game_window
     xdotool windowfocus --sync "$window_id"
-        xdotool key --window "$window_id" m
+    xdotool key --window "$window_id" m
     xdotool type --window "$window_id" --delay 10 mixed-resumed
     xdotool key --window "$window_id" Return
     for receiver in udp tcp ws; do
@@ -1157,11 +1180,16 @@ run_multiple_protocol_game()
     window_owner_pid=$(cat "$runtime_dir/multiple-udp.pid")
     wait_until "remaining UDP window" 10 find_game_window
     xdotool windowfocus --sync "$window_id"
-        xdotool key --window "$window_id" m
+    xdotool key --window "$window_id" m
     xdotool type --window "$window_id" --delay 10 mixed-after-tcp-quit
     xdotool key --window "$window_id" Return
     wait_until "WebSocket gameplay after TCP quit" 10 \
         grep -q mixed-after-tcp-quit "$runtime_dir/client-multiple-ws.log"
+
+    for report_port in "$udp_port" "$tcp_port" "$ws_port"; do
+        wait_until "shared two-player advertisement on $report_port" 10 \
+            grep -qx 'add users 2' "$runtime_dir/multiple-meta-$report_port.update"
+    done
 
     for mode in udp ws; do
         client_pid=$(cat "$runtime_dir/multiple-$mode.pid")
@@ -1175,6 +1203,13 @@ run_multiple_protocol_game()
         kill -TERM "$process_id" 2>/dev/null || true
         wait "$process_id" 2>/dev/null || true
     done
+    for report_port in "$udp_port" "$tcp_port" "$ws_port"; do
+        wait_until "mixed server removal on $report_port" 10 \
+            test -s "$runtime_dir/multiple-meta-$report_port.removed"
+    done
+    kill -TERM "$meta_report_fixture_pid" 2>/dev/null || true
+    wait "$meta_report_fixture_pid" 2>/dev/null || true
+    meta_report_fixture_pid=
     stalled_pid=
     tcp_proxy_pid=
     server_pid=

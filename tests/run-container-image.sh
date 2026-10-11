@@ -329,7 +329,7 @@ stop_container "$configured_container"
     --security-opt=no-new-privileges \
     --volume "$volume_name:/var/lib/xpilot-infinity-server:rw" \
     "$image_ref" \
-    -noQuit -reportMeta -tcp -map ndh.xp2 \
+    -noQuit +reportMeta -udp -map ndh.xp2 \
     -recordFileName container-test.xpr -recordMode 1 \
     >/dev/null \
     || fail "could not start the persistent recording container"

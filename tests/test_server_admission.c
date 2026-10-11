@@ -7,6 +7,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+static bool Capture_control_status(const session_control_reply_t *reply,
+                                  void *context)
+{
+    *(int *)context = reply->status;
+    return true;
+}
+
 int main(int argc, char **argv)
 {
     TEST_CHECK(argc == 5);
@@ -48,6 +55,21 @@ int main(int argc, char **argv)
         record_transport_t *stream = Client_session_transport_connect(
             transport, "127.0.0.1", atoi(argv[i + 1]), 0, 0, 10, true);
         TEST_CHECK(stream != NULL);
+        if (strcmp(argv[3], "recording") == 0) {
+            session_control_request_t control;
+            memset(&control, 0, sizeof(control));
+            control.polygon_version = Game_transport_session_protocol_version(transport, true);
+            control.legacy_version = Game_transport_session_protocol_version(transport, false);
+            control.command = OPTION_TUNE_pack;
+            Get_login_name(control.user, sizeof(control.user));
+            strlcpy(control.argument, "recordMode:1", sizeof(control.argument));
+            int status = -1;
+            char error_text[MSG_LEN];
+            TEST_CHECK(Session_connection_run_control(stream, &control, 10,
+                Capture_control_status, &status, error_text, sizeof(error_text)) == 0);
+            TEST_CHECK(status == E_UNDEFINED);
+            continue;
+        }
         session_game_request_t request;
         memset(&request, 0, sizeof(request));
         game_transport_t advertised = i == 1 && strcmp(argv[3], "version") == 0

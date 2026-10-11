@@ -70,6 +70,7 @@ done
 reject_configuration -listen tcp:15346 -port 15345
 reject_configuration -listen tcp:15346 -udp
 reject_configuration -listen websocket:15347 -gameTransport tcp
+reject_configuration -listen udp:15345,tcp:15345 -reportMeta
 reject_configuration -listen tcp:15346 -recordMode 1 \
     -recordFileName "$runtime_dir/unsupported.xpr"
 reject_configuration -listen websocket:15347 -recordMode 2 \
@@ -155,7 +156,7 @@ wait_ready
     || fail "failed startup left an endpoint unavailable"
 stop_server
 
-for admission_case in duplicate udp-duplicate version capacity ip accepted; do
+for admission_case in duplicate udp-duplicate version capacity ip accepted recording; do
     first_port=$tcp_port
     case "$admission_case" in
         duplicate) expected='name is already in use'; limit=8; per_ip=8 ;;
@@ -164,10 +165,12 @@ for admission_case in duplicate udp-duplicate version capacity ip accepted; do
         capacity) expected='game is full'; limit=1; per_ip=8 ;;
         ip) expected='game is locked'; limit=8; per_ip=1 ;;
         accepted) expected=accepted; limit=8; per_ip=8 ;;
+        recording) expected=unsupported; limit=8; per_ip=8 ;;
     esac
     "$server" -map "$map" -noQuit +reportMeta \
         -listen "udp:$udp_port,tcp:$tcp_port,websocket:$ws_port" \
         -playerLimit "$limit" -maxPerIP "$per_ip" \
+        -recordFileName "$runtime_dir/unsupported.xpr" \
         >"$runtime_dir/server.log" 2>&1 &
     server_pid=$!
     wait_ready
@@ -176,6 +179,64 @@ for admission_case in duplicate udp-duplicate version capacity ip accepted; do
         >"$runtime_dir/admission.log" 2>&1 \
         || fail "cross-protocol admission: $admission_case"
     stop_server
+    test ! -e "$runtime_dir/unsupported.xpr" || fail "runtime tuning enabled unsupported recording"
 done
 
 echo "All seven protocol sets and startup validation passed"
+# Observe each endpoint from its own UDP source port, without a public service.
+node -e '
+const fs = require("node:fs");
+const dgram = require("node:dgram");
+const dir = process.argv[1];
+const socket = dgram.createSocket("udp4");
+socket.on("message", (packet, peer) => {
+  const text = packet.toString().replace(/\0/g, "");
+  const kind = text.includes("\nremove") ? "removed" : "update";
+  fs.writeFileSync(`${dir}/meta-${peer.port}.${kind}`, text);
+});
+socket.bind(0, "127.0.0.1", () => {
+  fs.writeFileSync(`${dir}/meta.port`, String(socket.address().port));
+});
+' "$runtime_dir" >"$runtime_dir/meta-fixture.log" 2>&1 &
+holder_pid=$!
+meta_deadline=$(($(date +%s) + 10))
+until test -s "$runtime_dir/meta.port"; do
+    kill -0 "$holder_pid" 2>/dev/null || fail "meta fixture stopped"
+    test "$(date +%s)" -lt "$meta_deadline" || fail "meta fixture not ready"
+    sleep 0.05
+done
+XPILOT_META_REPORT_HOST=127.0.0.1 XPILOT_META_REPORT_HOST_TWO=127.0.0.1 \
+XPILOT_META_REPORT_PORT=$(cat "$runtime_dir/meta.port") \
+    "$server" -map "$map" -noQuit -reportMeta \
+    -listen "udp:$udp_port,tcp:$tcp_port,websocket:$ws_port" \
+    >"$runtime_dir/server.log" 2>&1 &
+server_pid=$!
+wait_ready
+for endpoint in "udp:$udp_port" "tcp:$tcp_port" "websocket:$ws_port"; do
+    protocol=${endpoint%:*}
+    port=${endpoint#*:}
+    meta_deadline=$(($(date +%s) + 15))
+    until test -s "$runtime_dir/meta-$port.update"; do
+        test "$(date +%s)" -lt "$meta_deadline" || fail "missing $protocol advertisement from UDP port $port"
+        sleep 0.05
+    done
+    grep -Fq "+ct=$protocol+gt=$protocol" "$runtime_dir/meta-$port.update" \
+        || fail "wrong advertised protocol for $endpoint"
+    grep -qx "add port $port" "$runtime_dir/meta-$port.update" \
+        || fail "wrong advertised port for $endpoint"
+    grep -qx 'add users 0' "$runtime_dir/meta-$port.update" \
+        || fail "wrong advertised users for $endpoint"
+done
+stop_server
+for port in "$udp_port" "$tcp_port" "$ws_port"; do
+    meta_deadline=$(($(date +%s) + 10))
+    until test -s "$runtime_dir/meta-$port.removed"; do
+        test "$(date +%s)" -lt "$meta_deadline" || fail "missing removal from UDP port $port"
+        sleep 0.05
+    done
+done
+kill -TERM "$holder_pid"
+wait "$holder_pid" 2>/dev/null || true
+holder_pid=
+
+echo "All endpoint advertisements and removals passed"
