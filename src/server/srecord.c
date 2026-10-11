@@ -201,7 +201,9 @@ void Get_recording_data(void)
 	    exit(1);
 	}
 	len = ntohl(len);
-	if (len > bufs[i].size - 4) {
+	int element_size = bufs[i].type == REC_CHAR ? 1 :
+	    bufs[i].type == REC_SHORT ? 2 : 4;
+	if (len < 0 || len > bufs[i].size - 4 || len % element_size != 0) {
 	    warn("Incorrect chunk length reading recording");
 	    exit(1);
 	}
@@ -209,7 +211,10 @@ void Get_recording_data(void)
 	    warn("Recording out of sync");
 	    exit(1);
 	}
-	fread(bufs[i].start, 1, len, recf1);
+	if (fread(bufs[i].start, 1, len, recf1) != (size_t)len) {
+	    error("Couldn't read complete recording chunk");
+	    exit(1);
+	}
 	bufs[i].num_read = len;
 	*bufs[i].curp = bufs[i].start;
 	Convert_to_host(bufs[i].start, len, bufs[i].type);

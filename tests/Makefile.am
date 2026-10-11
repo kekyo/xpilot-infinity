@@ -119,7 +119,8 @@ TESTS += test-server-endpoint run-multiple-protocols.sh test-web-front \
 	test-messages test-robot-intercept
 endif
 
-test_messages_SOURCES = test_messages.c $(top_srcdir)/src/client/messages.c
+test_messages_SOURCES = test_messages.c $(top_srcdir)/src/client/messages.c \
+	$(top_srcdir)/src/client/clientcommand.c
 test_messages_CFLAGS = $(AM_CFLAGS) -ffunction-sections -fdata-sections
 test_messages_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections
 test_messages_LDADD = $(top_builddir)/src/common/libxpcommon.a @W32_LIBS@
@@ -130,6 +131,28 @@ test_robot_intercept_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/src/server
 test_robot_intercept_CFLAGS = $(AM_CFLAGS) -ffunction-sections -fdata-sections
 test_robot_intercept_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections
 test_robot_intercept_LDADD = -lm
+
+if !COND_WINDOWS
+check_PROGRAMS += test-mapdata-input test-srecord-input test-talkmacro-input
+TESTS += test-mapdata-input test-srecord-input test-talkmacro-input
+endif
+
+test_mapdata_input_SOURCES = test_mapdata_input.c
+test_mapdata_input_CFLAGS = $(AM_CFLAGS) -ffunction-sections -fdata-sections
+test_mapdata_input_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections
+test_mapdata_input_LDADD = $(top_builddir)/src/common/libxpcommon.a
+
+test_srecord_input_SOURCES = test_srecord_input.c
+test_srecord_input_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/src/server
+test_srecord_input_CFLAGS = $(AM_CFLAGS) -ffunction-sections -fdata-sections
+test_srecord_input_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections
+test_srecord_input_LDADD = $(top_builddir)/src/common/libxpcommon.a
+
+test_talkmacro_input_SOURCES = test_talkmacro_input.c \
+	$(top_srcdir)/src/client/talkmacros.c
+test_talkmacro_input_CFLAGS = $(AM_CFLAGS) -ffunction-sections -fdata-sections
+test_talkmacro_input_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections -Wl,--wrap=fread
+test_talkmacro_input_LDADD = $(top_builddir)/src/common/libxpcommon.a
 
 test_web_front_SOURCES = test_web_front.c $(top_srcdir)/src/server/web_front.c
 test_web_front_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/src/server

@@ -185,6 +185,25 @@ int main(void)
     console->CommandScrollBack = -1;
     CON_Topmost(console);
 
+    CON_SetPrompt(console, "long> ");
+    char full_command[CON_CHARS_PER_LINE];
+    memset(full_command, 'x', sizeof(full_command) - 1);
+    full_command[sizeof(full_command) - 1] = '\0';
+    TEST_CHECK(send_text(full_command));
+    TEST_CHECK(strcmp(console->Command, full_command) == 0);
+    TEST_CHECK(send_key(SDLK_HOME, SDL_KMOD_NONE));
+    TEST_CHECK(strcmp(console->RCommand, full_command) == 0);
+    strcpy(console->BackupCommand, "preserved history");
+    DrawCommandLine();
+    TEST_CHECK(strlen(console->VCommand) <= CON_CHARS_PER_LINE);
+    TEST_CHECK(strncmp(console->VCommand, console->Prompt,
+                       strlen(console->Prompt)) == 0);
+    TEST_CHECK(strcmp(console->BackupCommand, "preserved history") == 0);
+    TEST_CHECK(send_key(SDLK_END, SDL_KMOD_NONE));
+    TEST_CHECK(strcmp(console->LCommand, full_command) == 0);
+    TEST_CHECK(console->RCommand[0] == '\0');
+    Clear_Command(console);
+
     TEST_CHECK(send_text("abc"));
     TEST_CHECK(strcmp(console->Command, "abc") == 0);
 

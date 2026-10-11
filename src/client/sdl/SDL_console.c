@@ -702,11 +702,11 @@ void DrawCommandLine()
 	Topmost->Offset = Topmost->CursorPos;
 
     /* first add prompt to visible part */
-    strcpy(Topmost->VCommand, Topmost->Prompt);
+    SDL_strlcpy(Topmost->VCommand, Topmost->Prompt, sizeof(Topmost->VCommand));
 
     /* then add the visible part of the command */
-    strncat(Topmost->VCommand, &Topmost->Command[Topmost->Offset],
-	    strlen(&Topmost->Command[Topmost->Offset]));
+    SDL_strlcat(Topmost->VCommand, &Topmost->Command[Topmost->Offset],
+	       sizeof(Topmost->VCommand));
 
 
     /* first of all restore InputBackground */
@@ -1171,15 +1171,15 @@ void Cursor_Home(ConsoleInformation * console)
     Topmost->CursorPos = 0;
     strcpy(temp, Topmost->RCommand);
     strcpy(Topmost->RCommand, Topmost->LCommand);
-    strncat(Topmost->RCommand, temp, strlen(temp));
+    SDL_strlcat(Topmost->RCommand, temp, sizeof(Topmost->RCommand));
     memset(Topmost->LCommand, 0, CON_CHARS_PER_LINE + 1);
 }
 
 void Cursor_End(ConsoleInformation * console)
 {
     Topmost->CursorPos = strlen(Topmost->Command);
-    strncat(Topmost->LCommand, Topmost->RCommand,
-	    strlen(Topmost->RCommand));
+    SDL_strlcat(Topmost->LCommand, Topmost->RCommand,
+	       sizeof(Topmost->LCommand));
     memset(Topmost->RCommand, 0, CON_CHARS_PER_LINE + 1);
 }
 

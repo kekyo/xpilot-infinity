@@ -39,14 +39,14 @@ const char c_commands[][16] = {
 
 static void print_ignorelist(void)
 {
-    char buffer[MAX_CHARS] = "";
+    char buffer[MSG_LEN] = "";
     int i;
     unsigned short check = 0;
 
     for (i = 0; i < num_others; i++) {
 	if (Others[i].ignorelevel == 1) {
 	    if (strlen(buffer) + strlen(Others[i].nick_name) + 17
-		> MAX_CHARS) {
+		> sizeof(buffer)) {
 		strcat(buffer, "[*Client reply*]");
 		Add_message(buffer);
 		buffer[0] = '\0';
@@ -56,7 +56,7 @@ static void print_ignorelist(void)
 	    strcat(buffer, " ");
 	    check = 1;
 	} else if (Others[i].ignorelevel == 2) {
-	    if (strlen(buffer) + strlen(Others[i].nick_name) + 18 > MAX_CHARS) {
+	    if (strlen(buffer) + strlen(Others[i].nick_name) + 18 > sizeof(buffer)) {
 		strcat(buffer, "[*Client reply*]");
 		Add_message(buffer);
 		buffer[0] = '\0';
@@ -147,7 +147,7 @@ static void print_help(const char *arg)
 static void ignorePlayer(const char *name, int level)
 {
     other_t *other = Other_by_name(name, true);
-    char buf[64 + MAX_NAME_LEN];
+    char buf[64 + MAX_CHARS];
 
     if (other != NULL) {
 	if (level == 1) {
@@ -168,7 +168,7 @@ static void ignorePlayer(const char *name, int level)
 static void unignorePlayer(const char *name)
 {
     other_t *other = Other_by_name(name, true);
-    char buf[64 + MAX_NAME_LEN];
+    char buf[64 + MAX_CHARS];
 
     if (other != NULL) {
 	snprintf(buf, sizeof(buf),

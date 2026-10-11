@@ -574,7 +574,9 @@ void Server_info(char *str, size_t max_size)
 {
     int i, j, k;
     player_t *pl, **order;
-    char name[MAX_CHARS], lblstr[MAX_CHARS], msg[MSG_LEN];
+    /* Include the full name and even the fixed-point form of DBL_MAX. */
+    char name[MAX_CHARS], lblstr[MAX_CHARS + DBL_MAX_10_EXP + 32];
+    char msg[sizeof(lblstr) + sizeof(pl->username) + sizeof(pl->hostname) + 32];
 
     snprintf(str, max_size,
 	     "SERVER VERSION..: %s\n"

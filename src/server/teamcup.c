@@ -58,7 +58,7 @@ void teamcup_init(void)
 
 static void teamcup_open_score_file(void)
 {
-    char msg[MSG_LEN];
+    char msg[sizeof(teamcup_score_file_name) + 32];
     player_t *pl;
     int i;
 
@@ -112,7 +112,7 @@ static void teamcup_open_score_file(void)
 
 static void teamcup_close_score_file(void)
 {
-    char msg[MSG_LEN];
+    char msg[sizeof(teamcup_score_file_name) + 32];
 
 
     fclose(teamcup_score_file);

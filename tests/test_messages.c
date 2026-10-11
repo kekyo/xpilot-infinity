@@ -28,13 +28,16 @@ void Add_rank_Death(char *name)
     abort();
 }
 
-/* These tests use ordinary chat and neutral game messages, with no players. */
+/* Resolve the numeric player ID used by client commands. */
 other_t *Other_by_name(const char *name, bool show_error)
 {
-    (void)name;
     (void)show_error;
-    return NULL;
+    return strcmp(name, "7") == 0 ? self : NULL;
 }
+
+void Set_command(const char *argument) { (void)argument; abort(); }
+void Get_command(const char *argument) { (void)argument; abort(); }
+void Client_exit(int status) { exit(status); }
 
 other_t *Other_by_id(int id)
 {
@@ -75,6 +78,37 @@ int main(void)
     Add_message("last [pilot]");
     Add_message("beyond selection [pilot]");
     TEST_CHECK(selection.draw.state == SEL_SELECTED);
+
+    memset(self->nick_name, 'x', sizeof(self->nick_name) - 1);
+    executeCommand("ignore 7");
+    TEST_CHECK(self->ignorelevel == 1);
+    TEST_CHECK(strstr(TalkMsg[0]->txt, "(textmask). [*Client reply*]") != NULL);
+    executeCommand("ignore! 7");
+    TEST_CHECK(self->ignorelevel == 2);
+    TEST_CHECK(strstr(TalkMsg[0]->txt, "(completely). [*Client reply*]") != NULL);
+    executeCommand("unignore 7");
+    TEST_CHECK(self->ignorelevel == 0);
+    TEST_CHECK(strstr(TalkMsg[0]->txt, self->nick_name) != NULL);
+    TEST_CHECK(strstr(TalkMsg[0]->txt, "[*Client reply*]") != NULL);
+
+    Setup->mode = TEAM_PLAY;
+    Others = self;
+    num_others = 1;
+    self->team = UINT16_MAX;
+    char message[MSG_LEN];
+    snprintf(message, sizeof(message), "BALL [%s]:[%u]", self->nick_name,
+             self->team);
+    Add_message(message);
+    TEST_CHECK(TalkMsg[0]->bmsinfo == BmsBall);
+
+    /* The body may be much longer than the sender suffix. */
+    strcpy(self->nick_name, "BALL");
+    memset(message, 'x', 200);
+    strcpy(message + 200, " SAFE [BALL]");
+    Add_message(message);
+    TEST_CHECK(TalkMsg[0]->bmsinfo == BmsSafe);
+    Add_message("hello [BALL]");
+    TEST_CHECK(TalkMsg[0]->bmsinfo == BmsNone);
 
     Free_msgs();
     return 0;

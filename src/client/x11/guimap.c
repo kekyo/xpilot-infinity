@@ -282,7 +282,7 @@ void Gui_paint_base(int x, int y, int id, int team, int type)
     int size = 0, size2 = 0;
     other_t *other;
     char s[3];
-    char info[6];
+    char info[16];
     homebase_t *base = NULL;
     bool do_basewarning = false;
 
