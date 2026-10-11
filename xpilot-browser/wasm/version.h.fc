@@ -1,0 +1,11 @@
+/* Browser build identity, generated with funcity and screw-up. */
+#ifndef VERSION_H
+#define VERSION_H
+#define XPILOT_PRODUCT_NAME "XPilot Infinity"
+#define VERSION "{{version}}"
+#define XPILOT_COMMIT_ID "{{commit}}"
+#define XPILOT_BUILD_ID VERSION "-" XPILOT_COMMIT_ID
+#define TITLE XPILOT_PRODUCT_NAME " [" XPILOT_BUILD_ID "]"
+#define AUTHORS "XPilot Infinity contributors"
+#define COPYRIGHT "XPilot Infinity contributors"
+#endif

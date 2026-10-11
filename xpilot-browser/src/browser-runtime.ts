@@ -3,8 +3,22 @@
 // Under GPL-2.0-only
 // https://github.com/kekyo/xpilot-infinity/
 
+import type { BrowserSocket } from './browser-socket';
+
 /** C renderer exports supplied by the generated Emscripten module. */
 export interface BrowserRuntime {
+  /** Current socket, captured by C at the start of each connection. */
+  xpilotSocket: BrowserSocket | undefined;
+  /** Decode a borrowed null-terminated UTF-8 string. */
+  readonly UTF8ToString: (address: number) => string;
+  /** Start admission using a borrowed UTF-8 nickname. */
+  readonly _xp_browser_session_begin: (nickname: number) => number;
+  /** Advance admission: pending zero, confirmed one, failure negative. */
+  readonly _xp_browser_session_step: () => number;
+  /** Read a borrowed diagnostic. */
+  readonly _xp_browser_session_error: () => number;
+  /** Release an admission session. */
+  readonly _xp_browser_session_close: () => void;
   /** Current WASM byte view; reacquire after calls that may grow memory. */
   readonly HEAPU8: Uint8Array;
   /** Allocate byte storage; returns zero on failure. */

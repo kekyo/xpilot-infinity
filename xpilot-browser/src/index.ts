@@ -9,6 +9,7 @@ import {
 } from './browser-text';
 import { loadBrowserRuntime, type BrowserRuntime } from './browser-runtime';
 import './style.css';
+import { createBrowserSocket, sameOriginEndpoint } from './browser-socket';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game')!;
 const viewport = document.querySelector<HTMLElement>('#viewport')!;
@@ -22,6 +23,37 @@ let lastTime: number | undefined;
 let lastScale = 0;
 let disposed = false;
 let suspended = false;
+let joining = false;
+const connection = document.querySelector<HTMLOutputElement>('#connection')!;
+const connect = document.querySelector<HTMLButtonElement>('#connect')!;
+const leave = () => {
+  joining = false;
+  runtime?._xp_browser_session_close();
+  runtime?.xpilotSocket?.dispose();
+  connection.textContent = 'Disconnected';
+  connection.dataset.state = 'disconnected';
+  connect.disabled = false;
+};
+document.querySelector('#disconnect')!.addEventListener('click', leave);
+document.querySelector('#join')!.addEventListener('submit', (event) => {
+  event.preventDefault();
+  if (!runtime) return;
+  leave();
+  runtime.xpilotSocket = createBrowserSocket(
+    new WebSocket(sameOriginEndpoint(location.href), 'xpilot-infinity-v1')
+  );
+  const bytes = new TextEncoder().encode(
+    document.querySelector<HTMLInputElement>('#nickname')!.value + '\0'
+  );
+  const pointer = runtime._malloc(bytes.length);
+  runtime.HEAPU8.set(bytes, pointer);
+  const result = runtime._xp_browser_session_begin(pointer);
+  runtime._free(pointer);
+  joining = result === 0;
+  connect.disabled = joining;
+  connection.textContent = 'Connecting…';
+  connection.dataset.state = 'connecting';
+});
 
 const stop = () => {
   disposed = true;
@@ -29,6 +61,7 @@ const stop = () => {
   observer.disconnect();
   text.removeEventListener('input', updateText);
   face.removeEventListener('change', updateText);
+  runtime?._xp_browser_session_close();
   runtime?._xp_browser_shutdown();
   runtime = undefined;
   fonts?.dispose();
@@ -84,6 +117,19 @@ const render = (time: number) => {
   try {
     if (runtime === undefined || disposed || suspended) return;
     if (Math.min(8, window.devicePixelRatio || 1) !== lastScale) uploadText();
+    if (joining) {
+      const progress = runtime._xp_browser_session_step();
+      if (progress !== 0) {
+        joining = false;
+        connect.disabled = false;
+        connection.dataset.state = progress > 0 ? 'admitted' : 'error';
+        connection.textContent =
+          progress > 0
+            ? 'Session admitted; initial data received'
+            : runtime.UTF8ToString(runtime._xp_browser_session_error());
+        if (progress < 0) runtime._xp_browser_session_close();
+      }
+    }
     const delta =
       lastTime === undefined ? 0 : Math.min((time - lastTime) / 1000, 0.05);
     lastTime = time;
@@ -143,6 +189,7 @@ const start = async () => {
     face.addEventListener('change', updateText);
     status.textContent = 'Rendering ready';
     status.dataset.state = 'ready';
+    connect.disabled = false;
     if (!suspended) animation = requestAnimationFrame(render);
   } catch (error) {
     fail(error);

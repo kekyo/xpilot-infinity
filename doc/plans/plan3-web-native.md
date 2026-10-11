@@ -274,3 +274,9 @@ C の単体テストと実 Renderer のドライバーを使い、TS の境界�
 ### 段階 1a の成果物と検証（2026-10-11）
 
 本体の `xpilot-browser/` にアプリ、Makefile、テストと独立した npm lockfile を移した。参照先は本体の `src/`・`vendor/`・`lib/` のみとし、パッケージと生成ランタイムも `xpilot-browser` に改名した。未実装だったライブラリ用 exports はアプリの実際の配布形式に合わせて除いた。旧ディレクトリのビルドコマンドが未導入で失敗する RED を確認した後、新しい場所で SDL3 を再構築し、WASM/Vite ビルドと既存 14 件のテストが成功した。Playwright MCP による倍率 1／2 の実描画、入力、リサイズ、文字ベークを含む。ログ: `/tmp/xpilot-browser-migration-test.log`。本体の README から起動案内へリンクした。段階 1a の完了条件を満たし、段階 2 に進む。
+
+### 段階 2 の成果物（2026-10-11）
+
+ブラウザ WebSocket を既存 `record_transport_t` と `Client_session_step` につないだ。配信元の `/xpilot` と `xpilot-infinity-v1` を使い、バイナリ 1 メッセージを 1 レコードとして受け渡す。送信は bufferedAmount を含めて 1 MiB に制限し、必須レコードの未受理を呼出元へ返す。受信は 256 件／1 MiB、レコードは 65535 bytes を上限とし、型・容量違反は切断する。参加に 15 秒の期限を設け、切断後も Renderer の入力・描画を継続する。
+
+Vitest で通信境界の RED→GREEN を確認。Playwright MCP から Vite の同一オリジン経由で実ネイティブサーバーへ参加し、初期確認レコードを受け取った。同じ試験で切断・サーバー停止後の再試行失敗・描画継続を確認した。単独 E2E ログ: `/tmp/xpilot-browser-session-test.log`。ビルド時 C バージョン情報は既存の screw-up resolver と funcity により生成する。ネイティブゲームの初期化・プレイへの引継ぎは段階 3 で行う。

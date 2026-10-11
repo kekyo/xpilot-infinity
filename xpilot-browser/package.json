@@ -29,6 +29,7 @@
     "@types/node": "26.6.5",
     "@types/pngjs": "6.0.5",
     "emsdk-env": ">=0.12.0",
+    "funcity": "1.5.0",
     "pngjs": "7.0.0",
     "prettier-max": ">=1.14.0",
     "resolved-killer": "1.1.0",

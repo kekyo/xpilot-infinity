@@ -10,10 +10,12 @@ import emsdkEnv from 'emsdk-env/vite';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { prepareBrowserDependencies, sdkVersion } from './build-support';
+import { prepareBrowserMetadata } from './build-metadata';
 
 export default defineConfig(async () => {
   const root = fileURLToPath(new URL('.', import.meta.url));
   const prefix = await prepareBrowserDependencies(root);
+  const generated = await prepareBrowserMetadata(root);
   return {
     plugins: [
       prettierMax(),
@@ -26,11 +28,29 @@ export default defineConfig(async () => {
             outFile: 'xpilot-browser.mjs',
             sources: [
               'driver.c',
+              'browser_session.c',
+              '../../src/common/record_transport.c',
+              '../../src/common/record_session.c',
+              '../../src/common/session_protocol.c',
+              '../../src/common/game_transport.c',
+              '../../src/common/strlcpy.c',
+              '../../src/client/client_session.c',
               '../../src/client/sdl/renderer.c',
               '../../src/client/sdl/renderer_gl_core.c',
             ],
-            options: ['-O2', '-std=c99', '-Wall', '-Wextra', '-Werror'],
+            options: [
+              '-O2',
+              '-std=c99',
+              '-Wall',
+              '-Wextra',
+              '-Werror',
+              '-include',
+              resolve(root, 'wasm/platform.h'),
+            ],
             includeDirs: [
+              generated,
+              resolve(root, '../src/common'),
+              resolve(root, '../src/client'),
               resolve(prefix, 'include'),
               resolve(root, '../src/client/sdl'),
             ],
@@ -47,9 +67,13 @@ export default defineConfig(async () => {
               MIN_WEBGL_VERSION: 2,
               MAX_WEBGL_VERSION: 2,
               ALLOW_MEMORY_GROWTH: 1,
-              EXPORTED_RUNTIME_METHODS: ['HEAPU8'],
+              EXPORTED_RUNTIME_METHODS: ['HEAPU8', 'UTF8ToString'],
             },
             exports: [
+              '_xp_browser_session_begin',
+              '_xp_browser_session_step',
+              '_xp_browser_session_error',
+              '_xp_browser_session_close',
               '_malloc',
               '_free',
               '_xp_browser_init',
@@ -67,6 +91,14 @@ export default defineConfig(async () => {
         outputMetadataFile: true,
       }),
     ],
+    server: {
+      proxy: {
+        '/xpilot': {
+          target: process.env.XPILOT_SERVER_URL ?? 'ws://127.0.0.1:15345',
+          ws: true,
+        },
+      },
+    },
     build: {
       rolldownOptions: {
         external: [],
