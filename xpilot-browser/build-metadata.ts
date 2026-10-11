@@ -17,7 +17,8 @@ import { buildCandidateVariables, runScriptOnceToText } from 'funcity';
 export const prepareBrowserMetadata = async (root: string): Promise<string> => {
   const { stdout } = await promisify(execFile)(
     resolve(root, '../config/resolve-build-metadata.sh'),
-    [],
+    // The native repository root has no package.json or parent npm workspace.
+    ['--force'],
     {
       env: {
         ...process.env,
