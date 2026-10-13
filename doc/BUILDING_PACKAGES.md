@@ -1,8 +1,8 @@
 # Building release packages
 
 Build from an independent checkout of xpilot-infinity. The native targets use
-the existing GCC/MinGW Makefile build. The npm release requires Node.js 26.4 or
-later, npm, make, CMake, and the host tools listed in [INSTALL](../INSTALL).
+the existing GCC/MinGW Makefile build. The npm release requires Node.js 24.x
+(24.19.0+) or 26.4.0+, npm, make, CMake, and the host tools listed in [INSTALL](../INSTALL).
 `emsdk-env` installs and selects the fixed Emscripten SDKs; a system Emscripten
 installation is not used. The SDK download requires network access on first use.
 

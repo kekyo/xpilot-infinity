@@ -2,8 +2,8 @@
 
 Host an XPilot Infinity game with Node.js and play in a browser. The package
 includes the WebAssembly server, browser client, maps, fonts, and other game
-assets. Node.js 26.4 or later is required. No compiler or native addon is needed
-to install or run the package.
+assets. Node.js 24.x (24.19.0+) or 26.4.0+ is required. No compiler or native
+addon is needed to install or run the package.
 
 Install the npm package globally and start the server:
 

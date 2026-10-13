@@ -2,7 +2,7 @@
 set -eu
 
 project_root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-node -e 'if (!require("node:net").BoundSocket || !require("node:dgram").Socket.prototype.bindSync) { console.error("Building the npm release requires Node.js 26.4 or later."); process.exit(1); }'
+node -e 'if (!require("node:net").BoundSocket || !require("node:dgram").Socket.prototype.bindSync) { console.error("Building the npm release requires Node.js 24.x (24.19.0+) or 26.4.0+."); process.exit(1); }'
 
 npm --prefix "$project_root/xpilot-browser" ci
 npm --prefix "$project_root/xpilot-server" ci

@@ -15,7 +15,8 @@ Usage: ./build_package_all.sh [OPTIONS]
 
 Build the Node.js npm package and shared browser assets, then the complete
 Debian/Ubuntu matrix and Windows x86 and x86_64 ZIP archives and NSIS installers.
-The npm build requires Node.js 26.4 or later and uses emsdk-env for Emscripten.
+The npm build requires Node.js 24.x (24.19.0+) or 26.4.0+.
+It uses emsdk-env for Emscripten.
 
 Options:
   --version VERSION  Product version override (default: screw-up-derived version)

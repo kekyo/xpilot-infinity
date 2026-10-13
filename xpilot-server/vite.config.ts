@@ -119,7 +119,7 @@ export default defineConfig(async (): Promise<UserConfig> => {
       },
     ],
     build: {
-      target: 'node26',
+      target: 'node24',
       minify: false,
       lib: {
         entry: fileURLToPath(new URL('./src/cli.ts', import.meta.url)),

@@ -17,7 +17,7 @@ XPilot Infinity のサーバーを Node.js と WASM で実行し、ビルド済�
 
 ゲームルール、物理、マップ、ロボット、プロトコルは既存 C ソースを共有する。WASM インスタンスは一つのゲームを所有する。停止時にはソケットと保存データを処理し、再起動には新しいインスタンスを使用して C のグローバル状態を混在させない。
 
-通信の第一候補は Emscripten の NODERAWSOCKETS である。POSIX ソケットを Node.js の TCP/UDP に接続し、既存の HTTP と wslay による WebSocket 処理も利用する。サーバー SDK の初期検証バージョンは 6.0.12、実行環境は公開 API の BoundSocket、bindSync、connectSync が存在する Node.js 26.4 以降とする。ブラウザ SDK の更新は必須とせず、双方の成果物を検証する。
+通信の第一候補は Emscripten の NODERAWSOCKETS である。POSIX ソケットを Node.js の TCP/UDP に接続し、既存の HTTP と wslay による WebSocket 処理も利用する。サーバーSDKの初期検証バージョンは6.0.12とする。実行環境はNode.js 24.19.0以降の24系、または26.4.0以降とする。通信に使う公開APIのBoundSocket、bindSync、connectSyncは、[Node.js 24.19.0で24系にも追加された](https://nodejs.org/en/blog/release/v24.19.0)。ブラウザ SDK の更新は必須とせず、双方の成果物を検証する。
 
 `src/server/netserver.c` は接続用ポートを確保した直後にポート番号を使用する。動的ポート、競合、接続元、切断、送信待ちを実通信で検証する。ソケットの準備通知から短時間で戻る処理を呼び、フレームは所定の時刻に進める。長時間停止後に無制限の追い付き処理を実行しない。
 
@@ -146,6 +146,6 @@ deb と NSIS はネイティブのサーバー・SDL クライアント・既存
 同じ Wine 環境での TCP クライアント側は、XPilot/WASM を読み込まず `node:http.createServer` と `fetch` だけを使うローカル自己接続でも `connect UNKNOWN 127.0.0.1` となった。これは今回の環境で観測した結果であり、Windows 実機の npm 通信確認の代わりにはしない。Wine のための変更を製品へ加えず、実機で次の確認を行う。使用した API は [Node.js HTTP](https://nodejs.org/api/http.html) と [fetch](https://nodejs.org/api/globals.html#fetch) の公開 API である。
 
 1. 利用可能な Windows PC の対話セッションで [agent-rover の Windows エージェント](https://github.com/kekyo/agent-rover#preparation) を起動し、テスト用の接続先と認証情報を用意する。現環境にはその接続先がないため、実行済みとはしない。
-2. agent-rover 経由で同じ tgz を転送し、Node.js 26.4 以降で devDependencies/install scripts なしに導入する。書き込み禁止のインストール先と別の保存先を使い、CLI と日本語/空白を含む Windows パスを検証する。
+2. agent-rover経由で同じtgzを転送し、Node.js 24.19.0以降の24系、または26.4.0以降で導入する。devDependenciesとinstall scriptsは使用しない。書き込み禁止のインストール先と別の保存先を使い、CLI と日本語/空白を含む Windows パスを検証する。
 3. 三方式のネイティブクライアントと Playwright MCP のブラウザを Windows のサーバーへ接続し、入力、再接続、保存/再起動、終了時のポート解放、ローカルメタサーバーへの登録/削除を確認する。ブラウザの画面操作は引き続き Playwright MCP を使用する。
 4. 結果とログをこの計画に追記する。Node.js 版へのシステムトレイ実装追加や、SDK/vendor の修正は行わない。

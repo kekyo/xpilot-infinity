@@ -35,7 +35,8 @@ If the keys do not respond, click the game to focus it.
 
 ## Start a server on your PC
 
-You need Node.js 26.4 or later and npm. Install the package globally and start the server:
+You need Node.js 24.x ([24.19.0](https://nodejs.org/en/blog/release/v24.19.0) or later)
+or Node.js 26.4.0 or later, together with npm. Install the package globally and start the server:
 
 ```sh
 npm install -g xpilot-infinity

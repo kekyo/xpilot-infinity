@@ -63,7 +63,7 @@ XPilot には独自の新しい要素も数多くあります。
 | Ubuntu | 24.04 | amd64, arm64 |
 | Ubuntu | 26.04 | amd64, arm64 |
 | Windows | - | x86（32 ビット）, x86_64（64 ビット） |
-| Node.js / npm | 26.4 以降 | Node.js の対応プラットフォーム |
+| Node.js / npm | 24.19.0以降の24系、または26.4.0以降 | Node.js の対応プラットフォーム |
 
 - 動作環境: SDL3、OpenGL 3.3、OpenAL（サウンド）
 
@@ -74,7 +74,8 @@ Debian および Ubuntu パッケージは、XDG 互換のアプリケーショ�
 ### Node.js/ブラウザ環境でのプレイ
 
 ネイティブクライアントに加えて、ブラウザでもプレイできます。
-[Node.js 版](xpilot-server/README.md)は WASM サーバーとブラウザクライアントを同梱し、Node.js 26.4 以降で実行できます。
+[Node.js版](xpilot-server/README.md)はWASMサーバーとブラウザクライアントを同梱しています。
+Node.js 24.19.0以降の24系、または26.4.0以降で実行できます。
 
 グローバルにインストールして起動するには、次のコマンドを実行します。
 

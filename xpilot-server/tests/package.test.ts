@@ -21,6 +21,7 @@ it('installs a self-contained release without dev dependencies or install script
       'npm',
       [
         'install',
+        '--engine-strict',
         '--omit=dev',
         '--ignore-scripts',
         '--no-audit',

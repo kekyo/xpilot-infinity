@@ -60,7 +60,7 @@ The supported package matrix is:
 | Ubuntu | 24.04 | amd64, arm64 |
 | Ubuntu | 26.04 | amd64, arm64 |
 | Windows | - | x86 (32bit), x86_64 (64bit) |
-| Node.js / npm | 26.4 or later | Platforms supported by Node.js |
+| Node.js / npm | 24.x (24.19.0+) or 26.4.0+ | Platforms supported by Node.js |
 
 - Environment: SDL3, OpenGL 3.3 and OpenAL (sound)
 
@@ -74,7 +74,8 @@ Play using the native client or a browser. See [Playing in a browser](docs/en/br
 for joining a game, controls, and starting your own server.
 
 The [Node.js package](xpilot-server/README.md)
-includes a WASM server and browser client and requires Node.js 26.4 or later.
+includes a WASM server and browser client. It requires Node.js 24.x (24.19.0+)
+or 26.4.0+.
 See [browser hosting](doc/BROWSER.md) for native hosting and HTTPS/WSS deployment.
 
 Install the npm package globally and start the server:

@@ -11,6 +11,8 @@ export const assertNodeRuntime = (): void => {
     typeof dgram.Socket.prototype.bindSync !== 'function' ||
     typeof dgram.Socket.prototype.connectSync !== 'function'
   ) {
-    throw new Error('XPilot Infinity requires Node.js 26.4 or later.');
+    throw new Error(
+      'XPilot Infinity requires Node.js 24.x (24.19.0+) or 26.4.0+.'
+    );
   }
 };
