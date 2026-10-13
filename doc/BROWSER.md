@@ -6,6 +6,10 @@ With Node.js 24.x (24.19.0+) or 26.4.0+, run `npx xpilot-infinity` and open
 `npm install -g xpilot-infinity` and start it with `xpilot-infinity`. See the
 [Node.js package guide](../xpilot-server/README.md) for options and saved data.
 
+The [Podman image](../README.md#running-the-server-with-podman) bundles the same
+Node.js server and browser client. Select the published transports with port
+mappings; 15347/TCP is sufficient for browser hosting and WebSocket gameplay.
+
 Native release packages also include the browser application. On Debian/Ubuntu:
 
 ```sh

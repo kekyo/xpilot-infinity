@@ -421,155 +421,165 @@ X11 では XEmbed のトレイにも対応します。利用できるホスト�
 
 ### Podman でサーバーを実行する
 
-このリポジトリには、専用サーバー向けのマルチステージ
-[`Dockerfile`](Dockerfile) が含まれています。ランタイムイメージには、サーバー、
-標準マップ、設定データ、および必要な共有ライブラリだけが含まれています。
-UID/GID `10001:10001` で実行され、既定のコマンドは公開メタサーバーへ報告せずに
-TCP ポート 15345 で `ndh.xp2` を起動します。
+コンテナにはNode.js/Wasm版サーバー、標準マップ、ブラウザクライアントが同梱されています。
+対応CPUはLinuxのamd64とarm64で、実行時のUID/GIDは`10001:10001`です。
+コンテナ内ではUDP・TCP・WebSocketをすべて有効にしています。
+外部へ公開する通信方式は、起動時のポートマッピングで選べます。
 
-このリポジトリから公開されるイメージの名前は
-`docker.io/kekyo/xpilot-infinity-server` です。代わりにローカルイメージを
-ビルドするには、次のコマンドを実行します。
+#### ビルドしてブラウザで参加する
+
+Podmanと、Node.js 24.19.0以降の24系または26.4.0以降、npmを用意してください。
+ビルドには[ブラウザ版のビルド環境](xpilot-browser/README.md)も必要です。
+異なるCPU向けのイメージをビルド・検証するには、QEMU/binfmtによる実行環境を用意します。
+必要な場合はホストOSの`qemu-user-static`などをインストールしてください。
 
 ```bash
 image=localhost/xpilot-infinity-server:local
 ./build_container_image.sh --tag "$image"
-```
-
-このビルドコマンドは Podman を使用し、イメージをプッシュすることはありません。
-リリースおよびマルチアーキテクチャビルドの手順は
-[`doc/PACKAGING.md`](doc/PACKAGING.md#dedicated-server-container-image) にあります。
-
-録画など、相対パスで出力されるファイル用の名前付きボリュームを作成し、
-読み取り専用のルートファイルシステムかつ Linux ケーパビリティなしで、既定の
-TCP サーバーを起動します。
-
-```bash
-image=docker.io/kekyo/xpilot-infinity-server:latest
 podman volume create xpilot-infinity-server-data
 podman run --detach \
   --name xpilot-infinity-server \
-  --read-only \
-  --cap-drop=all \
+  --read-only --cap-drop=all \
   --security-opt=no-new-privileges \
-  --publish 15345:15345/tcp \
-  --volume \
-    xpilot-infinity-server-data:/var/lib/xpilot-infinity-server \
+  --publish 15347:15347/tcp \
+  --volume xpilot-infinity-server-data:/var/lib/xpilot-infinity-server \
+  "$image" -map ndh.xp2 -rankFileName rankings.xml
+```
+
+`http://localhost:15347/`を開き、名前を入力して`Join game`を押します。
+別のPCから参加する場合は、`localhost`をサーバーのホスト名に置き換えてください。
+[ブラウザでの基本操作](docs/ja/browser.md)も参照できます。
+
+この例ではブラウザの配信とWebSocketゲーム通信だけを公開します。
+HTTPとWebSocketは同じ15347/TCPを使うため、静的ファイル用の別ポートは不要です。
+自分のPCからだけ接続する場合は`--publish 127.0.0.1:15347:15347/tcp`に変更します。
+既定のマップは`ndh.xp2`で、公開メタサーバーへの報告は無効です。
+
+既定のビルドでは、amd64とarm64を含むmanifestと、各CPUの検証用タグ
+`${image}-amd64`、`${image}-arm64`を作成します。
+サーバーとブラウザは一度だけビルドし、同じバージョン・コミットの成果物を両CPUで使用します。
+完成タグの更新には、各CPUの起動、WebSocket接続、ブラウザ配信、データ保存の検証が必要です。
+一方のビルドや検証が失敗すると、完成タグの更新と公開を中止します。
+
+単一CPUだけをビルドする場合は`--platform linux/amd64`または`--platform linux/arm64`を指定します。
+`--jobs 1`でイメージを順番にビルドできます。
+`--skip-app-build`は、サーバーとブラウザの生成済み成果物を再利用する指定です。
+両方のバージョンとコミットが今回のビルド指定に一致する場合だけ利用できます。
+ソースを変更した場合は、この指定を外して再ビルドしてください。
+
+`./build_container_image_all.sh`も両CPUを対象とします。
+既定ではローカルへのビルドのみで、`--push`を指定すると検証後にバージョンタグと`latest`を公開します。
+公開先の既定値は`docker.io/kekyo/xpilot-infinity-server`です。
+`--registry-image`で自分の公開先を指定し、あらかじめ`podman login`を実行してください。
+バージョン、コミット、Node.jsベースイメージは、`--version`、`--revision`、`--node-image`で指定できます。
+そのほかのオプションは`./build_container_image.sh --help`で確認できます。
+
+#### 公開する通信方式を選ぶ
+
+サーバー引数の変更やイメージの再ビルドは不要です。
+必要な行の`--publish`を組み合わせて、コンテナを作成します。
+
+| 用途 | コンテナ内のポート | Podmanの指定 |
+| --- | --- | --- |
+| ブラウザ配信・WebSocket | 15347/TCP | `--publish 15347:15347/tcp` |
+| ネイティブTCP | 15346/TCP | `--publish 15346:15346/tcp` |
+| ネイティブUDPの接続受付 | 15345/UDP | `--publish 15345:15345/udp` |
+| ネイティブUDPのゲーム通信 | 15400〜15499/UDP | `--publish 15400-15499:15400-15499/udp` |
+
+UDPでは受付ポートとゲーム通信の範囲を両方公開してください。
+ゲーム通信には、サーバーが通知したポート番号をクライアントが使います。
+そのため15400〜15499はホスト側も同じ番号にします。
+イメージの`EXPOSE`は15347/TCPのみなので、UDPには明示した範囲の`--publish`が必要です。
+
+すべて公開する場合の例です。
+
+```bash
+podman run --detach --name xpilot-infinity-server-all \
+  --read-only --cap-drop=all --security-opt=no-new-privileges \
+  --publish 15347:15347/tcp \
+  --publish 15346:15346/tcp \
+  --publish 15345:15345/udp \
+  --publish 15400-15499:15400-15499/udp \
   "$image"
 ```
 
-ローカルクライアントからのみ接続させる場合は、公開ポートを `127.0.0.1` に
-バインドしてください。リモートクライアントは、次のように既定のコンテナへ接続します。
+この例は最初のコンテナと15347を共有するため、切り替える前に最初のコンテナを停止してください。
+ネイティブクライアントは`tcp://server.example:15346`、`udp://server.example:15345`、
+または`ws://server.example:15347`へ接続できます。
+ポートマッピングで公開範囲を選ぶ場合は、`--network=host`を指定しないでください。
+
+rootlessで元のクライアントIPが保持されるかは、ネットワーク設定に依存します。
+IPごとの参加人数制限を設定する場合は、サーバーから見える接続元を確認してください。
+公開ポート、送信元IP、SELinuxのマウントオプションについては
+[Podmanの公式説明](https://docs.podman.io/en/v4.9.3/markdown/podman-run.1.html)を参照できます。
+
+#### マップ・保存データ・HTTPS
+
+イメージ名の後に`-map`などを追加しても、3種類の待受けとUDPポート範囲は保持されます。
+同梱のマップはベース名で選択できます。独自のマップや設定ファイルは読み取り専用でマウントしてください。
 
 ```bash
-xpilot-infinity-sdl tcp://server.example:15345
-```
-
-イメージ名の後に指定した引数は、イメージの既定のサーバー引数を置き換えます。
-オプションを追加する場合は、`-noQuit`、`+reportMeta`、マップ、および `-tcp` も
-再度指定してください。たとえば、独自の既定値ファイルとマップを読み取り専用で
-マウントできます。
-
-```bash
-podman run --detach \
-  --name xpilot-infinity-server \
-  --read-only --cap-drop=all \
-  --security-opt=no-new-privileges \
-  --publish 15345:15345/tcp \
+podman run --detach --name xpilot-infinity-server-custom \
+  --read-only --cap-drop=all --security-opt=no-new-privileges \
+  --publish 15347:15347/tcp \
   --volume "$PWD/defaults.txt:/etc/xpilot/defaults.txt:ro" \
   --volume "$PWD/my-map.xp2:/maps/my-map.xp2:ro" \
-  --volume \
-    xpilot-infinity-server-data:/var/lib/xpilot-infinity-server \
-  "$image" \
-  -noQuit +reportMeta -tcp \
-  -defaultsFileName /etc/xpilot/defaults.txt \
-  -map /maps/my-map.xp2
+  --volume xpilot-infinity-server-data:/var/lib/xpilot-infinity-server \
+  "$image" -defaultsFileName /etc/xpilot/defaults.txt \
+  -map /maps/my-map.xp2 -rankFileName rankings.xml
 ```
 
-SELinux ホストでは、ホストのバインドマウントに適切な `z` または `Z` の
-再ラベル付けオプションを追加してください。同梱のマップは、マウントせずに
-ベース名で選択できます。
+保存先は`/var/lib/xpilot-infinity-server`です。
+ランキングなどを残す場合は、名前付きボリュームをマウントしてください。
+同じボリュームを使うサーバーは同時に起動しないでください。
+SELinuxホストのバインドマウントには、必要に応じて`:ro,Z`などを指定します。
 
-管理者パスワードはイメージとソースツリーの外部で管理してください。
-[`lib/password.txt`](lib/password.txt) に記載された形式でファイルを作成し、
-Podman のシークレットとしてインポートして、イメージの非 root ユーザー向けに
-マウントします。
+管理者パスワードは[`lib/password.txt`](lib/password.txt)の形式で外部ファイルに保存できます。
+`podman secret create xpilot-server-password ./password.txt`で登録した後、
+起動コマンドのイメージ名の前に
+`--secret source=xpilot-server-password,target=xpilot-password,uid=10001,gid=10001,mode=0400`を追加します。
+イメージ名の後には`-passwordFileName /run/secrets/xpilot-password`を指定します。
 
-```bash
-podman secret create xpilot-server-password ./password.txt
-podman run --detach \
-  --name xpilot-infinity-server \
-  --read-only --cap-drop=all \
-  --security-opt=no-new-privileges \
-  --publish 15345:15345/tcp \
-  --volume \
-    xpilot-infinity-server-data:/var/lib/xpilot-infinity-server \
-  --secret \
-    source=xpilot-server-password,target=xpilot-password,uid=10001,gid=10001,mode=0400 \
-  "$image" \
-  -noQuit +reportMeta -map ndh.xp2 -tcp \
-  -passwordFileName /run/secrets/xpilot-password
-```
-
-従来の UDP トランスポートでは、接続確認ポートと、固定された 1 対 1 の
-ゲームプレイ用ポート範囲の両方が必要です。イメージは意図的に既定の TCP
-ポートだけを公開しているため、UDP では `--publish-all` を使用しないでください。
-
-```bash
-podman run --detach \
-  --name xpilot-infinity-server-udp \
-  --read-only --cap-drop=all \
-  --security-opt=no-new-privileges \
-  --publish 15345:15345/udp \
-  --publish 15346-15445:15346-15445/udp \
-  "$image" \
-  -noQuit +reportMeta -map ndh.xp2 -udp \
-  -clientPortStart 15346 -clientPortEnd 15445
-```
-
-これらの公開ポートを通じて UDP で直接接続できます。UDP の LAN ブロードキャスト
-探索は、rootless コンテナネットワークを越えられない場合があります。探索が必要な
-場合は `--network=host` を明示的な代替手段として使用できますが、ネットワーク
-名前空間による分離がなくなるため、ポート公開オプションと併用してはなりません。
-rootless のポートフォワーディングによって接続元クライアントのアドレスが隠れる
-場合もあります。IP アドレスに基づくプレイヤー数制限を変更する際は考慮してください。
-
-ログを継続表示し、サーバーを正常に停止するには次のコマンドを使用します。
+HTTPSで公開する場合は、TLSを終端するリバースプロキシを前段に置いてください。
+コンテナを`--publish 127.0.0.1:15347:15347/tcp`で起動し、
+サーバー引数に`-webOrigin https://game.example`を追加してください。
+ブラウザ用ページと`/xpilot`を同じオリジンへ転送すると、ブラウザはWSSで接続します。
+プロキシの設定例は[サーバー公開設定](doc/BROWSER.md#https-and-wss)にあります。
+`-webTrustedProxy`を使う場合の指定値は、コンテナから実際に見えるプロキシのIPアドレスです。
 
 ```bash
 podman logs --follow xpilot-infinity-server
-podman stop xpilot-infinity-server
+podman stop --time 60 xpilot-infinity-server
 ```
 
-`podman stop` はイメージに設定された停止シグナル `SIGTERM` を送信するため、
-サーバーは終了前に永続化する出力を書き出せます。
+`podman stop`ではSIGTERMを受けて保存処理を行います。
 
-rootless systemd で任意に管理する場合は、付属の Quadlet ファイルをユーザーの
-ジェネレーターディレクトリへコピーします。
+#### rootless systemdで管理する
+
+付属のQuadletは15347/TCPだけを公開し、名前付きボリュームにランキングを保存します。
+`Image=`の既定値は`docker.io/kekyo/xpilot-infinity-server:latest`です。
+ローカルビルドを使う場合は、コピーしたファイルの`Image=`をそのタグへ変更してください。
 
 ```bash
 quadlet_dir="${XDG_CONFIG_HOME:-$HOME/.config}/containers/systemd"
 mkdir -p "$quadlet_dir"
 cp containers/xpilot-infinity-server.container "$quadlet_dir/"
 cp containers/xpilot-infinity-server-data.volume "$quadlet_dir/"
+# Set Image= in the copied .container file before starting it.
 systemctl --user daemon-reload
 systemctl --user start xpilot-infinity-server.service
 ```
 
-Quadlet は `latest` イメージ、同じセキュリティ強化済みの TCP 設定、および永続的な
-名前付きボリュームを使用します。その `[Install]` セクションにより、以降の
-ユーザー systemd セッションで起動します。生成された Quadlet サービスは
-`systemctl enable` で有効化しません。対話的ログインなしでブート時に起動するには、
-管理者がそのアカウントの linger を追加で有効にできます。状態は
-`systemctl --user status xpilot-infinity-server.service` と
-`journalctl --user -u xpilot-infinity-server.service` で確認できます。
+手動起動したコンテナと公開ポートが重複する場合は、先に手動のコンテナを停止します。
+状態とログは`systemctl --user status xpilot-infinity-server.service`と
+`journalctl --user -u xpilot-infinity-server.service`で確認できます。
+TCPやUDPも公開する場合は、前述の表に対応する`PublishPort=`を`[Container]`へ追加してください。
+シークレットを登録済みなら`Secret=`を追加し、`Exec=`に`-passwordFileName`を指定できます。
 
-サービスの起動前にシークレットが存在している必要があるため、Quadlet は既定で
-シークレットを参照しません。シークレットを作成した後、`Secret=` 行を
-`[Container]` セクションに追加し、前述の手動 Podman の例と同様に
-`-passwordFileName` を `Exec=` へ追加してください。サービスを再起動する前に、
-検証済みの新しいイメージを明示的にプルしてください。レジストリからの自動更新は有効に
-なっていません。
+`[Install]`の指定により、その後のユーザーsystemdセッションでも起動します。
+生成されたサービスに`systemctl enable`を実行する必要はありません。
+ログインなしで起動する設定は[Quadletの公式説明](https://docs.podman.io/en/v4.9.3/markdown/podman-systemd.unit.5.html)を参照してください。
+イメージの自動更新は無効です。更新時は対象のイメージをプルしてからサービスを再起動します。
 
 ---
 

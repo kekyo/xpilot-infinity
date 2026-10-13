@@ -56,4 +56,7 @@ npx xpilot-infinity
 
 サーバー設定は [Node.js 版の案内（英語）](../../xpilot-server/README.md)、ネイティブ版からの配信や HTTPS 公開は [サーバー公開設定（英語）](../../doc/BROWSER.md) を参照してください。
 
+Podmanで動かす場合は、[コンテナの起動手順](../../README_ja.md#podman-でサーバーを実行する)を参照してください。
+同じNode.js版サーバーとブラウザクライアントを同梱し、公開ポートの指定だけで利用する通信方式を選べます。
+
 HTML ファイルを直接開くのではなく、サーバーの `http://` または `https://` の URL を使用してください。
