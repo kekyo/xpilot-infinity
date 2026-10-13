@@ -44,6 +44,7 @@ test.each([
         join(sdk, 'upstream/emscripten/emcc'),
         [
           '-std=c99',
+          '-msimd128',
           '-Wno-deprecated-non-prototype',
           '-I',
           join(prefix, 'include'),

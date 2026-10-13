@@ -18,13 +18,16 @@ export default defineConfig(async (): Promise<UserConfig> => {
         emsdk: { targetVersion: sdkVersion },
         generatedLoader: { enable: false },
         outDir: 'public/runtime',
+        common: {
+          options: ['-O3', '-msimd128'],
+          linkOptions: ['-O3', '-msimd128'],
+        },
         targets: {
           'xpilot-server': {
             outFile: 'xpilot-server.mjs',
             sources: serverSources,
             options: [
               '-std=c99',
-              '-O2',
               '-sSUPPORT_LONGJMP=wasm',
               '-include',
               resolve(root, 'wasm/platform.h'),
@@ -40,7 +43,6 @@ export default defineConfig(async (): Promise<UserConfig> => {
             ],
             linkOptions: [
               '--no-entry',
-              '-O2',
               '-Wl,--wrap=exit',
               '-Wl,--wrap=Get_login_name',
               '-Wl,--wrap=sock_get_local_hostname',
@@ -91,8 +93,8 @@ export default defineConfig(async (): Promise<UserConfig> => {
           'socket-probe': {
             outFile: resolve(root, 'build/test-runtime/socket-probe.mjs'),
             sources: ['socket-probe.c'],
-            options: ['-std=c99', '-O2', '-Wall', '-Wextra', '-Werror'],
-            linkOptions: ['--no-entry', '-O2'],
+            options: ['-std=c99', '-Wall', '-Wextra', '-Werror'],
+            linkOptions: ['--no-entry'],
             linkDirectives: {
               MODULARIZE: 1,
               EXPORT_ES6: 1,

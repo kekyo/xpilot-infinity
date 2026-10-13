@@ -24,13 +24,16 @@ export default defineConfig(async () => {
         emsdk: { targetVersion: sdkVersion },
         generatedLoader: { enable: false },
         outDir: 'public/runtime',
+        common: {
+          options: ['-O3', '-msimd128'],
+          linkOptions: ['-O3', '-msimd128'],
+        },
         targets: {
           'xpilot-game': {
             outFile: 'xpilot-game.mjs',
             sources: gameSources,
             options: [
               '-DSOUND=1',
-              '-O2',
               '-std=c99',
               '-include',
               resolve(root, 'wasm/platform.h'),
@@ -46,7 +49,6 @@ export default defineConfig(async () => {
               resolve(prefix, 'include'),
             ],
             linkOptions: [
-              '-O2',
               '--no-entry',
               resolve(prefix, 'lib/libSDL3_ttf.a'),
               resolve(prefix, 'lib/libSDL3_image.a'),
@@ -114,7 +116,6 @@ export default defineConfig(async () => {
               '../../src/client/sdl/renderer_gl_core.c',
             ],
             options: [
-              '-O2',
               '-std=c99',
               '-Wall',
               '-Wextra',
@@ -130,7 +131,6 @@ export default defineConfig(async () => {
               resolve(root, '../src/client/sdl'),
             ],
             linkOptions: [
-              '-O2',
               '--no-entry',
               resolve(prefix, 'lib/libSDL3.a'),
               '-lm',

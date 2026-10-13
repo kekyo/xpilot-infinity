@@ -22,11 +22,12 @@ dependencies:
 		EMSDK_ROOT="$(EMSDK_ROOT)" BUILD_DIR="$(BUILD_DIR)" \
 		PREFIX="$(PREFIX)" JOBS="$(JOBS)"
 
-$(PREFIX)/lib/libSDL3.a:
+$(PREFIX)/lib/libSDL3.a: Makefile
 	@test -x "$(EMCMAKE)" || { echo "EMSDK_ROOT must name an installed Emscripten SDK" >&2; exit 1; }
 	EM_CONFIG="$(EMSDK_ROOT)/.emscripten" "$(EMCMAKE)" cmake \
 		-S "$(SDL_SOURCE)" -B "$(BUILD_DIR)/sdl3" \
 		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_C_FLAGS="-msimd128" \
 		-DCMAKE_INSTALL_PREFIX="$(PREFIX)" \
 		-DSDL_SHARED=OFF -DSDL_STATIC=ON \
 		-DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF \
@@ -36,6 +37,8 @@ $(PREFIX)/lib/libSDL3.a:
 		--build "$(BUILD_DIR)/sdl3" --parallel "$(JOBS)"
 	EM_CONFIG="$(EMSDK_ROOT)/.emscripten" cmake \
 		--install "$(BUILD_DIR)/sdl3"
+	# Record successful reconfiguration even when CMake leaves the archive unchanged.
+	touch "$@"
 
 check:
 	@command -v xvfb-run >/dev/null || { echo "xvfb-run is required" >&2; exit 1; }
@@ -73,20 +76,23 @@ game-dependencies: dependencies
 		EMSDK_ROOT="$(EMSDK_ROOT)" BUILD_DIR="$(BUILD_DIR)" \
 		PREFIX="$(PREFIX)" JOBS="$(JOBS)"
 
-$(PREFIX)/lib/libSDL3_ttf.a: $(PREFIX)/lib/libSDL3.a
+$(PREFIX)/lib/libSDL3_ttf.a: Makefile $(PREFIX)/lib/libSDL3.a
 	EM_CONFIG="$(EMSDK_ROOT)/.emscripten" "$(EMCMAKE)" cmake \
 		-S "$(CURDIR)/../../vendor/sdl3/SDL_ttf" -B "$(BUILD_DIR)/sdl3-ttf" \
 		-DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$(PREFIX)" \
+		-DCMAKE_C_FLAGS="-msimd128" \
 		-DSDL3_DIR="$(PREFIX)/lib/cmake/SDL3" -DBUILD_SHARED_LIBS=OFF \
 		-DSDLTTF_VENDORED=ON -DSDLTTF_HARFBUZZ=OFF \
 		-DSDLTTF_PLUTOSVG=OFF -DSDLTTF_SAMPLES=OFF -DSDLTTF_INSTALL=ON
 	EM_CONFIG="$(EMSDK_ROOT)/.emscripten" cmake --build "$(BUILD_DIR)/sdl3-ttf" --parallel "$(JOBS)"
 	EM_CONFIG="$(EMSDK_ROOT)/.emscripten" cmake --install "$(BUILD_DIR)/sdl3-ttf"
+	touch "$@"
 
-$(PREFIX)/lib/libSDL3_image.a: $(PREFIX)/lib/libSDL3.a
+$(PREFIX)/lib/libSDL3_image.a: Makefile $(PREFIX)/lib/libSDL3.a
 	EM_CONFIG="$(EMSDK_ROOT)/.emscripten" "$(EMCMAKE)" cmake \
 		-S "$(CURDIR)/../../vendor/sdl3/SDL_image" -B "$(BUILD_DIR)/sdl3-image" \
 		-DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$(PREFIX)" \
+		-DCMAKE_C_FLAGS="-msimd128" \
 		-DSDL3_DIR="$(PREFIX)/lib/cmake/SDL3" -DBUILD_SHARED_LIBS=OFF \
 		-DSDLIMAGE_BACKEND_STB=ON -DSDLIMAGE_PNG_LIBPNG=OFF \
 		-DSDLIMAGE_AVIF=OFF -DSDLIMAGE_JXL=OFF -DSDLIMAGE_TIF=OFF \
@@ -94,16 +100,19 @@ $(PREFIX)/lib/libSDL3_image.a: $(PREFIX)/lib/libSDL3.a
 		-DSDLIMAGE_INSTALL=ON
 	EM_CONFIG="$(EMSDK_ROOT)/.emscripten" cmake --build "$(BUILD_DIR)/sdl3-image" --parallel "$(JOBS)"
 	EM_CONFIG="$(EMSDK_ROOT)/.emscripten" cmake --install "$(BUILD_DIR)/sdl3-image"
+	touch "$@"
 
-$(PREFIX)/lib/libz.a:
+$(PREFIX)/lib/libz.a: Makefile
 	mkdir -p "$(BUILD_DIR)/zlib-source"
 	cp -a "$(CURDIR)/../../vendor/zlib/." "$(BUILD_DIR)/zlib-source/"
 	# zlib 1.2.11's CMake targets both produce libz.a under Emscripten.
 	# Its configure script supports a static-only build; its K&R definitions need C99.
 	cd "$(BUILD_DIR)/zlib-source" && \
 		EM_CONFIG="$(EMSDK_ROOT)/.emscripten" \
-		CFLAGS="-O3 -std=c99 -Wno-deprecated-non-prototype" \
+		CFLAGS="-O3 -msimd128 -std=c99 -Wno-deprecated-non-prototype" \
 		"$(EMSDK_ROOT)/upstream/emscripten/emconfigure" \
 		./configure --static --prefix="$(PREFIX)"
+	# Existing objects must be rebuilt when this Makefile changes compiler flags.
+	EM_CONFIG="$(EMSDK_ROOT)/.emscripten" $(MAKE) -C "$(BUILD_DIR)/zlib-source" clean
 	EM_CONFIG="$(EMSDK_ROOT)/.emscripten" $(MAKE) -C "$(BUILD_DIR)/zlib-source" -j"$(JOBS)" libz.a
 	EM_CONFIG="$(EMSDK_ROOT)/.emscripten" $(MAKE) -C "$(BUILD_DIR)/zlib-source" install
