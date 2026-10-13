@@ -86,6 +86,9 @@ it.runIf(
             '-geometry',
             '800x600',
             '-join',
+            // Xvfb does not isolate the host audio device.
+            '-sound',
+            'false',
             '-name',
             `Container${transport}`,
             '-messagesToStdout',

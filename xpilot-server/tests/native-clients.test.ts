@@ -67,6 +67,9 @@ it.runIf(process.env.XPILOT_CLIENT_BINARY !== undefined)(
             '-geometry',
             '800x600',
             '-join',
+            // Xvfb does not isolate the host audio device.
+            '-sound',
+            'false',
             '-name',
             `Node${transport}`,
             '-messagesToStdout',

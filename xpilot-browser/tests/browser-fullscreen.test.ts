@@ -147,6 +147,8 @@ test.each(['firefox', 'chromium'] as const)(
       connected = true;
       await call('browser_navigate', { url: `http://127.0.0.1:${port}/` });
       await call('browser_wait_for', { text: 'Ready to join' });
+      // Headed Firefox can play through the host even on a virtual display.
+      await call('browser_click', { target: '#mute' });
       await call('browser_click', { target: '#connect' });
       await call('browser_wait_for', { text: 'Playing' });
       await call('browser_start_video', {
@@ -212,6 +214,11 @@ test.each(['firefox', 'chromium'] as const)(
           released: 0,
         });
       }
+      expect(
+        await evaluate(
+          '() => Number(document.querySelector("#audio").dataset.peak)'
+        )
+      ).toBe(0);
       await call('browser_click', { target: '#disconnect' });
       await call('browser_wait_for', { text: 'Disconnected' });
     } finally {
