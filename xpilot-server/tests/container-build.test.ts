@@ -79,8 +79,9 @@ if (process.env.TEST_SCENARIO==='verification failure' && process.env.XPILOT_CON
             '9.8.7',
             '--revision',
             commit,
-            '--tag',
-            'localhost/xpilot-build-test:9.8.7',
+            ...(scenario === 'local'
+              ? []
+              : ['--tag', 'localhost/xpilot-build-test:9.8.7']),
             '--jobs',
             '2',
             ...(scenario === 'local' ? [] : ['--push']),
@@ -108,6 +109,10 @@ if (process.env.TEST_SCENARIO==='verification failure' && process.env.XPILOT_CON
         .map((line) => JSON.parse(line));
       if (scenario === 'local' || scenario === 'publish') {
         expect(failed).toBe(false);
+        if (scenario === 'local')
+          expect(calls.find((args) => args[0] === 'tag')).toContain(
+            'localhost/xpilot-infinity:9.8.7'
+          );
         // Removing a manifest object also removes every alias attached to it.
         expect(
           calls.some((args) => args[0] === 'manifest' && args[1] === 'rm')
@@ -131,10 +136,10 @@ if (process.env.TEST_SCENARIO==='verification failure' && process.env.XPILOT_CON
         if (scenario === 'publish') {
           expect(pushes[0]).toContain('--all');
           expect(pushes[0]).toContain(
-            'docker://docker.io/kekyo/xpilot-infinity-server:9.8.7'
+            'docker://docker.io/kekyo/xpilot-infinity:9.8.7'
           );
           expect(pushes[1]).toContain(
-            'docker://docker.io/kekyo/xpilot-infinity-server:latest'
+            'docker://docker.io/kekyo/xpilot-infinity:latest'
           );
           expect(calls.indexOf(pushes[0])).toBeGreaterThan(
             calls.indexOf(calls.filter((args) => args[0] === 'verify').at(-1)!)

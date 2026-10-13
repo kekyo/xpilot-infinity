@@ -5,7 +5,7 @@ project_root=${BUILD_CONTAINER_PROJECT_ROOT:-$(CDPATH= cd -- "$(dirname -- "$0")
 container_engine=${CONTAINER_ENGINE:-podman}
 node_image=docker.io/library/node:24.19.0-trixie-slim@sha256:ab3eebe934147fee049b5eb83c570f68c849a13c930bdfa482de99fcdfa3b3de
 source_url=https://github.com/kekyo/xpilot-infinity
-registry_image=docker.io/kekyo/xpilot-infinity-server
+registry_image=docker.io/kekyo/xpilot-infinity
 version=${XPILOT_VERSION:-}
 revision=${XPILOT_COMMIT_ID:-}
 image_name=
@@ -24,14 +24,14 @@ Build and verify the Node.js/Wasm server and bundled browser with Podman.
 Options:
   --version VERSION   Product version (default: screw-up-derived)
   --revision COMMIT   Full source commit (default: screw-up-derived)
-  --tag IMAGE         Local image/manifest (default: localhost/xpilot-infinity-server:<version>)
+  --tag IMAGE         Local image/manifest (default: localhost/xpilot-infinity:<version>)
   --platform LIST     Target platforms (default: linux/amd64,linux/arm64)
   --jobs NUMBER       Parallel image builds, 1 or 2 (default: 2)
   --node-image IMAGE  Override the pinned Node.js base image
   --source-url URL    OCI source label
   --skip-app-build    Reuse matching server/browser build identities
   --push              Publish verified version and latest tags
-  --registry-image NAME  Repository to publish (default: docker.io/kekyo/xpilot-infinity-server)
+  --registry-image NAME  Repository to publish (default: docker.io/kekyo/xpilot-infinity)
   --print-version     Print the product version and exit
   --help              Show this help
 
@@ -74,7 +74,7 @@ metadata=$(XPILOT_VERSION=$version XPILOT_COMMIT_ID=$revision "$metadata_resolve
 { IFS= read -r version; IFS= read -r revision; } <<< "$metadata"
 if $print_version; then printf '%s\n' "$version"; exit 0; fi
 export XPILOT_VERSION=$version XPILOT_COMMIT_ID=$revision
-image_name=${image_name:-localhost/xpilot-infinity-server:$version}
+image_name=${image_name:-localhost/xpilot-infinity:$version}
 command -v "$container_engine" >/dev/null || fail 'Install Podman.'
 if ! $skip_app_build; then npm --prefix "$project_root/xpilot-server" run build; fi
 node --input-type=module - "$project_root" "$version" "$revision" <<'JS'

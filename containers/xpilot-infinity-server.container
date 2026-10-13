@@ -4,7 +4,7 @@ Wants=network-online.target
 After=network-online.target
 
 [Container]
-Image=docker.io/kekyo/xpilot-infinity-server:latest
+Image=docker.io/kekyo/xpilot-infinity:latest
 Pull=missing
 PublishPort=15347:15347/tcp
 ReadOnly=true
