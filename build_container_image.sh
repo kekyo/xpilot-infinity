@@ -1,218 +1,110 @@
-#!/bin/sh
+#!/bin/bash
+set -euo pipefail
 
-set -eu
-
-PROJECT_ROOT=${BUILD_CONTAINER_PROJECT_ROOT:-$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)}
-METADATA_RESOLVER=${XPILOT_BUILD_METADATA_RESOLVER:-"$PROJECT_ROOT/config/resolve-build-metadata.sh"}
-DEFAULT_IMAGE_NAME=localhost/xpilot-infinity-server
-DEFAULT_PARALLEL_JOB_CAP=14
-DEFAULT_SOURCE_URL=https://github.com/kekyo/xpilot-infinity
-
-print_usage()
-{
-    cat <<'EOF'
-Usage: ./build_container_image.sh [OPTIONS]
-
-Build the dedicated XPilot Infinity server image with Podman. This command
-never pushes the resulting image.
-
-Options:
-  --version VERSION   Product version override (default: screw-up-derived)
-  --revision REVISION Full source commit override (default: screw-up-derived)
-  --tag IMAGE         Local image or manifest name
-                      (default: localhost/xpilot-infinity-server:<version>)
-  --platform LIST     Comma-separated target platforms, for example
-                      linux/amd64,linux/arm64 (default: native platform)
-  --jobs NUMBER       Concurrent make jobs (default: auto, up to 14)
-  --base-image IMAGE  Override the pinned Debian builder/runtime image
-  --source-url URL    Override the OCI source label
-  --print-version     Print the resolved product version and exit
-  --help              Show this help
-
-For multiple platforms, IMAGE names a local manifest list. Use
-`podman manifest push --all` separately after validating the result.
-EOF
-}
-
-fail()
-{
-    echo "build_container_image.sh: $*" >&2
-    exit 1
-}
-
-require_command()
-{
-    command -v "$1" >/dev/null 2>&1 \
-        || fail "required command was not found: $1"
-}
-
-validate_version()
-{
-    case $1 in
-        ''|*[!0-9A-Za-z.+:~-]*) fail "invalid product version: $1" ;;
-    esac
-}
-
-validate_positive_integer()
-{
-    case $2 in
-        ''|*[!0-9]*) fail "$1 must be a positive integer: $2" ;;
-    esac
-    test "$2" -gt 0 || fail "$1 must be a positive integer: $2"
-}
-
-validate_platforms()
-{
-    saved_ifs=$IFS
-    IFS=,
-    for platform in $1; do
-        case $platform in
-            linux/amd64|linux/arm64) ;;
-            *)
-                IFS=$saved_ifs
-                fail "unsupported container platform: $platform"
-                ;;
-        esac
-    done
-    IFS=$saved_ifs
-}
-
-detect_processor_count()
-{
-    detected_count=
-    if command -v getconf >/dev/null 2>&1; then
-        detected_count=$(getconf _NPROCESSORS_ONLN 2>/dev/null || true)
-    fi
-    if test -z "$detected_count" && command -v nproc >/dev/null 2>&1; then
-        detected_count=$(nproc 2>/dev/null || true)
-    fi
-
-    case $detected_count in
-        ''|*[!0-9]*) detected_count=1 ;;
-    esac
-    test "$detected_count" -gt 0 || detected_count=1
-    if test "$detected_count" -gt "$DEFAULT_PARALLEL_JOB_CAP"; then
-        detected_count=$DEFAULT_PARALLEL_JOB_CAP
-    fi
-    printf '%s\n' "$detected_count"
-}
-
-detect_native_platform()
-{
-    require_command uname
-    case $(uname -m) in
-        x86_64|amd64) printf '%s\n' linux/amd64 ;;
-        aarch64|arm64) printf '%s\n' linux/arm64 ;;
-        *) fail "unsupported native container architecture: $(uname -m)" ;;
-    esac
-}
-
-resolve_build_metadata()
-{
-    test -x "$METADATA_RESOLVER" \
-        || fail "build metadata resolver is unavailable: $METADATA_RESOLVER"
-    XPILOT_VERSION=$version \
-        XPILOT_COMMIT_ID=${revision:-${XPILOT_COMMIT_ID:-}} \
-        "$METADATA_RESOLVER"
-}
-
-version=
-revision=
+project_root=${BUILD_CONTAINER_PROJECT_ROOT:-$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)}
+container_engine=${CONTAINER_ENGINE:-podman}
+node_image=docker.io/library/node:24.19.0-trixie-slim@sha256:ab3eebe934147fee049b5eb83c570f68c849a13c930bdfa482de99fcdfa3b3de
+source_url=https://github.com/kekyo/xpilot-infinity
+version=${XPILOT_VERSION:-}
+revision=${XPILOT_COMMIT_ID:-}
 image_name=
-platforms=
-jobs=
-base_image=
-source_url=$DEFAULT_SOURCE_URL
+platform=
+skip_app_build=false
 print_version=false
 
+fail() { echo "build_container_image.sh: $*" >&2; exit 1; }
+usage() {
+    cat <<'USAGE'
+Usage: ./build_container_image.sh [OPTIONS]
+
+Build and verify the Node.js/Wasm server and bundled browser with Podman.
+Options:
+  --version VERSION   Product version (default: screw-up-derived)
+  --revision COMMIT   Full source commit (default: screw-up-derived)
+  --tag IMAGE         Local image name (default: localhost/xpilot-infinity-server:<version>)
+  --platform PLATFORM Target platform (default: native)
+  --node-image IMAGE  Node.js base image override
+  --source-url URL    OCI source label
+  --skip-app-build    Reuse matching server/browser build identities
+  --print-version     Print the product version and exit
+  --help              Show this help
+
+The build verifies the image before tagging it. No image is pushed.
+USAGE
+}
 while test $# -gt 0; do
     case $1 in
-        --version|--revision|--tag|--platform|--jobs|--base-image|--source-url)
-            test $# -ge 2 || fail "$1 requires an argument"
-            option_name=$1
-            option_value=$2
-            shift 2
-            case $option_name in
-                --version) version=$option_value ;;
-                --revision) revision=$option_value ;;
-                --tag) image_name=$option_value ;;
-                --platform) platforms=$option_value ;;
-                --jobs) jobs=$option_value ;;
-                --base-image) base_image=$option_value ;;
-                --source-url) source_url=$option_value ;;
+        --version|--revision|--tag|--platform|--node-image|--source-url)
+            test $# -ge 2 && test -n "$2" || fail "$1 requires a value"
+            case $1 in
+                --version) version=$2;; --revision) revision=$2;;
+                --tag) image_name=$2;; --platform) platform=$2;;
+                --node-image) node_image=$2;; --source-url) source_url=$2;;
             esac
-            ;;
-        --print-version)
-            print_version=true
-            shift
-            ;;
-        --help|-h)
-            print_usage
-            exit 0
-            ;;
-        --)
-            shift
-            test $# -eq 0 || fail "unexpected positional arguments: $*"
-            ;;
-        *) fail "unknown option: $1" ;;
+            shift 2;;
+        --skip-app-build) skip_app_build=true; shift;;
+        --print-version) print_version=true; shift;;
+        --help|-h) usage; exit 0;;
+        *) fail "unknown option: $1";;
     esac
 done
 
-resolved_metadata=$(resolve_build_metadata)
-version=$(printf '%s\n' "$resolved_metadata" | sed -n '1p')
-build_commit_id=$(printf '%s\n' "$resolved_metadata" | sed -n '2p')
-validate_version "$version"
-if $print_version; then
-    printf '%s\n' "$version"
-    exit 0
+command -v node >/dev/null || fail 'Install Node.js 24.19.0+ (24.x) or 26.4.0+.'
+node -e 'if (!require("node:net").BoundSocket || !require("node:dgram").Socket.prototype.connectSync) { console.error("Install Node.js 24.19.0+ (24.x) or 26.4.0+."); process.exit(1); }'
+if ! $skip_app_build && ! $print_version; then
+    npm --prefix "$project_root/xpilot-browser" ci
+    npm --prefix "$project_root/xpilot-server" ci
 fi
-
-test -f "$PROJECT_ROOT/Dockerfile" \
-    || fail "Dockerfile is unavailable: $PROJECT_ROOT/Dockerfile"
-test -n "$source_url" || fail "source URL must not be empty"
-test -n "$revision" || revision=$build_commit_id
-test -n "$revision" || fail "revision must not be empty"
-if test -z "$image_name"; then
-    image_name="$DEFAULT_IMAGE_NAME:$version"
+export SCREW_UP=${SCREW_UP:-$project_root/xpilot-server/node_modules/.bin/screw-up}
+metadata_resolver=${XPILOT_BUILD_METADATA_RESOLVER:-$project_root/config/resolve-build-metadata.sh}
+metadata=$(XPILOT_VERSION=$version XPILOT_COMMIT_ID=$revision "$metadata_resolver")
+{ IFS= read -r version; IFS= read -r revision; } <<< "$metadata"
+if $print_version; then printf '%s\n' "$version"; exit 0; fi
+export XPILOT_VERSION=$version XPILOT_COMMIT_ID=$revision
+if test -z "$platform"; then
+    case $(uname -m) in
+        x86_64|amd64) platform=linux/amd64;;
+        aarch64|arm64) platform=linux/arm64;;
+        *) fail 'Only linux/amd64 and linux/arm64 are supported';;
+    esac
 fi
-if test -z "$jobs"; then
-    jobs=$(detect_processor_count)
-fi
-validate_positive_integer jobs "$jobs"
-if test -z "$platforms"; then
-    platforms=$(detect_native_platform)
-fi
-validate_platforms "$platforms"
-
-container_engine=${CONTAINER_ENGINE:-podman}
-require_command "$container_engine"
-
-set -- \
-    --file "$PROJECT_ROOT/Dockerfile" \
-    --build-arg "XPILOT_BUILD_JOBS=$jobs" \
-    --build-arg "XPILOT_COMMIT_ID=$build_commit_id" \
-    --build-arg "XPILOT_REVISION=$revision" \
-    --build-arg "XPILOT_SOURCE=$source_url" \
-    --build-arg "XPILOT_VERSION=$version"
-if test -n "$base_image"; then
-    set -- "$@" --build-arg "DEBIAN_IMAGE=$base_image"
-fi
-
-case $platforms in
-    *,*)
-        "$container_engine" build "$@" \
-            --platform "$platforms" \
-            --manifest "$image_name" \
-            "$PROJECT_ROOT"
-        echo "Built local multi-platform manifest: $image_name"
-        ;;
-    *)
-        "$container_engine" build "$@" \
-            --platform "$platforms" \
-            --tag "$image_name" \
-            "$PROJECT_ROOT"
-        echo "Built local image: $image_name ($platforms)"
-        ;;
-esac
-
-echo "No image was pushed."
+case $platform in linux/amd64|linux/arm64) ;; *) fail "unsupported platform: $platform";; esac
+image_name=${image_name:-localhost/xpilot-infinity-server:$version}
+command -v "$container_engine" >/dev/null || fail 'Install Podman.'
+base_id=$("$container_engine" pull --quiet --platform "$platform" "$node_image")
+"$container_engine" run --rm --platform "$platform" --entrypoint node "$base_id" -e \
+    'if (!require("node:net").BoundSocket || !require("node:dgram").Socket.prototype.connectSync) process.exit(1)' \
+    || fail "Cannot run supported Node.js on $platform; check the base image and QEMU/binfmt installation."
+if ! $skip_app_build; then npm --prefix "$project_root/xpilot-server" run build; fi
+node --input-type=module - "$project_root" "$version" "$revision" <<'JS'
+import { readFile } from 'node:fs/promises';
+const [root, version, commit] = process.argv.slice(2);
+for (const path of ['xpilot-server/dist/build-info.json', 'xpilot-server/dist/web/build-info.json', 'xpilot-browser/dist/build-info.json']) {
+    const actual = JSON.parse(await readFile(`${root}/${path}`, 'utf8'));
+    if (actual.version !== version || actual.commit !== commit)
+        throw new Error(`Build identity mismatch: ${path}; rebuild without --skip-app-build.`);
+}
+JS
+context=$(mktemp -d "${TMPDIR:-/tmp}/xpilot-container-build.XXXXXX")
+candidate=localhost/xpilot-container-candidate:$$
+cleanup() {
+    "$container_engine" image rm "$candidate" >/dev/null 2>&1 || true
+    rm -rf -- "$context"
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+mkdir -p "$context/xpilot-server"
+cp "$project_root/Dockerfile" "$project_root/.dockerignore" "$project_root/COPYING" "$context/"
+cp -R "$project_root/xpilot-server/dist" "$context/xpilot-server/"
+"$container_engine" build --pull=never --platform "$platform" --tag "$candidate" \
+    --build-arg "NODE_IMAGE=$base_id" --build-arg "XPILOT_BASE_IMAGE=$node_image" \
+    --build-arg "XPILOT_VERSION=$version" --build-arg "XPILOT_REVISION=$revision" \
+    --build-arg "XPILOT_SOURCE=$source_url" "$context"
+(
+    cd "$project_root/xpilot-server"
+    XPILOT_CONTAINER_IMAGE=$candidate XPILOT_CONTAINER_PLATFORM=$platform \
+        node node_modules/vitest/vitest.mjs run tests/container.test.ts
+)
+"$container_engine" tag "$candidate" "$image_name"
+echo "Built and verified local image: $image_name ($platform)"
