@@ -91,7 +91,7 @@ inspect_options "$@"
 test -x "$metadata_resolver" \
     || fail "build metadata resolver is unavailable: $metadata_resolver"
 resolved_metadata=$(XPILOT_VERSION=$windows_package_version \
-    XPILOT_COMMIT_ID=${XPILOT_COMMIT_ID:-} "$metadata_resolver" --force)
+    XPILOT_COMMIT_ID=${XPILOT_COMMIT_ID:-} "$metadata_resolver")
 resolved_version=$(printf '%s\n' "$resolved_metadata" | sed -n '1p')
 resolved_commit=$(printf '%s\n' "$resolved_metadata" | sed -n '2p')
 

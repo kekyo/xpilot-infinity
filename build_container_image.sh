@@ -68,7 +68,6 @@ if ! $skip_app_build && ! $print_version; then
     npm --prefix "$project_root/xpilot-browser" ci
     npm --prefix "$project_root/xpilot-server" ci
 fi
-export SCREW_UP=${SCREW_UP:-$project_root/xpilot-server/node_modules/.bin/screw-up}
 metadata_resolver=${XPILOT_BUILD_METADATA_RESOLVER:-$project_root/config/resolve-build-metadata.sh}
 metadata=$(XPILOT_VERSION=$version XPILOT_COMMIT_ID=$revision "$metadata_resolver")
 { IFS= read -r version; IFS= read -r revision; } <<< "$metadata"

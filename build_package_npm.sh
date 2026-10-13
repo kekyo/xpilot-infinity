@@ -6,9 +6,7 @@ node -e 'if (!require("node:net").BoundSocket || !require("node:dgram").Socket.p
 
 npm --prefix "$project_root/xpilot-browser" ci
 npm --prefix "$project_root/xpilot-server" ci
-SCREW_UP="$project_root/xpilot-server/node_modules/.bin/screw-up"
-export SCREW_UP
-metadata=$("$project_root/config/resolve-build-metadata.sh" --force)
+metadata=$("$project_root/config/resolve-build-metadata.sh")
 XPILOT_VERSION=$(printf '%s\n' "$metadata" | sed -n '1p')
 XPILOT_COMMIT_ID=$(printf '%s\n' "$metadata" | sed -n '2p')
 export XPILOT_VERSION XPILOT_COMMIT_ID

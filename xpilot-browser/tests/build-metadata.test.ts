@@ -10,7 +10,6 @@ import {
   mkdtemp,
   readFile,
   rm,
-  symlink,
   writeFile,
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -40,15 +39,7 @@ test('generates the build identity without a parent npm workspace', async () => 
       fileURLToPath(new URL('../wasm/version.h.fc', import.meta.url)),
       join(browser, 'wasm/version.h.fc')
     );
-    await writeFile(
-      join(root, '.gitignore'),
-      'xpilot-browser/node_modules/\nxpilot-browser/build/\n'
-    );
-    await symlink(
-      fileURLToPath(new URL('../node_modules', import.meta.url)),
-      join(browser, 'node_modules'),
-      'dir'
-    );
+    await writeFile(join(root, '.gitignore'), 'xpilot-browser/build/\n');
     await run('git', ['init', '-q'], { cwd: root });
     await run('git', ['add', '.'], { cwd: root });
     await run(
@@ -73,13 +64,7 @@ test('generates the build identity without a parent npm workspace', async () => 
 
     const { stdout: metadata } = await run(
       join(root, 'config/resolve-build-metadata.sh'),
-      [],
-      {
-        env: {
-          ...process.env,
-          SCREW_UP: join(browser, 'node_modules/.bin/screw-up'),
-        },
-      }
+      []
     );
     expect(metadata.trim().split('\n')).toEqual(['1.2.3', commit.trim()]);
 

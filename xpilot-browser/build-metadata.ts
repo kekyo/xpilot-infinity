@@ -15,16 +15,10 @@ import { buildCandidateVariables, runScriptOnceToText } from 'funcity';
  * @returns Generated include directory.
  */
 export const prepareBrowserMetadata = async (root: string): Promise<string> => {
+  // The resolver supports a repository without package.json or a parent workspace.
   const { stdout } = await promisify(execFile)(
     resolve(root, '../config/resolve-build-metadata.sh'),
-    // The native repository root has no package.json or parent npm workspace.
-    ['--force'],
-    {
-      env: {
-        ...process.env,
-        SCREW_UP: resolve(root, 'node_modules/.bin/screw-up'),
-      },
-    }
+    []
   );
   const [version, commit] = stdout.trim().split('\n');
   const template = await readFile(resolve(root, 'wasm/version.h.fc'), 'utf8');

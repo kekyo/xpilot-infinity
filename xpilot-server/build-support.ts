@@ -38,13 +38,7 @@ export const prepareServerBuild = async (
   process.stderr.write(dependencies.stderr);
   const { stdout } = await exec(
     resolve(root, '../config/resolve-build-metadata.sh'),
-    ['--force'],
-    {
-      env: {
-        ...process.env,
-        SCREW_UP: resolve(root, 'node_modules/.bin/screw-up'),
-      },
-    }
+    []
   );
   const [version, commit] = stdout.trim().split('\n');
   const template = await readFile(

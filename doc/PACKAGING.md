@@ -6,9 +6,11 @@ dependencies are resolved against the selected Debian or Ubuntu release.
 
 ## Host prerequisites
 
-Install Podman, `qemu-user-static`, `dpkg-dev`, binutils, Node.js, Info-ZIP
-`zip`, and [`screw-up`](https://github.com/kekyo/screw-up).  Initialize the
-pinned source dependencies before packaging:
+Install Podman, `qemu-user-static`, `dpkg-dev`, binutils, Node.js with npm/npx,
+and Info-ZIP `zip`. Build scripts resolve the version and commit ID from Git
+with `npx --yes screw-up format -f`; a separate
+[`screw-up`](https://github.com/kekyo/screw-up#format-command) installation is
+not required. Initialize the pinned source dependencies before packaging:
 
 ```sh
 git submodule update --init --recursive
@@ -98,8 +100,8 @@ version and revision. Omit it when application sources have changed.
 
 The wrapper embeds the resolved product version, revision, and OCI source
 metadata. `--version`, `--revision`, `--node-image`, and `--source-url` override
-those inputs. `--print-version` prints the resolved version; install the npm
-dependencies first, or supply both version and revision explicitly.
+those inputs. `--print-version` prints the resolved version without building
+the application or image.
 
 `build_container_image_all.sh` forwards to the same builder with both CPUs.
 Publishing requires an explicit `--push`, which sends the verified manifest

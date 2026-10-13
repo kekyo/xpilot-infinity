@@ -14,14 +14,13 @@ resolved_version=${XPILOT_VERSION:-}
 resolved_commit=${XPILOT_COMMIT_ID:-}
 
 if test -z "$resolved_version" || test -z "$resolved_commit"; then
-	screw_up=${SCREW_UP:-screw-up}
-	command -v "$screw_up" >/dev/null 2>&1 \
-		|| fail "screw-up was not found: $screw_up"
+	command -v npx >/dev/null 2>&1 \
+		|| fail "npx was not found; install Node.js and npm"
 	resolved_metadata=$(
 		cd "$project_root"
 		# The native repository root intentionally has no package.json.
 		printf '%s\n' '{version}' '{git.commit.hash}' \
-			| "$screw_up" format --force "$@" \
+			| npx --yes screw-up format -f "$@" \
 			| tr -d '\r'
 	)
 	screw_up_version=$(printf '%s\n' "$resolved_metadata" | sed -n '1p')

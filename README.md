@@ -582,6 +582,11 @@ Install Podman, Node.js 24.x (24.19.0+) or 26.4.0+, and npm, together with the
 Building and verifying a foreign CPU image also requires registered QEMU/binfmt
 support, such as the host OS's `qemu-user-static` package.
 
+Artifact versions and commit IDs are derived from Git using `screw-up`.
+The build scripts run `npx --yes screw-up format -f`, so a separate `screw-up`
+installation is not required. Run `./build_container_image.sh --print-version`
+to check the version without building.
+
 ```bash
 image=localhost/xpilot-infinity:local
 ./build_container_image.sh --tag "$image"

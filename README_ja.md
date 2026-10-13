@@ -578,6 +578,10 @@ Podmanと、Node.js 24.19.0以降の24系または26.4.0以降、npmを用意し
 異なるCPU向けのイメージをビルド・検証するには、QEMU/binfmtによる実行環境を用意します。
 必要な場合はホストOSの`qemu-user-static`などをインストールしてください。
 
+成果物のバージョンとコミットIDは、Gitの情報から`screw-up`で取得します。
+ビルドスクリプトが`npx --yes screw-up format -f`を実行するため、`screw-up`の事前インストールは不要です。
+`./build_container_image.sh --print-version`でバージョンだけを確認できます。
+
 ```bash
 image=localhost/xpilot-infinity:local
 ./build_container_image.sh --tag "$image"

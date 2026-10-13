@@ -30,26 +30,36 @@ trap 'exit 129' HUP
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
-fixture_screw_up="$test_root/screw-up"
-fixture_log="$test_root/screw-up.log"
+fixture_npx="$test_root/npx"
+fixture_log="$test_root/npx.log"
 expected_commit=0123456701234567012345670123456701234567
 
-cat > "$fixture_screw_up" <<'EOF'
+cat > "$fixture_npx" <<'EOF'
 #!/bin/sh
 set -eu
 
-test "$#" -eq 2
-test "$1" = format
-test "$2" = --force
+test "$#" -eq 4
+test "$1" = --yes
+test "$2" = screw-up
+test "$3" = format
+test "$4" = -f
 printf 'invoked\n' >> "$XPILOT_BUILD_METADATA_TEST_LOG"
 template=$(cat)
 test "$template" = "{version}
 {git.commit.hash}"
 printf '%s\n' 7.8.9 0123456701234567012345670123456701234567
 EOF
-chmod +x "$fixture_screw_up"
+chmod +x "$fixture_npx"
 
-resolved_metadata=$(SCREW_UP="$fixture_screw_up" \
+# A standalone executable on PATH must not replace the npm CLI.
+cat > "$test_root/screw-up" <<'EOF'
+#!/bin/sh
+echo "screw-up must be invoked through npx" >&2
+exit 1
+EOF
+chmod +x "$test_root/screw-up"
+
+resolved_metadata=$(PATH="$test_root:$PATH" \
     XPILOT_BUILD_METADATA_TEST_LOG="$fixture_log" \
     XPILOT_VERSION= XPILOT_COMMIT_ID= \
     "$XPILOT_BUILD_METADATA_RESOLVER")
@@ -57,15 +67,17 @@ test "$resolved_metadata" = "7.8.9
 $expected_commit" \
     || fail "version and commit ID were not resolved together: $resolved_metadata"
 test "$(wc -l < "$fixture_log" | tr -d ' ')" -eq 1 \
-    || fail "screw-up was not invoked exactly once"
+    || fail "screw-up was not invoked through npx exactly once"
 
 override_commit=89abcdef89abcdef89abcdef89abcdef89abcdef
-resolved_override=$(SCREW_UP="$test_root/missing-screw-up" \
+resolved_override=$(PATH="$test_root:$PATH" \
     XPILOT_VERSION=9.8.7 XPILOT_COMMIT_ID="$override_commit" \
     "$XPILOT_BUILD_METADATA_RESOLVER")
 test "$resolved_override" = "9.8.7
 $override_commit" \
     || fail "resolved metadata overrides were not preserved"
+test "$(wc -l < "$fixture_log" | tr -d ' ')" -eq 1 \
+    || fail "npx was invoked despite complete metadata overrides"
 
 if XPILOT_VERSION=9.8.7 XPILOT_COMMIT_ID=1234567 \
     "$XPILOT_BUILD_METADATA_RESOLVER" >/dev/null 2>&1

@@ -40,9 +40,10 @@ for (const name of ['dist', 'COPYING', 'README.md'])
 const destination = resolve(process.argv[2] ?? resolve(root, 'artifacts'));
 await mkdir(destination, { recursive: true });
 const result = await promisify(execFile)(
-  process.execPath,
+  'npx',
   [
-    resolve(root, 'node_modules/.bin/screw-up'),
+    '--yes',
+    'screw-up',
     'pack',
     stage,
     '--no-git-version-override',
