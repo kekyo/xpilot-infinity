@@ -37,4 +37,9 @@ printf '%s\n' "$generated_units" \
     | grep -F 'xpilot-infinity-server-data-volume.service' >/dev/null 2>&1 \
     || fail "the data volume Quadlet did not generate a systemd service"
 
+printf '%s\n' "$generated_units" | grep -F -- '--publish 15347:15347/tcp' >/dev/null \
+    || fail "the service does not publish the browser port"
+if printf '%s\n' "$generated_units" | grep -E -- '--publish [^ ]*(15345|15346|/udp)' >/dev/null; then
+    fail "the default service publishes native game ports"
+fi
 echo "Podman Quadlet generation checks passed"

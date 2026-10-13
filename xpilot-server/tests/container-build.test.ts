@@ -109,7 +109,9 @@ if (process.env.TEST_SCENARIO==='verification failure' && process.env.XPILOT_CON
       if (scenario === 'local' || scenario === 'publish') {
         expect(failed).toBe(false);
         // Removing a manifest object also removes every alias attached to it.
-        expect(calls.some((args) => args[0] === 'manifest' && args[1] === 'rm')).toBe(false);
+        expect(
+          calls.some((args) => args[0] === 'manifest' && args[1] === 'rm')
+        ).toBe(false);
         const builds = calls.filter((args) => args[0] === 'build');
         expect(builds).toHaveLength(2);
         for (const platform of ['linux/amd64', 'linux/arm64']) {
