@@ -14,7 +14,7 @@ Andersson.
 > XPilot Infinity は XPilot NG から改名されました。
 > XPilot Infinity の開発と配布は [xpilot-infinity リポジトリ](https://github.com/kekyo/xpilot-infinity/) で行われています。
 
-[![プロジェクトの状態: 活動中 – プロジェクトは安定して利用可能な状態に達しており、活発に開発されています。](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
+[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 
 ---
 
@@ -90,7 +90,10 @@ xpilot-infinity
 npx xpilot-infinity
 ```
 
-`http://localhost:15347/` を開くと参加できます。
+[`http://localhost:15347/`](http://localhost:15347/) を開くと参加できます。
+
+![Browser version](./images/browser.png)
+
 ネイティブクライアントは UDP 15345・TCP 15346・WebSocket 15347 に接続できます。
 終了は Ctrl+C、保存先は既定で `~/.xpilot-infinity` です。
 `--data-dir` で変更できます。実行時にコンパイラーや別のネイティブサーバーは必要ありません。
@@ -182,7 +185,9 @@ XPilot Infinity は、現代の環境でも XPilot が快適に動作するこ�
 NG バージョン 4.7.3 からの主な変更点は次のとおりです。
 
 - TCP と WebSocket のネットワークプロトコルを追加しました。これにより、ルーターやファイアウォールを通過しやすくなる場合があります。
-- 現代的なグラフィックス環境へ更新しました。SDL3 へ移行し、OpenGL 3.3 コアプロファイルに対応しています。
+- 現代的なグラフィックス環境へ更新しました。SDL3 へ移行し、OpenGL 3.3 コアプロファイルとOpenGL ESに対応しています。
+- ウェブ環境でも動作するように移植しました。
+  サーバーはNode.js上で主にWASM (WebAssembly)で動作し、クライアント側もOpenGL ESベースとWASMベースで、特別なインストール作業不要で、現代のブラウザ環境ですぐに遊べます。
 - 内部構造を一部リファクタリングしました。
   これは、上記の変更を実現するためにも不可欠でした。
   ただし、バージョン 4.7.3 との UDP プロトコル互換性は維持しています。
@@ -577,10 +582,6 @@ Podmanと、Node.js 24.19.0以降の24系または26.4.0以降、npmを用意し
 ビルドには[ブラウザ版のビルド環境](xpilot-browser/README.md)も必要です。
 異なるCPU向けのイメージをビルド・検証するには、QEMU/binfmtによる実行環境を用意します。
 必要な場合はホストOSの`qemu-user-static`などをインストールしてください。
-
-成果物のバージョンとコミットIDは、Gitの情報から`screw-up`で取得します。
-ビルドスクリプトが`npx --yes screw-up format -f`を実行するため、`screw-up`の事前インストールは不要です。
-`./build_container_image.sh --print-version`でバージョンだけを確認できます。
 
 ```bash
 image=localhost/xpilot-infinity:local

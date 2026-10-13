@@ -91,7 +91,10 @@ Alternatively, start it with npx:
 npx xpilot-infinity
 ```
 
-Open `http://localhost:15347/`. UDP 15345 and TCP 15346 are also available for
+Open [`http://localhost:15347/`](http://localhost:15347/). UDP 15345 and TCP 15346 are also available for
+
+![Browser version](./images/browser.png)
+
 native clients. Stop the server with Ctrl+C. This package runs with Node.js and
 a browser; it needs no native compiler or separate native server. Settings and
 saved data belong in `--data-dir`, which defaults to `~/.xpilot-infinity`.
@@ -182,7 +185,11 @@ XPilot Infinity's goal is to ensure that XPilot runs smoothly even in modern env
 The main changes from NG version 4.7.3 are as follows:
 
 - Added network protocols: TCP and WebSocket. This may make it easier to bypass routers and firewalls.
-- Update to a modern graphics environment: Replaced with SDL3 and supported OpenGL 3.3 core profile.
+- We've updated to a modern graphics environment.
+  We've migrated to SDL3 and now support OpenGL 3.3 Core Profile and OpenGL ES.
+- We've ported the game so it runs in a web environment.
+  The server runs primarily on WASM (WebAssembly) via Node.js, and the client-side supports both OpenGL ES and WASM.
+  No special installation is required—you can play right away in modern browsers.
 - The internal structure has been slightly refactored.
   This was also essential to achieving the changes mentioned above.
   However, UDP protocol compatibility with version 4.7.3 has been maintained.
@@ -581,11 +588,6 @@ Install Podman, Node.js 24.x (24.19.0+) or 26.4.0+, and npm, together with the
 [browser build prerequisites](xpilot-browser/README.md).
 Building and verifying a foreign CPU image also requires registered QEMU/binfmt
 support, such as the host OS's `qemu-user-static` package.
-
-Artifact versions and commit IDs are derived from Git using `screw-up`.
-The build scripts run `npx --yes screw-up format -f`, so a separate `screw-up`
-installation is not required. Run `./build_container_image.sh --print-version`
-to check the version without building.
 
 ```bash
 image=localhost/xpilot-infinity:local
