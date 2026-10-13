@@ -266,11 +266,14 @@ static int Mapdata_extract(const char *name)
     FILE *out;
     int retval;
     size_t rlen, wlen;
-    char dir[256], buf[COPY_BUF_SIZE], fname[256], *ptr;
+    char dir[256], buf[COPY_BUF_SIZE], fname[256], entry[256], *ptr;
     long int size;
     int count, i;
 
-    strlcpy(dir, name, sizeof dir);
+    if (strlcpy(dir, name, sizeof dir) >= sizeof dir) {
+	error("file name is too long: %s", name);
+	return 0;
+    }
     ptr = strrchr(dir, '.');
     if (ptr == NULL) {
 	error("file name has no extension %s", dir);
@@ -294,7 +297,7 @@ static int Mapdata_extract(const char *name)
 	return 0;
     }
 
-    if (sscanf(buf, "XPD %d\n", &count) != 1) {
+    if (sscanf(buf, "XPD %d\n", &count) != 1 || count < 0) {
 	error("invalid header in %s", name);
 	gzclose(in);
 	return 0;
@@ -308,17 +311,22 @@ static int Mapdata_extract(const char *name)
 	    return 0;
 	}
 
-	sprintf(fname, "%s%c", dir, PATHNAME_SEP);
-
-	if (sscanf(buf, "%s\n%ld\n", fname + strlen(dir) + 1, &size) != 2) {
+	if (sscanf(buf, "%255s\n%ld\n", entry, &size) != 2 || size < 0) {
 	    error("failed to parse file info %s", buf);
 	    gzclose(in);
 	    return 0;
 	}
 
 	/* security check */
-	if (strchr(fname + strlen(dir) + 1, PATHNAME_SEP) != NULL) {
-	    error("file name %s is illegal", fname);
+	if (strchr(entry, '/') != NULL || strchr(entry, '\\') != NULL ||
+	    strchr(entry, ':') != NULL || !strcmp(entry, ".") ||
+	    !strcmp(entry, "..")) {
+	    error("file name %s is illegal", entry);
+	    gzclose(in);
+	    return 0;
+	}
+	if (!Mapdata_join_path(fname, sizeof(fname), dir, entry)) {
+	    error("extracted file name is too long: %s", entry);
 	    gzclose(in);
 	    return 0;
 	}
@@ -332,7 +340,7 @@ static int Mapdata_extract(const char *name)
 	}
 
 	while (size > 0) {
-	    retval = gzread(in, buf, MIN(COPY_BUF_SIZE, (unsigned)size));
+	    retval = gzread(in, buf, MIN((long)COPY_BUF_SIZE, size));
 	    if (retval == -1) {
 		error("error when reading %s", name);
 		gzclose(in);
@@ -368,6 +376,11 @@ static int Mapdata_extract(const char *name)
 
 static int Mapdata_download(const URL *url, const char *filePath)
 {
+#ifdef __EMSCRIPTEN__
+    /* Browser assets must be installed by the same-origin asynchronous loader. */
+    (void)url; (void)filePath;
+    return false;
+#else
     char buf[1024];
     int rv, header, c, len, i;
     sock_t s;
@@ -503,6 +516,7 @@ static int Mapdata_download(const URL *url, const char *filePath)
 	    error("Error closing texture file %s", filePath);
     sock_close(&s);
     return rv;
+#endif
 }
 
 

@@ -1,10 +1,16 @@
-/* OpenGL 3.3 core implementation of the renderer backend interface. */
+/* Shared OpenGL 3.3 Core / OpenGL ES 3.0 renderer backend implementation. */
 
 #include "renderer_gl_core.h"
+#include "renderer_gl_es.h"
 #include "renderer_backend.h"
 
+#ifdef __EMSCRIPTEN__
+#include <GLES3/gl3.h>
+#define APIENTRYP GL_APIENTRYP
+#else
 #include <SDL3/SDL_opengl.h>
 #include <SDL3/SDL_opengl_glext.h>
+#endif
 
 #include <limits.h>
 #include <stddef.h>
@@ -13,6 +19,7 @@
 #include <string.h>
 
 typedef GLenum (APIENTRYP CoreGetErrorProc)(void);
+typedef const GLubyte *(APIENTRYP CoreGetStringProc)(GLenum name);
 typedef void (APIENTRYP CoreGetIntegervProc)(GLenum name, GLint *value);
 typedef void (APIENTRYP CoreViewportProc)(GLint x, GLint y,
                                          GLsizei width, GLsizei height);
@@ -49,6 +56,7 @@ typedef void (APIENTRYP CoreDrawArraysProc)(GLenum mode, GLint first,
 
 typedef struct CoreFunctions {
     CoreGetErrorProc get_error;
+    CoreGetStringProc get_string;
     CoreGetIntegervProc get_integerv;
     CoreViewportProc viewport;
     CoreClearColorProc clear_color;
@@ -57,7 +65,9 @@ typedef struct CoreFunctions {
     CoreDisableProc disable;
     CoreColorMaskProc color_mask;
     CoreScissorProc scissor;
+#ifndef __EMSCRIPTEN__
     CorePolygonModeProc polygon_mode;
+#endif
     PFNGLBLENDEQUATIONPROC blend_equation;
     CoreBlendFuncProc blend_func;
     CoreGenTexturesProc gen_textures;
@@ -83,7 +93,9 @@ typedef struct CoreFunctions {
     PFNGLCREATEPROGRAMPROC create_program;
     PFNGLATTACHSHADERPROC attach_shader;
     PFNGLBINDATTRIBLOCATIONPROC bind_attrib_location;
+#ifndef __EMSCRIPTEN__
     PFNGLBINDFRAGDATALOCATIONPROC bind_frag_data_location;
+#endif
     PFNGLLINKPROGRAMPROC link_program;
     PFNGLGETPROGRAMIVPROC get_program_iv;
     PFNGLDELETEPROGRAMPROC delete_program;
@@ -112,6 +124,7 @@ typedef struct CoreContext {
     int frame_width;
     int frame_height;
     int context_available;
+    int is_es;
     unsigned int generation;
 } CoreContext;
 
@@ -165,6 +178,39 @@ static const char core_fragment_shader_source[] =
     "    fragment_color = texture(u_texture, v_texcoord) * v_color;\n"
     "}\n";
 
+static const char es_vertex_shader_source[] =
+    "#version 300 es\n"
+    "precision highp float;\n"
+    "in vec2 a_position;\n"
+    "in vec2 a_texcoord;\n"
+    "in vec4 a_color;\n"
+    "uniform mat3 u_transform;\n"
+    "uniform vec2 u_framebuffer_size;\n"
+    "out vec2 v_texcoord;\n"
+    "out vec4 v_color;\n"
+    "void main(void)\n"
+    "{\n"
+    "    vec2 position = (u_transform * vec3(a_position, 1.0)).xy;\n"
+    "    vec2 clip_position = vec2(\n"
+    "        position.x * 2.0 / u_framebuffer_size.x - 1.0,\n"
+    "        1.0 - position.y * 2.0 / u_framebuffer_size.y);\n"
+    "    gl_Position = vec4(clip_position, 0.0, 1.0);\n"
+    "    v_texcoord = a_texcoord;\n"
+    "    v_color = a_color;\n"
+    "}\n";
+
+static const char es_fragment_shader_source[] =
+    "#version 300 es\n"
+    "precision mediump float;\n"
+    "uniform sampler2D u_texture;\n"
+    "in vec2 v_texcoord;\n"
+    "in vec4 v_color;\n"
+    "out vec4 fragment_color;\n"
+    "void main(void)\n"
+    "{\n"
+    "    fragment_color = texture(u_texture, v_texcoord) * v_color;\n"
+    "}\n";
+
 static int Core_load_proc(RendererGLProcLoader loader, void *userdata,
                           const char *name, void *destination,
                           size_t destination_size)
@@ -182,10 +228,15 @@ static int Core_load_proc(RendererGLProcLoader loader, void *userdata,
                    &(functions)->member, sizeof((functions)->member))
 
 static int Core_load_functions(CoreFunctions *functions,
-                               RendererGLProcLoader loader, void *userdata)
+                               RendererGLProcLoader loader, void *userdata,
+                               int is_es)
 {
+#ifdef __EMSCRIPTEN__
+    (void)is_es;
+#endif
     memset(functions, 0, sizeof(*functions));
     return CORE_LOAD(functions, loader, userdata, get_error, "glGetError")
+        && CORE_LOAD(functions, loader, userdata, get_string, "glGetString")
         && CORE_LOAD(functions, loader, userdata, get_integerv,
                      "glGetIntegerv")
         && CORE_LOAD(functions, loader, userdata, viewport, "glViewport")
@@ -195,8 +246,10 @@ static int Core_load_functions(CoreFunctions *functions,
         && CORE_LOAD(functions, loader, userdata, disable, "glDisable")
         && CORE_LOAD(functions, loader, userdata, color_mask, "glColorMask")
         && CORE_LOAD(functions, loader, userdata, scissor, "glScissor")
-        && CORE_LOAD(functions, loader, userdata, polygon_mode,
-                     "glPolygonMode")
+#ifndef __EMSCRIPTEN__
+        && (is_es || CORE_LOAD(functions, loader, userdata, polygon_mode,
+                              "glPolygonMode"))
+#endif
         && CORE_LOAD(functions, loader, userdata, blend_equation,
                      "glBlendEquation")
         && CORE_LOAD(functions, loader, userdata, blend_func, "glBlendFunc")
@@ -243,8 +296,11 @@ static int Core_load_functions(CoreFunctions *functions,
                      "glAttachShader")
         && CORE_LOAD(functions, loader, userdata, bind_attrib_location,
                      "glBindAttribLocation")
-        && CORE_LOAD(functions, loader, userdata, bind_frag_data_location,
-                     "glBindFragDataLocation")
+#ifndef __EMSCRIPTEN__
+        && (is_es || CORE_LOAD(functions, loader, userdata,
+                              bind_frag_data_location,
+                              "glBindFragDataLocation"))
+#endif
         && CORE_LOAD(functions, loader, userdata, link_program,
                      "glLinkProgram")
         && CORE_LOAD(functions, loader, userdata, get_program_iv,
@@ -292,15 +348,31 @@ static int Core_context_supported(CoreContext *context)
 {
     GLint major = 0;
     GLint minor = 0;
+#ifndef __EMSCRIPTEN__
     GLint profile = 0;
+#endif
+    const GLubyte *version;
 
     Core_clear_errors(context);
+    version = context->gl.get_string(GL_VERSION);
     context->gl.get_integerv(GL_MAJOR_VERSION, &major);
     context->gl.get_integerv(GL_MINOR_VERSION, &minor);
+    if (context->is_es) {
+        return Core_operation_succeeded(context)
+            && version != NULL
+            && (strncmp((const char *)version, "OpenGL ES ", 10) == 0
+                || strncmp((const char *)version, "WebGL 2.0", 9) == 0)
+            && major >= 3;
+    }
+#ifndef __EMSCRIPTEN__
     context->gl.get_integerv(GL_CONTEXT_PROFILE_MASK, &profile);
     return Core_operation_succeeded(context)
+        && version != NULL
         && (major > 3 || (major == 3 && minor >= 3))
         && (profile & GL_CONTEXT_CORE_PROFILE_BIT) != 0;
+#else
+    return 0;
+#endif
 }
 
 static int Core_vertex_data_valid(size_t vertex_count, GLsizeiptr *byte_count)
@@ -457,12 +529,15 @@ static int Core_create_program(CoreContext *context)
     GLuint fragment_shader;
     GLint linked = GL_FALSE;
 
-    vertex_shader = Core_compile_shader(context, GL_VERTEX_SHADER,
-                                        core_vertex_shader_source);
+    vertex_shader = Core_compile_shader(
+        context, GL_VERTEX_SHADER,
+        context->is_es ? es_vertex_shader_source : core_vertex_shader_source);
     if (vertex_shader == 0)
         return 0;
-    fragment_shader = Core_compile_shader(context, GL_FRAGMENT_SHADER,
-                                          core_fragment_shader_source);
+    fragment_shader = Core_compile_shader(
+        context, GL_FRAGMENT_SHADER,
+        context->is_es ? es_fragment_shader_source
+                       : core_fragment_shader_source);
     if (fragment_shader == 0) {
         context->gl.delete_shader(vertex_shader);
         Core_clear_errors(context);
@@ -483,8 +558,12 @@ static int Core_create_program(CoreContext *context)
         context->gl.bind_attrib_location(context->program,
                                          CORE_COLOR_ATTRIBUTE,
                                          "a_color");
-        context->gl.bind_frag_data_location(context->program, 0,
-                                            "fragment_color");
+#ifndef __EMSCRIPTEN__
+        if (!context->is_es) {
+            context->gl.bind_frag_data_location(context->program, 0,
+                                                "fragment_color");
+        }
+#endif
         context->gl.link_program(context->program);
         context->gl.get_program_iv(context->program, GL_LINK_STATUS, &linked);
     }
@@ -577,18 +656,22 @@ static RendererStatus Core_create_context_objects(CoreContext *context)
 static void Core_prepare_raster_state(CoreContext *context)
 {
     context->gl.disable(GL_RASTERIZER_DISCARD);
-    context->gl.disable(GL_COLOR_LOGIC_OP);
     context->gl.disable(GL_CULL_FACE);
     context->gl.disable(GL_DEPTH_TEST);
     context->gl.disable(GL_STENCIL_TEST);
     context->gl.disable(GL_DITHER);
-    context->gl.disable(GL_FRAMEBUFFER_SRGB);
-    context->gl.disable(GL_POLYGON_SMOOTH);
     context->gl.disable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-    context->gl.disable(GL_SAMPLE_ALPHA_TO_ONE);
     context->gl.disable(GL_SAMPLE_COVERAGE);
-    context->gl.disable(GL_SAMPLE_MASK);
-    context->gl.polygon_mode(GL_FRONT_AND_BACK, GL_FILL);
+#ifndef __EMSCRIPTEN__
+    if (!context->is_es) {
+        context->gl.disable(GL_COLOR_LOGIC_OP);
+        context->gl.disable(GL_FRAMEBUFFER_SRGB);
+        context->gl.disable(GL_POLYGON_SMOOTH);
+        context->gl.disable(GL_SAMPLE_ALPHA_TO_ONE);
+        context->gl.disable(GL_SAMPLE_MASK);
+        context->gl.polygon_mode(GL_FRONT_AND_BACK, GL_FILL);
+    }
+#endif
     context->gl.color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 }
 
@@ -1039,7 +1122,7 @@ static RendererStatus Core_context_restore(void *opaque)
     context->frame_width = 0;
     context->frame_height = 0;
     if (!Core_load_functions(&context->gl, context->loader,
-                             context->loader_userdata)
+                             context->loader_userdata, context->is_es)
         || !Core_context_supported(context)) {
         return RENDERER_STATUS_BACKEND_ERROR;
     }
@@ -1131,9 +1214,9 @@ static const RendererBackendInterface core_backend_interface = {
     .destroy = Core_destroy
 };
 
-RendererStatus Renderer_gl_core_create(RendererGLProcLoader loader,
-                                       void *userdata,
-                                       Renderer **renderer)
+static RendererStatus Core_create(RendererGLProcLoader loader,
+                                  void *userdata, Renderer **renderer,
+                                  int is_es)
 {
     CoreContext *context;
     Renderer *created;
@@ -1150,7 +1233,8 @@ RendererStatus Renderer_gl_core_create(RendererGLProcLoader loader,
     context->loader = loader;
     context->loader_userdata = userdata;
     context->generation = 1;
-    if (!Core_load_functions(&context->gl, loader, userdata)) {
+    context->is_es = is_es;
+    if (!Core_load_functions(&context->gl, loader, userdata, is_es)) {
         free(context);
         return RENDERER_STATUS_BACKEND_ERROR;
     }
@@ -1174,4 +1258,26 @@ RendererStatus Renderer_gl_core_create(RendererGLProcLoader loader,
     }
     *renderer = created;
     return RENDERER_STATUS_OK;
+}
+
+RendererStatus Renderer_gl_core_create(RendererGLProcLoader loader,
+                                       void *userdata,
+                                       Renderer **renderer)
+{
+#ifdef __EMSCRIPTEN__
+    (void)loader;
+    (void)userdata;
+    if (renderer != NULL)
+        *renderer = NULL;
+    return RENDERER_STATUS_BACKEND_ERROR;
+#else
+    return Core_create(loader, userdata, renderer, 0);
+#endif
+}
+
+RendererStatus Renderer_gl_es_create(RendererGLProcLoader loader,
+                                     void *userdata,
+                                     Renderer **renderer)
+{
+    return Core_create(loader, userdata, renderer, 1);
 }

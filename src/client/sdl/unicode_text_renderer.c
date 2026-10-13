@@ -14,6 +14,7 @@ typedef struct UnicodeTextEntry {
     size_t byte_length;
     XpTextLayout *layout;
     XpTextMetrics metrics;
+    float bitmap_width, bitmap_height, offset_x, offset_y;
     RendererTexture *texture;
     uint64_t last_use;
     struct UnicodeTextEntry *next;
@@ -251,16 +252,13 @@ RendererStatus Unicode_text_renderer_create(
     return RENDERER_STATUS_OK;
 }
 
-RendererStatus Unicode_text_renderer_destroy(
-    UnicodeTextRenderer **text_renderer)
+RendererStatus Unicode_text_renderer_clear(UnicodeTextRenderer *renderer)
 {
-    UnicodeTextRenderer *renderer;
     UnicodeTextEntry *entry;
     RendererStatus status;
 
-    if (text_renderer == NULL || *text_renderer == NULL)
+    if (renderer == NULL)
         return RENDERER_STATUS_OK;
-    renderer = *text_renderer;
     for (entry = renderer->entries; entry != NULL; entry = entry->next) {
         if (entry->texture == NULL)
             continue;
@@ -275,7 +273,18 @@ RendererStatus Unicode_text_renderer_destroy(
         renderer->entries = entry->next;
         Unicode_text_entry_release_cpu(entry);
     }
-    free(renderer);
+    renderer->entry_count = 0;
+    return RENDERER_STATUS_OK;
+}
+
+RendererStatus Unicode_text_renderer_destroy(
+    UnicodeTextRenderer **text_renderer)
+{
+    if (text_renderer == NULL || *text_renderer == NULL)
+        return RENDERER_STATUS_OK;
+    RendererStatus status = Unicode_text_renderer_clear(*text_renderer);
+    if (status != RENDERER_STATUS_OK) return status;
+    free(*text_renderer);
     *text_renderer = NULL;
     return RENDERER_STATUS_OK;
 }
@@ -325,12 +334,17 @@ static RendererStatus Unicode_text_ensure_texture(
         return Unicode_text_retain(
             text_renderer, Unicode_text_status(text_status));
     }
-    if (bitmap.pixels == NULL || bitmap.width != entry->metrics.width
-        || bitmap.height != entry->metrics.height) {
+    if (bitmap.pixels == NULL || bitmap.width <= 0 || bitmap.height <= 0
+        || !isfinite(bitmap.scale) || bitmap.scale <= 0
+        || !isfinite(bitmap.offset_x) || !isfinite(bitmap.offset_y)) {
         Xp_text_bitmap_destroy(&bitmap);
         return Unicode_text_retain(text_renderer,
                                    RENDERER_STATUS_BACKEND_ERROR);
     }
+    entry->bitmap_width = (float)bitmap.width / bitmap.scale;
+    entry->bitmap_height = (float)bitmap.height / bitmap.scale;
+    entry->offset_x = bitmap.offset_x;
+    entry->offset_y = bitmap.offset_y;
     description.width = bitmap.width;
     description.height = bitmap.height;
     description.filter = RENDERER_TEXTURE_FILTER_LINEAR;
@@ -382,8 +396,10 @@ static RendererStatus Unicode_text_build_vertices(
         top -= (float)entry->metrics.height * 0.5f;
     else if (vertical == TEXT_GEOMETRY_ALIGN_BOTTOM)
         top -= (float)entry->metrics.height;
-    right = left + (float)entry->metrics.width;
-    bottom = top + (float)entry->metrics.height;
+    left += entry->offset_x;
+    top += entry->offset_y;
+    right = left + entry->bitmap_width;
+    bottom = top + entry->bitmap_height;
     if (!isfinite(left) || !isfinite(top) || !isfinite(right)
         || !isfinite(bottom)) {
         return RENDERER_STATUS_INVALID_ARGUMENT;
@@ -419,13 +435,13 @@ RendererStatus Unicode_text_renderer_draw(
         return status;
     if (entry->metrics.width == 0)
         return RENDERER_STATUS_OK;
+    status = Unicode_text_ensure_texture(text_renderer, entry);
+    if (status != RENDERER_STATUS_OK)
+        return status;
     status = Unicode_text_build_vertices(
         entry, anchor, horizontal, vertical, color, space, vertices);
     if (status != RENDERER_STATUS_OK)
         return Unicode_text_retain(text_renderer, status);
-    status = Unicode_text_ensure_texture(text_renderer, entry);
-    if (status != RENDERER_STATUS_OK)
-        return status;
     status = Renderer_set_blend(text_renderer->frontend,
                                 RENDERER_BLEND_ALPHA);
     if (status == RENDERER_STATUS_OK) {

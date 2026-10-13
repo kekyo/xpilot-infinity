@@ -3,6 +3,7 @@
 #include "sdlrenderer.h"
 
 #include "renderer_gl_core.h"
+#include "renderer_gl_es.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -42,7 +43,12 @@ RendererStatus Sdl_renderer_create(SDL_Window *window,
     if (created == NULL)
         return RENDERER_STATUS_OUT_OF_MEMORY;
     created->window = window;
-    status = Renderer_gl_core_create(Sdl_renderer_load_proc, NULL,
+#ifdef __EMSCRIPTEN__
+    status = Renderer_gl_es_create(
+#else
+    status = Renderer_gl_core_create(
+#endif
+                                     Sdl_renderer_load_proc, NULL,
                                      &created->frontend);
     if (status != RENDERER_STATUS_OK) {
         free(created);

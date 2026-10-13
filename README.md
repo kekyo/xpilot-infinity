@@ -60,12 +60,59 @@ The supported package matrix is:
 | Ubuntu | 24.04 | amd64, arm64 |
 | Ubuntu | 26.04 | amd64, arm64 |
 | Windows | - | x86 (32bit), x86_64 (64bit) |
+| Node.js / npm | 24.x (24.19.0+) or 26.4.0+ | Platforms supported by Node.js |
 
 - Environment: SDL3, OpenGL 3.3 and OpenAL (sound)
 
 The Debian and Ubuntu packages add **XPilot Infinity** to XDG-compatible
 application menus. The launcher uses the packaged application icon and opens
 the SDL server browser without additional arguments.
+
+### Play on Node.js and browser
+
+Play using the native client or a browser. See [Playing in a browser](docs/en/browser.md)
+for joining a game, controls, and starting your own server.
+
+The [Node.js package](xpilot-server/README.md)
+includes a WASM server and browser client. It requires Node.js 24.x (24.19.0+)
+or 26.4.0+.
+See [browser hosting](doc/BROWSER.md) for native hosting and HTTPS/WSS deployment.
+
+Install the npm package globally and start the server:
+
+```sh
+npm install -g xpilot-infinity
+xpilot-infinity
+```
+
+Alternatively, start it with npx:
+
+```sh
+npx xpilot-infinity
+```
+
+Open `http://localhost:15347/`. UDP 15345 and TCP 15346 are also available for
+native clients. Stop the server with Ctrl+C. This package runs with Node.js and
+a browser; it needs no native compiler or separate native server. Settings and
+saved data belong in `--data-dir`, which defaults to `~/.xpilot-infinity`.
+
+For instructions on how to join, basic operations, and how to start your own server, see [Play in a Browser](docs/en/browser.md).
+
+### Play with a Docker container
+
+Use Docker or Podman to start an image containing the server and browser
+client. Linux amd64 and arm64 are supported.
+
+```sh
+docker run --rm -p 15347:15347/tcp docker.io/kekyo/xpilot-infinity:latest
+```
+
+Open `http://localhost:15347/`, enter a name, and choose `Join game`.
+Stop the server with Ctrl+C. For Podman, replace `docker` with `podman`.
+
+This example publishes only browser hosting and WebSocket gameplay.
+For saved data, TCP/UDP access, and building your own image, see
+[Running the server with Podman](#running-the-server-with-podman) below.
 
 ### Windows installation
 
@@ -147,6 +194,39 @@ The main changes from NG version 4.7.3 are as follows:
 
 ## Network transport
 
+One server can accept UDP, TCP, and WebSocket players in the same game:
+
+```console
+xpilot-infinity-server -listen udp:15345,tcp:15346,websocket:15347 -map ndh.xp2
+xpilot-infinity-sdl -join udp://server.example:15345
+xpilot-infinity-sdl -join tcp://server.example:15346
+xpilot-infinity-sdl -join ws://server.example:15347
+```
+
+`listen` accepts any nonempty combination of these transports, once each,
+with ports from 1 to 65535. `ws` is an alias for `websocket`; transport names
+are case-insensitive. TCP and WebSocket require separate ports. UDP may use
+the same number as a stream listener when metaserver reporting is disabled
+with `+reportMeta`. With reporting enabled, every listener requires a distinct
+port and appears separately in the server list, with the same players and map.
+Player limits, names, and per-IP limits are shared across all listeners.
+
+The setting is also available as `listen: udp:15345,tcp:15346,websocket:15347`
+in the server defaults file. It cannot be combined with explicitly configured
+`contactPort`/`port`, `contactTransport`, `gameTransport`, or transport shortcuts,
+including settings in defaults files. Restart the server to change listeners.
+Invalid settings or an unavailable listener port fail the entire startup.
+Without `listen`, the single-listener settings below apply; the default is UDP
+on port 15345.
+
+For the example above, publish UDP port 15345 and TCP ports 15346 and 15347 in
+the firewall or container configuration. UDP gameplay also requires a port
+per player in the server's `clientPortStart`/`clientPortEnd` range. Fixed TCP
+and WebSocket sessions use their listener port for both admission and gameplay.
+Metaserver reporting sends UDP from each listener's numeric port, including
+TCP and WebSocket listeners. Reconnection uses the original protocol and port;
+it does not move a player between transports.
+
 Contact/lobby and gameplay connections use UDP by default and can be selected
 independently. To use TCP for both, start both endpoints with matching
 settings, for example:
@@ -178,9 +258,11 @@ through the long options or metaserver advertisements.
 
 WebSocket uses RFC 6455 binary messages at `/xpilot` with the
 `xpilot-infinity-v1` subprotocol; each message carries one logical XPilot
-record. Only unencrypted `ws://` is currently implemented. The native clients
-exercise this transport; browser client integration is intentionally a
-separate step.
+record. Native clients support direct `ws://` connections. The browser client
+uses the same-origin WebSocket endpoint, including `wss://` through a TLS
+frontend. Use `-webRoot PATH` to serve the browser build from this listener;
+see [browser hosting](doc/BROWSER.md) for Origin and trusted-proxy settings.
+WebSocket connections cannot claim loopback-based server administration.
 
 Multiple targets are tried in command-line order, for example
 `ws://server1 tcp://server2 udp://server3`. This is explicit fallback between
@@ -210,14 +292,17 @@ legacy advertisements without transport metadata are treated as UDP contact
 and UDP gameplay servers. Metaserver query and reporting traffic continues to
 use its existing protocols.
 
-The server's `clientPortStart` and `clientPortEnd` range applies to the
-selected gameplay protocol. On clients it also applies to gameplay and the
+The server's `clientPortStart` and `clientPortEnd` range applies to traditional
+UDP and split UDP/TCP gameplay connections. On clients it also applies to gameplay and the
 traditional UDP contact socket; fixed TCP and WebSocket sessions use that
 range for their local source port.
 
 TCP gameplay records contain a two-byte network-order payload length followed
 by an unchanged XPilot packet payload. Server recordings must be replayed with
-the same `gameTransport` value that was used while recording.
+the same `gameTransport` value that was used while recording. Server recording
+and playback are unavailable when fixed TCP or WebSocket sessions are enabled;
+the server rejects those combinations, including attempts to enable recording
+while it is running. Traditional UDP and split UDP/TCP recording remain available.
 
 ### Running the server as a systemd service
 
@@ -352,150 +437,183 @@ or logging out leaves the server running. Choose Stop server to shut it down.
 
 ### Running the server with Podman
 
-The repository contains a multi-stage [`Dockerfile`](Dockerfile) for the
-dedicated server. The runtime image contains the server, the standard maps and
-configuration data, and only its required shared libraries. It runs as
-UID/GID `10001:10001`; its default command starts `ndh.xp2` on TCP port 15345
-without reporting to the public metaserver.
+The image includes the Node.js/Wasm server, standard maps, and browser client.
+It supports Linux amd64 and arm64 and runs as UID/GID `10001:10001`.
+UDP, TCP, and WebSocket are all enabled inside the container. Choose which
+transports to publish through the port mappings at startup.
 
-Images published from this repository use
-`docker.io/kekyo/xpilot-infinity-server`. To build a local image instead, run:
+#### Run in the background and save data
 
-```bash
-image=localhost/xpilot-infinity-server:local
-./build_container_image.sh --tag "$image"
-```
-
-The build command uses Podman and never pushes an image. Release and
-multi-architecture build instructions are in
-[`doc/PACKAGING.md`](doc/PACKAGING.md#dedicated-server-container-image).
-
-Create a named volume for recordings or other relative output files, then
-start the default TCP server with a read-only root filesystem and no Linux
-capabilities:
+The detailed examples below use Podman. If the quick-start container is still
+running, stop it with Ctrl+C before switching. A named volume preserves rankings
+when you recreate the container.
 
 ```bash
-image=docker.io/kekyo/xpilot-infinity-server:latest
+image=docker.io/kekyo/xpilot-infinity:latest
 podman volume create xpilot-infinity-server-data
 podman run --detach \
   --name xpilot-infinity-server \
-  --read-only \
-  --cap-drop=all \
+  --read-only --cap-drop=all \
   --security-opt=no-new-privileges \
-  --publish 15345:15345/tcp \
-  --volume \
-    xpilot-infinity-server-data:/var/lib/xpilot-infinity-server \
+  --publish 15347:15347/tcp \
+  --volume xpilot-infinity-server-data:/var/lib/xpilot-infinity-server \
+  "$image" -map ndh.xp2 -rankFileName rankings.xml
+```
+
+This example publishes browser hosting and WebSocket gameplay. Both use
+15347/TCP, so static files need no separate port. For local access only, use
+`--publish 127.0.0.1:15347:15347/tcp`.
+The default map is `ndh.xp2`, and public metaserver reporting is disabled.
+Players on another PC replace `localhost` in the browser URL with the server's hostname.
+
+#### Choose the published transports
+
+Create the container with the desired combination of `--publish` options.
+No server argument changes or image rebuilds are required.
+
+| Purpose | Container port | Podman option |
+| --- | --- | --- |
+| Browser hosting and WebSocket | 15347/TCP | `--publish 15347:15347/tcp` |
+| Native TCP | 15346/TCP | `--publish 15346:15346/tcp` |
+| Native UDP contact | 15345/UDP | `--publish 15345:15345/udp` |
+| Native UDP gameplay | 15400–15499/UDP | `--publish 15400-15499:15400-15499/udp` |
+
+UDP requires both the contact port and gameplay range. Clients use the gameplay
+port number reported by the server, so keep 15400–15499 identical on the host.
+The image's `EXPOSE` metadata lists only 15347/TCP; publish UDP explicitly.
+
+For example, publish all transports with:
+
+```bash
+podman run --detach --name xpilot-infinity-server-all \
+  --read-only --cap-drop=all --security-opt=no-new-privileges \
+  --publish 15347:15347/tcp \
+  --publish 15346:15346/tcp \
+  --publish 15345:15345/udp \
+  --publish 15400-15499:15400-15499/udp \
   "$image"
 ```
 
-Bind the published port to `127.0.0.1` instead when only local clients should
-reach it. A remote client connects to the default container with:
+Stop the first example's container before switching, since both use host port
+15347. Native clients can join `tcp://server.example:15346`,
+`udp://server.example:15345`, or `ws://server.example:15347`.
+Do not use `--network=host` when choosing exposure through port mappings.
+
+Whether rootless forwarding preserves client IP addresses depends on its
+network settings. Check the addresses visible to the server before configuring
+per-IP player limits. See the [Podman run documentation](https://docs.podman.io/en/v4.9.3/markdown/podman-run.1.html)
+for port publishing, source IPs, and SELinux mount options.
+
+#### Maps, saved data, and HTTPS
+
+Adding arguments such as `-map` after the image name retains all three listeners
+and the UDP gameplay range. Select bundled maps by basename, or mount custom
+maps and defaults files read-only:
 
 ```bash
-xpilot-infinity-sdl tcp://server.example:15345
-```
-
-Arguments after the image name replace the image's default server arguments.
-Repeat `-noQuit`, `+reportMeta`, the map, and `-tcp` when adding options. For
-example, a custom defaults file and map can be mounted read-only:
-
-```bash
-podman run --detach \
-  --name xpilot-infinity-server \
-  --read-only --cap-drop=all \
-  --security-opt=no-new-privileges \
-  --publish 15345:15345/tcp \
+podman run --detach --name xpilot-infinity-server-custom \
+  --read-only --cap-drop=all --security-opt=no-new-privileges \
+  --publish 15347:15347/tcp \
   --volume "$PWD/defaults.txt:/etc/xpilot/defaults.txt:ro" \
   --volume "$PWD/my-map.xp2:/maps/my-map.xp2:ro" \
-  --volume \
-    xpilot-infinity-server-data:/var/lib/xpilot-infinity-server \
-  "$image" \
-  -noQuit +reportMeta -tcp \
-  -defaultsFileName /etc/xpilot/defaults.txt \
-  -map /maps/my-map.xp2
+  --volume xpilot-infinity-server-data:/var/lib/xpilot-infinity-server \
+  "$image" -defaultsFileName /etc/xpilot/defaults.txt \
+  -map /maps/my-map.xp2 -rankFileName rankings.xml
 ```
 
-On SELinux hosts, add the appropriate `z` or `Z` relabel option to host bind
-mounts. The bundled maps can be selected by basename without a mount.
+Saved data goes into `/var/lib/xpilot-infinity-server`. Mount a named volume to
+retain rankings and other output. Run only one server per data volume at a time.
+On SELinux hosts, add an appropriate bind mount label, such as `:ro,Z`.
 
-Keep the operator password outside the image and source tree. Create a file in
-the format described by [`lib/password.txt`](lib/password.txt), import it as a
-Podman secret, and mount it for the image's non-root user:
+Keep the operator password in an external file using the format in
+[`lib/password.txt`](lib/password.txt). Import it with
+`podman secret create xpilot-server-password ./password.txt`, then add
+`--secret source=xpilot-server-password,target=xpilot-password,uid=10001,gid=10001,mode=0400`
+before the image name and `-passwordFileName /run/secrets/xpilot-password` after it.
 
-```bash
-podman secret create xpilot-server-password ./password.txt
-podman run --detach \
-  --name xpilot-infinity-server \
-  --read-only --cap-drop=all \
-  --security-opt=no-new-privileges \
-  --publish 15345:15345/tcp \
-  --volume \
-    xpilot-infinity-server-data:/var/lib/xpilot-infinity-server \
-  --secret \
-    source=xpilot-server-password,target=xpilot-password,uid=10001,gid=10001,mode=0400 \
-  "$image" \
-  -noQuit +reportMeta -map ndh.xp2 -tcp \
-  -passwordFileName /run/secrets/xpilot-password
-```
-
-The traditional UDP transport needs both the contact port and a fixed,
-one-to-one gameplay port range. The image deliberately exposes only its
-default TCP port, so do not use `--publish-all` for UDP:
-
-```bash
-podman run --detach \
-  --name xpilot-infinity-server-udp \
-  --read-only --cap-drop=all \
-  --security-opt=no-new-privileges \
-  --publish 15345:15345/udp \
-  --publish 15346-15445:15346-15445/udp \
-  "$image" \
-  -noQuit +reportMeta -map ndh.xp2 -udp \
-  -clientPortStart 15346 -clientPortEnd 15445
-```
-
-Direct UDP connections work through those published ports. UDP LAN broadcast
-discovery may not cross a rootless container network. If discovery is
-required, `--network=host` is an explicit alternative, but it removes network
-namespace isolation and must not be combined with the publish options.
-Rootless port forwarding can also hide original client addresses; account for
-that when changing IP-based player limits.
-
-Follow logs and stop the server gracefully with:
+For HTTPS, put a TLS reverse proxy in front of the container. Publish the backend
+with `--publish 127.0.0.1:15347:15347/tcp` and add the server argument
+`-webOrigin https://game.example`. Forward both the page and `/xpilot` at that
+same origin; the browser selects WSS automatically.
+See the [proxy configuration example](doc/BROWSER.md#https-and-wss).
+If using `-webTrustedProxy`, specify the proxy's actual peer IP as seen inside
+the container.
 
 ```bash
 podman logs --follow xpilot-infinity-server
-podman stop xpilot-infinity-server
+podman stop --time 60 xpilot-infinity-server
 ```
 
-`podman stop` sends the image's `SIGTERM` stop signal, allowing the server to
-flush persistent output before exit.
+`podman stop` sends SIGTERM and allows the server to save its output.
 
-For optional rootless systemd management, copy the supplied Quadlet files into
-the user generator directory:
+#### Manage with rootless systemd
+
+The supplied Quadlet publishes only 15347/TCP and saves rankings in a named
+volume. Its default `Image=` is `docker.io/kekyo/xpilot-infinity:latest`.
+For a local build, change `Image=` in the copied file to your local tag.
 
 ```bash
 quadlet_dir="${XDG_CONFIG_HOME:-$HOME/.config}/containers/systemd"
 mkdir -p "$quadlet_dir"
 cp containers/xpilot-infinity-server.container "$quadlet_dir/"
 cp containers/xpilot-infinity-server-data.volume "$quadlet_dir/"
+# For local builds, set Image= in the copied .container file.
 systemctl --user daemon-reload
 systemctl --user start xpilot-infinity-server.service
 ```
 
-The Quadlet uses the `latest` image, the same hardened TCP settings, and a
-persistent named volume. Its `[Install]` section starts it with subsequent user
-systemd sessions; generated Quadlet services are not enabled with
-`systemctl enable`. To start it during boot without an interactive login, an
-administrator may additionally enable lingering for the account. Inspect it
-with `systemctl --user status xpilot-infinity-server.service` and
-`journalctl --user -u xpilot-infinity-server.service`.
+Stop any manually started container using the same host ports first.
+Inspect the service with `systemctl --user status xpilot-infinity-server.service`
+and `journalctl --user -u xpilot-infinity-server.service`.
+To publish TCP or UDP as well, add corresponding `PublishPort=` entries from the
+table above to `[Container]`. Once a secret exists, add `Secret=` and append
+`-passwordFileName` to `Exec=`.
 
-The Quadlet does not refer to a secret by default because the secret must
-exist before the service starts. After creating one, add a `Secret=` line to
-its `[Container]` section and add `-passwordFileName` to `Exec=` as shown in
-the manual Podman example above. Pull a validated replacement image explicitly
-before restarting the service; automatic registry updates are not enabled.
+The `[Install]` section starts the service with subsequent user systemd sessions;
+there is no need to run `systemctl enable` on the generated service.
+See the [Quadlet documentation](https://docs.podman.io/en/v4.9.3/markdown/podman-systemd.unit.5.html)
+for startup without an interactive login. Automatic image updates are disabled;
+pull the replacement image before restarting the service.
+
+#### Build your own image
+
+Install Podman, Node.js 24.x (24.19.0+) or 26.4.0+, and npm, together with the
+[browser build prerequisites](xpilot-browser/README.md).
+Building and verifying a foreign CPU image also requires registered QEMU/binfmt
+support, such as the host OS's `qemu-user-static` package.
+
+Artifact versions and commit IDs are derived from Git using `screw-up`.
+The build scripts run `npx --yes screw-up format -f`, so a separate `screw-up`
+installation is not required. Run `./build_container_image.sh --print-version`
+to check the version without building.
+
+```bash
+image=localhost/xpilot-infinity:local
+./build_container_image.sh --tag "$image"
+```
+
+To use the resulting local image, set `image` to this tag in the startup examples
+above.
+
+By default, the build creates an amd64/arm64 manifest and individual verification
+tags `${image}-amd64` and `${image}-arm64`. The server and browser are built once,
+with the same version and commit used for both CPU images. Both images must pass
+startup, WebSocket, browser hosting, and persistence checks before the final tag
+is updated. A build or verification failure prevents that update and publishing.
+
+To build one CPU only, pass `--platform linux/amd64` or `--platform linux/arm64`.
+Use `--jobs 1` for sequential image builds. `--skip-app-build` reuses existing
+server and browser artifacts only if their versions and commits match the
+requested build identity. Omit it after changing application sources.
+
+`./build_container_image_all.sh` also targets both CPUs. Builds remain local
+unless `--push` is supplied; that option publishes both the version and `latest`
+tags after verification. The default repository is
+`docker.io/kekyo/xpilot-infinity`. Set your own repository with
+`--registry-image` and authenticate with `podman login` beforehand.
+Use `--version`, `--revision`, and `--node-image` to override the product version,
+source commit, and Node.js base image. Run `./build_container_image.sh --help`
+for all options.
 
 ---
 

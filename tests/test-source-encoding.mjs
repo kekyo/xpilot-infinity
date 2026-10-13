@@ -14,31 +14,30 @@ const ignoredRootDirectories = new Set([
   'build',
   'vendor',
 ]);
+// Package-manager and generated application trees are not project source.
+const ignoredApplicationDirectories = new Set(
+  ['xpilot-browser', 'xpilot-server'].flatMap((application) =>
+    ['node_modules', 'build', 'dist', 'public', 'test-results', 'artifacts'].map(
+      (directory) => `${application}/${directory}`
+    )
+  )
+);
 const binaryExtensions = new Set([
   '.bmp',
   '.gif',
-  '.icns',
   '.ico',
   '.png',
-  '.pmsm',
-  '.pmsp',
   '.ppm',
   '.ttf',
   '.wav',
   '.xpd',
-]);
-const nonUtf8TextPaths = new Set([
-  'contrib/macosx/English.lproj/InfoPlist.strings',
 ]);
 const decoder = new TextDecoder('utf-8', { fatal: true });
 const failures = [];
 
 const inspectFile = async (path) => {
   const relativePath = relative(sourceRoot, path);
-  if (
-    binaryExtensions.has(extname(path).toLowerCase()) ||
-    nonUtf8TextPaths.has(relativePath)
-  ) {
+  if (binaryExtensions.has(extname(path).toLowerCase())) {
     return;
   }
 
@@ -66,6 +65,7 @@ const inspectDirectory = async (directory) => {
   for (const entry of entries) {
     const path = join(directory, entry.name);
     if (entry.isDirectory()) {
+      if (ignoredApplicationDirectories.has(relative(sourceRoot, path))) continue;
       if (
         directory !== sourceRoot ||
         !ignoredRootDirectories.has(entry.name)

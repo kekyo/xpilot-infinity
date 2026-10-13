@@ -136,7 +136,7 @@ static int Talk_macro_parse_mesg(char *outbuf, char *inbuf, long pos,
 {
     FILE *fp;
     char c;
-    size_t fsize;
+    long fsize;
     int i;
     int done = 0;
     int n_fields;
@@ -261,29 +261,40 @@ static int Talk_macro_parse_mesg(char *outbuf, char *inbuf, long pos,
 		    if ((filename
 			 = XMALLOC(char, TALK_FAST_MSG_FNLEN)) == NULL) {
 			error("Can't allocate memory for talk macro.");
+			free(tmpptr);
 			break;
 		    }
 
 		    Talk_macro_parse_mesg(filename, tmpptr, 0,
 					  TALK_FAST_MSG_FNLEN);
 		    free(tmpptr);
-		    if ((fp = fopen(filename, "r")) == NULL) {
-			error("Couldn't open file %s", tmpptr);
+		    /* Keep byte counts stable across Windows newline translation. */
+		    if ((fp = fopen(filename, "rb")) == NULL) {
+			error("Couldn't open file %s", filename);
 			free(filename);
 			break;
 		    }
 		    free(filename);
 
 		    /* Get filesize */
-		    fseek(fp, 0L, SEEK_END);
-		    fsize = ftell(fp);
-		    rewind(fp);
-
-		    if ((tmpptr = XMALLOC(char, fsize + 1)) == NULL) {
+		    if (fseek(fp, 0L, SEEK_END) != 0 ||
+			(fsize = ftell(fp)) < 0 || (uintmax_t)fsize >= SIZE_MAX ||
+			fseek(fp, 0L, SEEK_SET) != 0) {
+			error("Couldn't determine talk macro file size");
 			fclose(fp);
 			break;
 		    }
-		    fread(tmpptr, 1, fsize, fp);
+
+		    if ((tmpptr = XMALLOC(char, (size_t)fsize + 1)) == NULL) {
+			fclose(fp);
+			break;
+		    }
+		    if (fread(tmpptr, 1, fsize, fp) != (size_t)fsize || ferror(fp)) {
+			error("Couldn't read complete talk macro file");
+			free(tmpptr);
+			fclose(fp);
+			break;
+		    }
 		    tmpptr[fsize] = '\0';
 		    fclose(fp);
 		    pos = Talk_macro_parse_mesg(outbuf, tmpptr, pos, max);
@@ -345,6 +356,7 @@ static int Talk_macro_parse_mesg(char *outbuf, char *inbuf, long pos,
 		    break;
 		}	/* case TALK_FAST_SPECIAL_TALK_CHAR: switch (c) */
 		break;
+	    case '\r':
 	    case '\n':
 		break;
 	    default:

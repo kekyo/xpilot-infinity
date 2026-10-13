@@ -216,12 +216,22 @@ static bool closest_display_mode(int width, int height, SDL_DisplayMode *mode)
 int Init_window(void)
 {
     int value;
+#ifdef __EMSCRIPTEN__
+    const int minor_version = 0, context_profile = SDL_GL_CONTEXT_PROFILE_ES;
+#else
+    const int minor_version = 3, context_profile = SDL_GL_CONTEXT_PROFILE_CORE;
+#endif
     RendererStatus renderer_status;
     char defaultfontname[] = CONF_FONTDIR "FreeSansBoldOblique.ttf";
     bool gf_exists = true,df_exists = true,gf_init = false, mf_init = false;
 
     Conf_print();
 
+#ifdef __EMSCRIPTEN__
+    SDL_SetHint(SDL_HINT_EMSCRIPTEN_CANVAS_SELECTOR, "#game");
+    SDL_SetHint(SDL_HINT_EMSCRIPTEN_KEYBOARD_ELEMENT, "#game");
+    SDL_SetHint(SDL_HINT_EMSCRIPTEN_ASYNCIFY, "0");
+#endif
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         error("failed to initialize SDL: %s", SDL_GetError());
         return -1;
@@ -246,15 +256,13 @@ int Init_window(void)
 	      SDL_GetError());
 	goto fail;
     }
-    if (!SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3)) {
-	error("Could not request OpenGL context minor version 3: %s",
-	      SDL_GetError());
-	goto fail;
+    if (!SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, minor_version)) {
+        error("Could not request OpenGL context minor version %d: %s", minor_version, SDL_GetError());
+        goto fail;
     }
-    if (!SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
-			     SDL_GL_CONTEXT_PROFILE_CORE)) {
-	error("Could not request an OpenGL core profile: %s", SDL_GetError());
-	goto fail;
+    if (!SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, context_profile)) {
+        error("Could not request an OpenGL profile: %s", SDL_GetError());
+        goto fail;
     }
     if (!SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1)) {
 	error("Could not enable OpenGL double buffering: %s", SDL_GetError());
@@ -262,7 +270,11 @@ int Init_window(void)
     }
 
     main_window = SDL_CreateWindow(TITLE, draw_width, draw_height,
-				   SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+				   SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
+#ifdef __EMSCRIPTEN__
+                                   | SDL_WINDOW_HIGH_PIXEL_DENSITY
+#endif
+                                   );
     if (main_window == NULL) {
 	error("Could not create an SDL3 OpenGL window: %s", SDL_GetError());
 	goto fail;

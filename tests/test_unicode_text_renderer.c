@@ -45,6 +45,7 @@ static int texture_create_calls;
 static int texture_destroy_calls;
 static int draw_calls;
 static int flush_calls;
+static int ink_bitmap;
 
 static int float_equal(float actual, float expected)
 {
@@ -68,6 +69,7 @@ static void reset_fixture(void)
     texture_destroy_calls = 0;
     draw_calls = 0;
     flush_calls = 0;
+    ink_bitmap = 0;
 }
 
 static void begin_frame(void)
@@ -110,8 +112,8 @@ RendererStatus Renderer_texture_create_streaming(
     const uint8_t *pixels, size_t pitch, RendererTexture **created)
 {
     if (renderer == NULL || !renderer->frame_active || desc == NULL
-        || desc->width != 20 || desc->height != 10 || pixels == NULL
-        || pitch != 80 || created == NULL || *created != NULL) {
+        || desc->width != (ink_bitmap ? 24 : 20) || desc->height != (ink_bitmap ? 8 : 10) || pixels == NULL
+        || pitch != (ink_bitmap ? 96 : 80) || created == NULL || *created != NULL) {
         return RENDERER_STATUS_INVALID_ARGUMENT;
     }
     texture_create_calls++;
@@ -243,6 +245,8 @@ XpTextStatus Xp_text_layout_rasterize(const XpTextLayout *layout,
     bitmap->width = 20;
     bitmap->height = 10;
     bitmap->pitch = 80;
+    bitmap->scale = 1;
+    if (ink_bitmap) { bitmap->width=24; bitmap->height=8; bitmap->pitch=96; bitmap->scale=2; bitmap->offset_x=-2; bitmap->offset_y=1; }
     rasterize_calls++;
     return XP_TEXT_STATUS_OK;
 }
@@ -338,8 +342,38 @@ static int check_rtl_is_forwarded_and_rejected(void)
     return 0;
 }
 
+static int check_bitmap_ink_is_independent_of_layout(void)
+{
+    UnicodeTextRenderer *renderer = NULL;
+    const XpTextLayoutRequest request = {"fi", 2, XP_TEXT_DIRECTION_LTR, "en"};
+    reset_fixture();
+    ink_bitmap = 1;
+    TEST_CHECK(Unicode_text_renderer_create(&sdl_renderer, &font, &renderer) == RENDERER_STATUS_OK);
+    begin_frame();
+    TEST_CHECK(Unicode_text_renderer_draw(renderer, &request,
+        (RendererPoint2D){100, 50}, TEXT_GEOMETRY_ALIGN_CENTER,
+        TEXT_GEOMETRY_ALIGN_BOTTOM, (RendererColor){255,255,255,255},
+        TEXT_RENDERER_SPACE_HUD) == RENDERER_STATUS_OK);
+    TEST_CHECK(float_equal(captured_vertices[0].x, 88));
+    TEST_CHECK(float_equal(captured_vertices[0].y, 41));
+    TEST_CHECK(float_equal(captured_vertices[2].x, 100));
+    TEST_CHECK(float_equal(captured_vertices[2].y, 45));
+    frontend.frame_active = 0;
+    TEST_CHECK(Unicode_text_renderer_clear(renderer) == RENDERER_STATUS_OK);
+    begin_frame();
+    TEST_CHECK(Unicode_text_renderer_draw(renderer, &request,
+        (RendererPoint2D){100, 50}, TEXT_GEOMETRY_ALIGN_CENTER,
+        TEXT_GEOMETRY_ALIGN_BOTTOM, (RendererColor){255,255,255,255},
+        TEXT_RENDERER_SPACE_HUD) == RENDERER_STATUS_OK);
+    TEST_CHECK(rasterize_calls == 2 && texture_create_calls == 2);
+    frontend.frame_active = 0;
+    TEST_CHECK(Unicode_text_renderer_destroy(&renderer) == RENDERER_STATUS_OK);
+    return 0;
+}
+
 int main(void)
 {
+    if (check_bitmap_ink_is_independent_of_layout() != 0) return 1;
     if (check_utf8_layout_is_cached_and_drawn() != 0)
         return 1;
     if (check_rtl_is_forwarded_and_rejected() != 0)

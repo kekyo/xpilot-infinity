@@ -72,7 +72,6 @@ extern int		NumAlliances;
 extern int		NumRobots;
 extern int		login_in_progress;
 extern char		ShutdownReason[];
-extern sock_t		contactSocket;
 extern time_t		serverStartTime;
 extern server_t		Server;
 extern char		*serverAddr;
@@ -371,6 +370,28 @@ void Tune_asteroid_prob(void);
  * Prototypes for server.c
  */
 void End_game(void);
+/**
+ * Initialize one game without entering the platform's scheduler.
+ * @param argc Number of command-line arguments, including the program name.
+ * @param argv Arguments borrowed for initialization.
+ * @return Zero on success, nonzero on failure. Fatal legacy errors call exit.
+ * @remarks The caller owns the game until End_game. Only one game is supported
+ * per process or WASM instance; a stopped instance must not be initialized again.
+ */
+int Server_initialize(int argc, char **argv);
+/**
+ * Prepare the map and game state before opening network listeners.
+ * @param argc Number of arguments including the program name.
+ * @param argv Borrowed arguments, valid until this call returns.
+ * @return Zero on success; legacy fatal errors call exit.
+ * @remarks Hosts needing asynchronous name resolution may resolve configured
+ * names between this call and Server_activate. The game owns allocated state.
+ */
+int Server_prepare(int argc, char **argv);
+/** Open listeners and finish initialization after Server_prepare succeeds.
+ * @return Zero on success; legacy fatal errors call exit.
+ */
+int Server_activate(void);
 int Pick_team(int pick_for_type);
 void Server_info(char *str, size_t max_size);
 void Log_game(const char *heading);
@@ -387,6 +408,24 @@ void Main_loop(void);
  */
 void Contact_cleanup(void);
 int Contact_init(void);
+/** Validate and retain listener settings before freeing the option database. */
+bool Contact_configure(void);
+/** Return the number of configured contact endpoints. */
+size_t Contact_endpoint_count(void);
+/**
+ * Inspect one configured contact endpoint.
+ * @param index Index less than Contact_endpoint_count().
+ * @return Borrowed endpoint valid until server shutdown.
+ */
+const server_endpoint_t *Contact_endpoint(size_t index);
+/**
+ * Borrow an active UDP contact socket for metaserver reporting.
+ * @param port Local UDP port to find.
+ * @return Borrowed socket, or NULL when there is no matching UDP listener.
+ */
+sock_t *Contact_udp_socket(int port);
+/** Return whether all configured listeners support server recording. */
+bool Contact_recording_supported(void);
 void Contact(socket_handle_t fd, void *arg);
 void Queue_kick(const char *nick);
 void Queue_loop(void);
@@ -397,10 +436,14 @@ void Set_deny_hosts(void);
 /*
  * Prototypes for metaserver.c
  */
-void Meta_send(char *mesg, size_t len);
 int Meta_from(char *addr, int port);
 void Meta_gone(void);
 void Meta_init(void);
+/** Apply reporting overrides and borrow a configured metaserver hostname.
+ * @param index Zero-based metaserver index.
+ * @return Name until shutdown, or NULL when disabled or outside the list.
+ */
+const char *Meta_host_name(size_t index);
 void Meta_update(bool change);
 void Meta_update_max_size_tuner(void);
 

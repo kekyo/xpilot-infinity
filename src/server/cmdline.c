@@ -605,6 +605,41 @@ static option_desc opts[] = {
 	OPT_MAP
     },
     {
+        "listen",
+        "listen",
+        NULL,
+        &options.listen,
+        valString,
+        tuner_none,
+        "Comma-separated protocol:port listeners, for example\n"
+        "udp:15345,tcp:15346,websocket:15347. Each protocol may appear once.\n"
+        "TCP and WebSocket must use different ports. Cannot be combined with\n"
+        "contactPort, contactTransport, or gameTransport. With metaserver\n"
+        "reporting enabled, every listener must have a distinct port.\n"
+        "Fixed TCP/WebSocket sessions do not support server recording.\n",
+        OPT_COMMAND | OPT_DEFAULTS | OPT_VISIBLE
+    },
+    {
+        "webRoot", "webRoot", NULL, &options.webRoot, valString, tuner_none,
+        "Static browser files served on WebSocket listeners (GET and HEAD).\n"
+        "Omit to disable file serving. Only files below this directory are served.\n",
+        OPT_COMMAND | OPT_DEFAULTS
+    },
+    {
+        "webOrigin", "webOrigin", NULL, &options.webOrigin, valString, tuner_none,
+        "Exact allowed browser origin, e.g. https://game.example.\n"
+        "Defaults to http://Host. Native WebSocket clients may omit Origin.\n",
+        OPT_COMMAND | OPT_DEFAULTS | OPT_VISIBLE
+    },
+    {
+        "webTrustedProxy", "webTrustedProxy", NULL, &options.webTrustedProxy,
+        valString, tuner_none,
+        "Single numeric trusted proxy IP; requires webOrigin. Its WebSocket\n"
+        "requests must contain one numeric X-Real-IP header. Other peers'\n"
+        "forwarded addresses are ignored. WebSocket administration is disabled.\n",
+        OPT_COMMAND | OPT_DEFAULTS
+    },
+    {
 	"contactPort",
 	"port",
 	"15345",
@@ -988,7 +1023,7 @@ static option_desc opts[] = {
 	valBool,
 	tuner_none,
 	"Keep the meta server informed about our game?\n"
-	"Advertisements include the selected contact and gameplay transports.\n",
+	"Each listener is advertised with its contact and gameplay transports.\n",
 	OPT_COMMAND | OPT_DEFAULTS | OPT_VISIBLE
     },
     {
@@ -3580,8 +3615,9 @@ static option_desc opts[] = {
 	&options.clientPortStart,
 	valInt,
 	tuner_dummy,
-	"Restrict selected gameplay transport ports to clientPortStart - "
-	"clientPortEnd (for firewalls)\n",
+	"Restrict traditional UDP or split UDP/TCP gameplay ports to\n"
+	"clientPortStart - clientPortEnd (for firewalls). Fixed TCP/WebSocket\n"
+	"sessions use their listener port instead.\n",
 	OPT_COMMAND | OPT_DEFAULTS | OPT_VISIBLE
     },
     {
@@ -3591,8 +3627,9 @@ static option_desc opts[] = {
 	&options.clientPortEnd,
 	valInt,
 	tuner_dummy,
-	"Restrict selected gameplay transport ports to clientPortStart - "
-	"clientPortEnd (for firewalls)\n",
+	"Restrict traditional UDP or split UDP/TCP gameplay ports to\n"
+	"clientPortStart - clientPortEnd (for firewalls). Fixed TCP/WebSocket\n"
+	"sessions use their listener port instead.\n",
 	OPT_COMMAND | OPT_DEFAULTS | OPT_VISIBLE
     },
     {

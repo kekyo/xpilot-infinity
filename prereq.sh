@@ -43,6 +43,8 @@ file
 libalut-dev
 libbrotli-dev
 libbz2-dev
+libasound2-dev
+libdecor-0-dev
 libexpat1-dev
 libfontconfig1-dev
 libfreetype-dev

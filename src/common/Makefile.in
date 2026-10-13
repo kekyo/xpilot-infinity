@@ -102,7 +102,6 @@ CONFIG_CLEAN_FILES = version.h.template
 CONFIG_CLEAN_VPATH_FILES =
 LIBRARIES = $(noinst_LIBRARIES)
 AR = ar
-ARFLAGS = cru
 AM_V_AR = $(am__v_AR_@AM_V@)
 am__v_AR_ = $(am__v_AR_@AM_DEFAULT_V@)
 am__v_AR_0 = @echo "  AR      " $@;
@@ -207,6 +206,7 @@ DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
+ARFLAGS = @ARFLAGS@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
@@ -356,7 +356,6 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = subdir-objects
-SCREW_UP = screw-up
 AM_CPPFLAGS = -DCONF_DATADIR=\"$(pkgdatadir)/\" \
 	-I$(top_srcdir)/vendor/wslay/lib/includes \
 	-I$(top_srcdir)/vendor/wslay/lib \
@@ -828,7 +827,6 @@ build-metadata.txt: build-metadata-force \
 		$(top_srcdir)/config/resolve-build-metadata.sh
 	@resolved_metadata=`XPILOT_VERSION='$(XPILOT_VERSION)' \
 		XPILOT_COMMIT_ID='$(XPILOT_COMMIT_ID)' \
-		SCREW_UP='$(SCREW_UP)' \
 		$(top_srcdir)/config/resolve-build-metadata.sh` || exit $$?; \
 	if test ! -f $@ \
 		|| test "x$$resolved_metadata" != "x`cat $@`"; then \

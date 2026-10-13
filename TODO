@@ -12,7 +12,7 @@ Fix the garish item package icon colour scheme (says SynrG)
 Add a clock to SDL client (kevin requested one)
 
 XPICC:
-Port to windows and macosx.
+Port to windows.
 Add an xp2 map editor that doesn't depend on non-free software.
 Make sure xp2 map editor works with 1-button mouse.
 

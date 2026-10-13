@@ -6,9 +6,11 @@ dependencies are resolved against the selected Debian or Ubuntu release.
 
 ## Host prerequisites
 
-Install Podman, `qemu-user-static`, `dpkg-dev`, binutils, Node.js, Info-ZIP
-`zip`, and [`screw-up`](https://github.com/kekyo/screw-up).  Initialize the
-pinned source dependencies before packaging:
+Install Podman, `qemu-user-static`, `dpkg-dev`, binutils, Node.js with npm/npx,
+and Info-ZIP `zip`. Build scripts resolve the version and commit ID from Git
+with `npx --yes screw-up format -f`; a separate
+[`screw-up`](https://github.com/kekyo/screw-up#format-command) installation is
+not required. Initialize the pinned source dependencies before packaging:
 
 ```sh
 git submodule update --init --recursive
@@ -70,72 +72,51 @@ artifacts/deb/xpilot-infinity-<version>-<distro>-<release>-<deb-arch>.deb
 
 ## Dedicated server container image
 
-The root [`Dockerfile`](../Dockerfile) is a multi-stage build dedicated to
-`xpilot-infinity-server`. Its builder stage disables the SDL and X11 clients,
-replay tools, map editor, and sound. The runtime stage uses the same pinned
-Debian slim base and contains only the stripped server, standard server data,
-`libexpat`, `zlib`, and their base-system dependencies. It does not contain a
-compiler or the client-side SDL dependency tree.
+The root [`Dockerfile`](../Dockerfile) packages the Node.js/Wasm server and
+browser client on a pinned Node.js image. Both CPU images use the same
+application artifacts and product identity. For prerequisites, port mappings,
+saved data, HTTPS, and Quadlet setup, see the
+[runtime guide](../README.md#running-the-server-with-podman), translated from
+the [Japanese guide](../README_ja.md#podman-でサーバーを実行する).
 
-The runtime contract is:
-
-- Linux `amd64` and `arm64` images are supported.
-- The process runs as the fixed non-root UID/GID `10001:10001`.
-- `/var/lib/xpilot-infinity-server` is the working directory for relative
-  output, but it is not declared as an automatic anonymous volume.
-- TCP port 15345 and the `ndh.xp2` map are the safe defaults.
-- `SIGTERM` is the image stop signal.
-- The image has no generic health check because server readiness requires an
-  XPilot protocol exchange rather than a TCP-open check.
-
-Build the native platform with the Podman wrapper:
+Build a local Linux amd64/arm64 manifest with Podman:
 
 ```sh
-version=$(./build_container_image.sh --print-version)
-image="docker.io/kekyo/xpilot-infinity-server:$version"
+image=localhost/xpilot-infinity:local
 ./build_container_image.sh --tag "$image"
-podman image inspect "$image"
-```
-
-The wrapper embeds the resolved product version, source revision, and OCI
-source metadata. `--version`, `--revision`, `--jobs`, `--base-image`, and
-`--source-url` provide explicit release overrides. It only creates local
-images and never logs in to a registry or pushes.
-
-For one manifest containing both supported architectures, install
-`qemu-user-static` and run:
-
-```sh
-version=$(./build_container_image.sh --print-version)
-image="docker.io/kekyo/xpilot-infinity-server:$version"
-./build_container_image.sh \
-  --platform linux/amd64,linux/arm64 \
-  --tag "$image"
 podman manifest inspect "$image"
 ```
 
-Every `RUN` instruction executes for each target architecture, so registered
-user-mode emulation is required when the build host is not native to that
-architecture. Inspect the resulting manifest and test at least the native
-image before publishing.
+Foreign CPU verification needs registered QEMU/binfmt support. The script
+executes both CPU images and verifies the Node.js architecture, HTTP assets,
+WebSocket handshake, graceful shutdown, and saved rankings before updating
+the final tag. A failed build or check prevents publishing. Individual
+`${image}-amd64` and `${image}-arm64` tags are also available for local tests.
 
-Publishing is a separate, operator-controlled release step. After
-authenticating and validating the local manifest, the release operator may
-push the immutable version tag and, if desired, the same manifest as `latest`:
+`--platform linux/amd64` or `--platform linux/arm64` builds a single CPU image.
+`--jobs 1` builds sequentially. `--skip-app-build` reuses existing application
+artifacts only when server and browser build identities match the requested
+version and revision. Omit it when application sources have changed.
+
+The wrapper embeds the resolved product version, revision, and OCI source
+metadata. `--version`, `--revision`, `--node-image`, and `--source-url` override
+those inputs. `--print-version` prints the resolved version without building
+the application or image.
+
+`build_container_image_all.sh` forwards to the same builder with both CPUs.
+Publishing requires an explicit `--push`, which sends the verified manifest
+and its images under both the version and `latest` tags:
 
 ```sh
 podman login docker.io
-podman manifest push --all "$image" "docker://$image"
-podman manifest push --all "$image" \
-  docker://docker.io/kekyo/xpilot-infinity-server:latest
+./build_container_image_all.sh --push \
+  --registry-image docker.io/YOUR_NAMESPACE/xpilot-infinity
 ```
 
-For a single-platform image, use `podman push "$image"` instead. Replace the
-Docker Hub namespace in the examples and in
+The default repository is `docker.io/kekyo/xpilot-infinity`. Replace it in
+the command and in
 [`containers/xpilot-infinity-server.container`](../containers/xpilot-infinity-server.container)
-if the final repository is not owned by `kekyo`. The runtime and optional
-rootless Quadlet instructions are documented in the main
-[`README.md`](../README.md#running-the-server-with-podman).
+when publishing to another namespace. The builder does not log in to a registry.
 
 ## Windows packages
 

@@ -107,10 +107,18 @@ void toeol(FILE * ifile);
 char skipspace(FILE * ifile);
 char *getMultilineValue(char *delimiter, FILE * ifile);
 int ParseLine(FILE * ifile);
-int AddOption(char *name, char *value);
-int YesNo(char *val);
-char *StrToNum(char *string, int len, int type);
-int LoadMapData(char *value);
+/** Apply an option without changing its name or value; return zero on success. */
+int AddOption(const char *name, const char *value);
+int YesNo(const char *val);
+/**
+ * Extract digits, an optional leading minus sign and at most one decimal point.
+ * @param string Input text, which is not modified.
+ * @param len Maximum output length, excluding the terminator; nonpositive means empty.
+ * @param type INT, POSINT, FLOAT or POSFLOAT; positive types discard minus signs.
+ * @return An allocated string owned by the caller, or NULL on allocation failure.
+ */
+char *StrToNum(const char *string, int len, int type);
+int LoadMapData(const char *value);
 
 /* prototypes for round.c */
 int RoundMapArea(HandlerInfo_t info);

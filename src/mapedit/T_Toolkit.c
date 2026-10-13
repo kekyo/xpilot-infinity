@@ -390,7 +390,7 @@ void T_DrawTextButton(Window win, int x, int y, int width, int height,
 /*           character at curpos unless cursorpos is negative.             */
 /***************************************************************************/
 void T_DrawString(Window win, int x, int y, int width, int height, GC gc,
-		  char *string, int justify, int crop, int cursorpos)
+		  const char *string, int justify, int crop, int cursorpos)
 {
     int length, c;
 

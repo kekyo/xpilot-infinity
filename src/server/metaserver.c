@@ -27,9 +27,15 @@
 
 #define META_VERSION	VERSION "infinity"
 
-static sock_t metaSocket;
-static bool meta_socket_open;
-static bool meta_reporting_ready;
+typedef struct {
+    sock_t owned_socket;
+    /* Borrow the UDP contact socket, or point to owned_socket for streams. */
+    sock_t *socket;
+    time_t last_send;
+    int queue_length;
+} meta_endpoint_t;
+
+static meta_endpoint_t meta_endpoints[SERVER_ENDPOINT_LIMIT];
 static int meta_report_port = META_PORT;
 
 struct MetaServer {
@@ -74,33 +80,28 @@ static void Meta_apply_environment(void)
 	meta_report_port = (int)port;
 }
 
-static sock_t *Meta_report_socket(void)
+static void Meta_send(size_t index, char *mesg, size_t len)
 {
-    if (!meta_reporting_ready)
-	return NULL;
-    return contactTransport != GAME_TRANSPORT_UDP
-	? &metaSocket : &contactSocket;
+    sock_t *socket = meta_endpoints[index].socket;
+
+    if (!options.reportToMetaServer || socket == NULL)
+        return;
+    for (int i = 0; i < NELEM(meta_servers); i++) {
+        if (sock_send_dest(socket, meta_servers[i].addr,
+                           meta_report_port, mesg, (int)len) != (int)len) {
+            sock_get_error(socket);
+            sock_send_dest(socket, meta_servers[i].addr,
+                           meta_report_port, mesg, (int)len);
+        }
+    }
 }
 
-void Meta_send(char *mesg, size_t len)
+const char *Meta_host_name(size_t index)
 {
-    sock_t *socket;
-    int i;
-
-    if (!options.reportToMetaServer)
-	return;
-    socket = Meta_report_socket();
-    if (socket == NULL)
-	return;
-
-    for (i = 0; i < NELEM(meta_servers); i++) {
-	if (sock_send_dest(socket, meta_servers[i].addr,
-			   meta_report_port, mesg, (int)len) != (int)len) {
-	    sock_get_error(socket);
-	    sock_send_dest(socket, meta_servers[i].addr,
-			   meta_report_port, mesg, (int)len);
-	}
-    }
+    if (!options.reportToMetaServer || index >= NELEM(meta_servers))
+        return NULL;
+    Meta_apply_environment();
+    return meta_servers[index].name;
 }
 
 int Meta_from(char *addr, int port)
@@ -118,14 +119,13 @@ void Meta_gone(void)
 {
     char msg[MSG_LEN];
 
-    if (options.reportToMetaServer) {
-	snprintf(msg, sizeof(msg), "server %s\nremove", Server.host);
-	Meta_send(msg, strlen(msg) + 1);
-    }
-    meta_reporting_ready = false;
-    if (meta_socket_open) {
-	sock_close(&metaSocket);
-	meta_socket_open = false;
+    snprintf(msg, sizeof(msg), "server %s\nremove", Server.host);
+    for (size_t i = 0; i < Contact_endpoint_count(); i++) {
+        meta_endpoint_t *report = &meta_endpoints[i];
+        Meta_send(i, msg, strlen(msg) + 1);
+        if (report->socket == &report->owned_socket)
+            sock_close(&report->owned_socket);
+        report->socket = NULL;
     }
 }
 
@@ -134,28 +134,28 @@ void Meta_init(void)
     int i;
     char *addr;
 
-    sock_init(&metaSocket);
-    meta_socket_open = false;
-    meta_reporting_ready = false;
     if (!options.reportToMetaServer)
-	return;
-
+        return;
     Meta_apply_environment();
-    if (contactTransport != GAME_TRANSPORT_UDP) {
-	/*
-	 * Current metaservers publish the UDP source port of each update.
-	 * Stream transports and UDP can share the same numeric port, so keep
-	 * reporting compatible without reopening the contact listener as UDP.
-	 */
-	if (sock_open_udp(&metaSocket, serverAddr, options.contactPort)
-	    == SOCK_IS_ERROR) {
-	    warn("Could not open UDP metaserver reporting socket on port %d",
-		 options.contactPort);
-	    return;
-	}
-	meta_socket_open = true;
+    for (size_t index = 0; index < Contact_endpoint_count(); index++) {
+        meta_endpoint_t *report = &meta_endpoints[index];
+        int port = Contact_endpoint(index)->port;
+
+        sock_init(&report->owned_socket);
+        report->last_send = 0;
+        report->queue_length = 0;
+        report->socket = Contact_udp_socket(port);
+        if (report->socket != NULL)
+            continue;
+        /* Current metaservers publish the UDP source port of each update.
+         * Stream listeners own a reporting socket on the same numeric port;
+         * a UDP contact socket is borrowed and remains owned by Contact. */
+        if (sock_open_udp(&report->owned_socket, serverAddr, port) == SOCK_IS_ERROR) {
+            warn("Could not open UDP metaserver reporting socket on port %d", port);
+            continue;
+        }
+        report->socket = &report->owned_socket;
     }
-    meta_reporting_ready = true;
 
     xpprintf("%s Locating Internet Meta server... ", showtime());
     fflush(stdout);
@@ -203,7 +203,7 @@ void Meta_update_max_size_tuner(void)
     LIMIT(options.metaUpdateMaxSize, 1, (int) sizeof(meta_update_string));
 }
 
-void Meta_update(bool change)
+static void Meta_update_endpoint(bool change, size_t index)
 {
 #define GIVE_META_SERVER_A_HINT	180
 
@@ -213,8 +213,8 @@ void Meta_update(bool change)
     size_t len, max_size;
     time_t currentTime;
     const char *game_mode;
-    static time_t lastMetaSendTime = 0;
-    static int queue_length = 0;
+    meta_endpoint_t *report = &meta_endpoints[index];
+    const server_endpoint_t *endpoint = Contact_endpoint(index);
     bool first;
 
     if (!options.reportToMetaServer)
@@ -222,9 +222,9 @@ void Meta_update(bool change)
 
     currentTime = time(NULL);
     if (!change) {
-	if (currentTime - lastMetaSendTime < GIVE_META_SERVER_A_HINT) {
-	    if (NumQueuedPlayers == queue_length ||
-		currentTime - lastMetaSendTime < 5)
+	if (currentTime - report->last_send < GIVE_META_SERVER_A_HINT) {
+	    if (NumQueuedPlayers == report->queue_length ||
+		currentTime - report->last_send < 5)
 		return;
 	}
     }
@@ -232,8 +232,8 @@ void Meta_update(bool change)
     Meta_update_max_size_tuner();
     max_size = options.metaUpdateMaxSize;
 
-    lastMetaSendTime = currentTime;
-    queue_length = NumQueuedPlayers;
+    report->last_send = currentTime;
+    report->queue_length = NumQueuedPlayers;
 
     /* Find out the number of active players. */
     num_active_players = 0;
@@ -283,7 +283,7 @@ void Meta_update(bool change)
 
     if (!Game_transport_format_meta_version(
 	    meta_version, sizeof(meta_version), META_VERSION,
-	    contactTransport, gameTransport)) {
+	    endpoint->contact_transport, endpoint->game_transport)) {
 	warn("Could not format metaserver transport metadata");
 	return;
     }
@@ -307,11 +307,11 @@ void Meta_update(bool change)
 	     "add sound %s\n",
 	     Server.host, num_active_players,
 	     meta_version, world->name, world->x, world->y, world->author,
-	     Num_bases(), FPS, options.contactPort,
+	     Num_bases(), FPS, endpoint->port,
 	     game_mode, world->NumTeamBases, freebases,
 	     BIT(world->rules->mode, TIMING) ? 1:0,
 	     (long)(time(NULL) - serverStartTime),
-	     queue_length, options.sound ? "yes" : "no");
+	     report->queue_length, options.sound ? "yes" : "no");
 
 
     /*
@@ -386,5 +386,11 @@ void Meta_update(bool change)
     asciidump(string, len);
 #endif
 
-    Meta_send(string, len + 1);
+    Meta_send(index, string, len + 1);
+}
+
+void Meta_update(bool change)
+{
+    for (size_t i = 0; i < Contact_endpoint_count(); i++)
+        Meta_update_endpoint(change, i);
 }

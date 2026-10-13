@@ -63,12 +63,54 @@ XPilot には独自の新しい要素も数多くあります。
 | Ubuntu | 24.04 | amd64, arm64 |
 | Ubuntu | 26.04 | amd64, arm64 |
 | Windows | - | x86（32 ビット）, x86_64（64 ビット） |
+| Node.js / npm | 24.19.0以降の24系、または26.4.0以降 | Node.js の対応プラットフォーム |
 
 - 動作環境: SDL3、OpenGL 3.3、OpenAL（サウンド）
 
 Debian および Ubuntu パッケージは、XDG 互換のアプリケーションメニューに
 **XPilot Infinity** を追加します。ランチャーはパッケージ付属のアプリケーション
 アイコンを使用し、追加の引数なしで SDL サーバーブラウザーを開きます。
+
+### Node.js/ブラウザ環境でのプレイ
+
+ネイティブクライアントに加えて、ブラウザでもプレイできます。
+[Node.js版](xpilot-server/README.md)はWASMサーバーとブラウザクライアントを同梱しています。
+Node.js 24.19.0以降の24系、または26.4.0以降で実行できます。
+
+グローバルにインストールして起動するには、次のコマンドを実行します。
+
+```sh
+npm install -g xpilot-infinity
+xpilot-infinity
+```
+
+または、npx で起動できます。
+
+```sh
+npx xpilot-infinity
+```
+
+`http://localhost:15347/` を開くと参加できます。
+ネイティブクライアントは UDP 15345・TCP 15346・WebSocket 15347 に接続できます。
+終了は Ctrl+C、保存先は既定で `~/.xpilot-infinity` です。
+`--data-dir` で変更できます。実行時にコンパイラーや別のネイティブサーバーは必要ありません。
+
+参加手順、基本操作、自分でサーバーを起動する方法は [ブラウザでプレイする](docs/ja/browser.md) を参照してください。
+
+### Dockerコンテナでのプレイ
+
+DockerまたはPodmanで、サーバーとブラウザクライアントを同梱したイメージを起動できます。
+対応CPUはLinuxのamd64とarm64です。
+
+```sh
+docker run --rm -p 15347:15347/tcp docker.io/kekyo/xpilot-infinity:latest
+```
+
+`http://localhost:15347/`を開き、名前を入力して`Join game`を押します。終了するにはCtrl+Cを押してください。
+Podmanを使う場合は、コマンドの`docker`を`podman`に置き換えます。
+
+この例では、ブラウザ配信とWebSocketのポートだけを公開します。
+データの保存、TCP／UDPの公開、イメージのビルドについては、後半の[Podmanでサーバーを実行する](#podman-でサーバーを実行する)を参照してください。
 
 ### Windows へのインストール
 
@@ -152,6 +194,37 @@ NG バージョン 4.7.3 からの主な変更点は次のとおりです。
 
 ## ネットワークトランスポート
 
+一つのサーバーで UDP、TCP、WebSocket のプレイヤーを同じゲームへ受け入れられます。
+
+```console
+xpilot-infinity-server -listen udp:15345,tcp:15346,websocket:15347 -map ndh.xp2
+xpilot-infinity-sdl -join udp://server.example:15345
+xpilot-infinity-sdl -join tcp://server.example:15346
+xpilot-infinity-sdl -join ws://server.example:15347
+```
+
+`listen` には各方式を一つずつ、任意の空でない組合せで指定できます。ポート番号は
+1〜65535 です。`ws` は `websocket` の別名で、方式名の大文字小文字は区別しません。
+TCP と WebSocket は別ポートが必要です。`+reportMeta` でメタサーバーへの告知を
+無効にした場合は、UDP とストリーム方式で同じポート番号を使用できます。告知を
+有効にする場合は全方式で異なる番号を指定します。サーバー一覧には待受ごとに
+同じプレイヤー・マップ情報を持つ項目が表示されます。人数、名前、IP ごとの制限は
+すべての方式で共有します。
+
+サーバーの defaults ファイルでも `listen: udp:15345,tcp:15346,websocket:15347`
+と指定できます。`contactPort`／`port`、`contactTransport`、`gameTransport`、
+トランスポートの短縮指定との併用はできません。設定ファイル内の明示指定も対象です。
+待受の変更には再起動が必要です。無効な設定や使用できない待受ポートが一つでも
+あれば起動に失敗します。`listen` を省略すると以下の単一待受設定を使い、既定では
+UDP の 15345 番で待ち受けます。
+
+上の例では、ファイアウォールやコンテナで UDP の 15345 番と TCP の 15346・15347 番を
+公開します。UDP のゲーム通信には、さらにサーバーの `clientPortStart`／`clientPortEnd`
+の範囲でプレイヤーごとのポートが必要です。固定ポートの TCP／WebSocket セッションは
+入場とゲーム通信に同じ待受ポートを使います。メタサーバーへの告知は TCP／WebSocket
+も含む各待受と同じ番号の UDP ポートから送信します。再接続では元の方式とポートを
+使い、別方式への移行は行いません。
+
 接続確認／ロビー接続とゲームプレイ接続は既定で UDP を使用し、それぞれを
 個別に選択できます。両方で TCP を使用するには、次の例のようにサーバーと
 クライアントの設定を一致させて起動します。
@@ -185,9 +258,10 @@ WebSocket は両方のトランスポートに指定する必要があります�
 
 WebSocket は、`/xpilot` で `xpilot-infinity-v1` サブプロトコルを使用する
 RFC 6455 バイナリメッセージとして実装され、各メッセージに 1 件の論理的な
-XPilot レコードが格納されます。現在実装されているのは暗号化されていない
-`ws://` のみです。このトランスポートはネイティブクライアントで使用できます。
-ブラウザークライアントへの統合は、意図的に別の段階として扱っています。
+XPilot レコードが格納されます。ネイティブクライアントは `ws://` に直接接続できます。
+ブラウザクライアントはページの配信元へ接続し、TLS フロントエンド経由で
+`wss://` も利用できます。`-webRoot PATH` でブラウザのファイルを配信できます。
+Origin やプロキシの設定は [サーバー公開設定（英語）](doc/BROWSER.md) を参照してください。
 
 たとえば `ws://server1 tcp://server2 udp://server3` のように複数の接続先を
 指定すると、コマンドラインの順序で試行されます。これは接続先間の明示的な
@@ -218,14 +292,17 @@ LAN への問い合わせを無効にできます。
 どちらにも UDP を使用するサーバーとして扱われます。メタサーバーへの問い合わせと
 報告の通信では、引き続き既存のプロトコルを使用します。
 
-サーバーの `clientPortStart` から `clientPortEnd` までの範囲は、選択した
-ゲームプレイプロトコルに適用されます。クライアントでは、ゲームプレイと従来の
+サーバーの `clientPortStart` から `clientPortEnd` までの範囲は、従来の UDP と
+UDP/TCP 分離構成のゲーム接続に適用されます。クライアントでは、ゲームプレイと従来の
 UDP 接続確認ソケットにも適用されます。固定された TCP および WebSocket
 セッションは、この範囲をローカルの送信元ポートとして使用します。
 
 TCP ゲームプレイレコードは、ネットワークバイトオーダーの 2 バイトの
 ペイロード長と、それに続く未変更の XPilot パケットペイロードで構成されます。
 サーバーの録画は、録画時と同じ `gameTransport` の値を使用して再生する必要があります。
+固定ポートの TCP／WebSocket セッションを含む構成ではサーバー録画・再生に対応せず、
+起動時と稼働中の録画有効化を拒否します。従来の UDP と UDP/TCP 分離構成での録画は
+引き続き利用できます。
 
 ### systemd サービスとしてサーバーを実行する
 
@@ -359,155 +436,177 @@ X11 では XEmbed のトレイにも対応します。利用できるホスト�
 
 ### Podman でサーバーを実行する
 
-このリポジトリには、専用サーバー向けのマルチステージ
-[`Dockerfile`](Dockerfile) が含まれています。ランタイムイメージには、サーバー、
-標準マップ、設定データ、および必要な共有ライブラリだけが含まれています。
-UID/GID `10001:10001` で実行され、既定のコマンドは公開メタサーバーへ報告せずに
-TCP ポート 15345 で `ndh.xp2` を起動します。
+コンテナにはNode.js/Wasm版サーバー、標準マップ、ブラウザクライアントが同梱されています。
+対応CPUはLinuxのamd64とarm64で、実行時のUID/GIDは`10001:10001`です。
+コンテナ内ではUDP・TCP・WebSocketをすべて有効にしています。
+外部へ公開する通信方式は、起動時のポートマッピングで選べます。
 
-このリポジトリから公開されるイメージの名前は
-`docker.io/kekyo/xpilot-infinity-server` です。代わりにローカルイメージを
-ビルドするには、次のコマンドを実行します。
+#### バックグラウンドで起動してデータを保存する
 
-```bash
-image=localhost/xpilot-infinity-server:local
-./build_container_image.sh --tag "$image"
-```
-
-このビルドコマンドは Podman を使用し、イメージをプッシュすることはありません。
-リリースおよびマルチアーキテクチャビルドの手順は
-[`doc/PACKAGING.md`](doc/PACKAGING.md#dedicated-server-container-image) にあります。
-
-録画など、相対パスで出力されるファイル用の名前付きボリュームを作成し、
-読み取り専用のルートファイルシステムかつ Linux ケーパビリティなしで、既定の
-TCP サーバーを起動します。
+以下はPodmanでの詳しい起動例です。前半の起動例が動作中の場合は、Ctrl+Cで終了してから切り替えてください。
+名前付きボリュームを使うと、コンテナを作り直してもランキングを保存できます。
 
 ```bash
-image=docker.io/kekyo/xpilot-infinity-server:latest
+image=docker.io/kekyo/xpilot-infinity:latest
 podman volume create xpilot-infinity-server-data
 podman run --detach \
   --name xpilot-infinity-server \
-  --read-only \
-  --cap-drop=all \
+  --read-only --cap-drop=all \
   --security-opt=no-new-privileges \
-  --publish 15345:15345/tcp \
-  --volume \
-    xpilot-infinity-server-data:/var/lib/xpilot-infinity-server \
+  --publish 15347:15347/tcp \
+  --volume xpilot-infinity-server-data:/var/lib/xpilot-infinity-server \
+  "$image" -map ndh.xp2 -rankFileName rankings.xml
+```
+
+この例ではブラウザの配信とWebSocketゲーム通信だけを公開します。
+HTTPとWebSocketは同じ15347/TCPを使うため、静的ファイル用の別ポートは不要です。
+自分のPCからだけ接続する場合は`--publish 127.0.0.1:15347:15347/tcp`に変更します。
+既定のマップは`ndh.xp2`で、公開メタサーバーへの報告は無効です。
+別のPCから参加する場合は、ブラウザのURLの`localhost`をサーバーのホスト名に置き換えてください。
+
+#### 公開する通信方式を選ぶ
+
+サーバー引数の変更やイメージの再ビルドは不要です。
+必要な行の`--publish`を組み合わせて、コンテナを作成します。
+
+| 用途 | コンテナ内のポート | Podmanの指定 |
+| --- | --- | --- |
+| ブラウザ配信・WebSocket | 15347/TCP | `--publish 15347:15347/tcp` |
+| ネイティブTCP | 15346/TCP | `--publish 15346:15346/tcp` |
+| ネイティブUDPの接続受付 | 15345/UDP | `--publish 15345:15345/udp` |
+| ネイティブUDPのゲーム通信 | 15400〜15499/UDP | `--publish 15400-15499:15400-15499/udp` |
+
+UDPでは受付ポートとゲーム通信の範囲を両方公開してください。
+ゲーム通信には、サーバーが通知したポート番号をクライアントが使います。
+そのため15400〜15499はホスト側も同じ番号にします。
+イメージの`EXPOSE`は15347/TCPのみなので、UDPには明示した範囲の`--publish`が必要です。
+
+すべて公開する場合の例です。
+
+```bash
+podman run --detach --name xpilot-infinity-server-all \
+  --read-only --cap-drop=all --security-opt=no-new-privileges \
+  --publish 15347:15347/tcp \
+  --publish 15346:15346/tcp \
+  --publish 15345:15345/udp \
+  --publish 15400-15499:15400-15499/udp \
   "$image"
 ```
 
-ローカルクライアントからのみ接続させる場合は、公開ポートを `127.0.0.1` に
-バインドしてください。リモートクライアントは、次のように既定のコンテナへ接続します。
+この例は最初のコンテナと15347を共有するため、切り替える前に最初のコンテナを停止してください。
+ネイティブクライアントは`tcp://server.example:15346`、`udp://server.example:15345`、
+または`ws://server.example:15347`へ接続できます。
+ポートマッピングで公開範囲を選ぶ場合は、`--network=host`を指定しないでください。
+
+rootlessで元のクライアントIPが保持されるかは、ネットワーク設定に依存します。
+IPごとの参加人数制限を設定する場合は、サーバーから見える接続元を確認してください。
+公開ポート、送信元IP、SELinuxのマウントオプションについては
+[Podmanの公式説明](https://docs.podman.io/en/v4.9.3/markdown/podman-run.1.html)を参照できます。
+
+#### マップ・保存データ・HTTPS
+
+イメージ名の後に`-map`などを追加しても、3種類の待受けとUDPポート範囲は保持されます。
+同梱のマップはベース名で選択できます。独自のマップや設定ファイルは読み取り専用でマウントしてください。
 
 ```bash
-xpilot-infinity-sdl tcp://server.example:15345
-```
-
-イメージ名の後に指定した引数は、イメージの既定のサーバー引数を置き換えます。
-オプションを追加する場合は、`-noQuit`、`+reportMeta`、マップ、および `-tcp` も
-再度指定してください。たとえば、独自の既定値ファイルとマップを読み取り専用で
-マウントできます。
-
-```bash
-podman run --detach \
-  --name xpilot-infinity-server \
-  --read-only --cap-drop=all \
-  --security-opt=no-new-privileges \
-  --publish 15345:15345/tcp \
+podman run --detach --name xpilot-infinity-server-custom \
+  --read-only --cap-drop=all --security-opt=no-new-privileges \
+  --publish 15347:15347/tcp \
   --volume "$PWD/defaults.txt:/etc/xpilot/defaults.txt:ro" \
   --volume "$PWD/my-map.xp2:/maps/my-map.xp2:ro" \
-  --volume \
-    xpilot-infinity-server-data:/var/lib/xpilot-infinity-server \
-  "$image" \
-  -noQuit +reportMeta -tcp \
-  -defaultsFileName /etc/xpilot/defaults.txt \
-  -map /maps/my-map.xp2
+  --volume xpilot-infinity-server-data:/var/lib/xpilot-infinity-server \
+  "$image" -defaultsFileName /etc/xpilot/defaults.txt \
+  -map /maps/my-map.xp2 -rankFileName rankings.xml
 ```
 
-SELinux ホストでは、ホストのバインドマウントに適切な `z` または `Z` の
-再ラベル付けオプションを追加してください。同梱のマップは、マウントせずに
-ベース名で選択できます。
+保存先は`/var/lib/xpilot-infinity-server`です。
+ランキングなどを残す場合は、名前付きボリュームをマウントしてください。
+同じボリュームを使うサーバーは同時に起動しないでください。
+SELinuxホストのバインドマウントには、必要に応じて`:ro,Z`などを指定します。
 
-管理者パスワードはイメージとソースツリーの外部で管理してください。
-[`lib/password.txt`](lib/password.txt) に記載された形式でファイルを作成し、
-Podman のシークレットとしてインポートして、イメージの非 root ユーザー向けに
-マウントします。
+管理者パスワードは[`lib/password.txt`](lib/password.txt)の形式で外部ファイルに保存できます。
+`podman secret create xpilot-server-password ./password.txt`で登録した後、
+起動コマンドのイメージ名の前に
+`--secret source=xpilot-server-password,target=xpilot-password,uid=10001,gid=10001,mode=0400`を追加します。
+イメージ名の後には`-passwordFileName /run/secrets/xpilot-password`を指定します。
 
-```bash
-podman secret create xpilot-server-password ./password.txt
-podman run --detach \
-  --name xpilot-infinity-server \
-  --read-only --cap-drop=all \
-  --security-opt=no-new-privileges \
-  --publish 15345:15345/tcp \
-  --volume \
-    xpilot-infinity-server-data:/var/lib/xpilot-infinity-server \
-  --secret \
-    source=xpilot-server-password,target=xpilot-password,uid=10001,gid=10001,mode=0400 \
-  "$image" \
-  -noQuit +reportMeta -map ndh.xp2 -tcp \
-  -passwordFileName /run/secrets/xpilot-password
-```
-
-従来の UDP トランスポートでは、接続確認ポートと、固定された 1 対 1 の
-ゲームプレイ用ポート範囲の両方が必要です。イメージは意図的に既定の TCP
-ポートだけを公開しているため、UDP では `--publish-all` を使用しないでください。
-
-```bash
-podman run --detach \
-  --name xpilot-infinity-server-udp \
-  --read-only --cap-drop=all \
-  --security-opt=no-new-privileges \
-  --publish 15345:15345/udp \
-  --publish 15346-15445:15346-15445/udp \
-  "$image" \
-  -noQuit +reportMeta -map ndh.xp2 -udp \
-  -clientPortStart 15346 -clientPortEnd 15445
-```
-
-これらの公開ポートを通じて UDP で直接接続できます。UDP の LAN ブロードキャスト
-探索は、rootless コンテナネットワークを越えられない場合があります。探索が必要な
-場合は `--network=host` を明示的な代替手段として使用できますが、ネットワーク
-名前空間による分離がなくなるため、ポート公開オプションと併用してはなりません。
-rootless のポートフォワーディングによって接続元クライアントのアドレスが隠れる
-場合もあります。IP アドレスに基づくプレイヤー数制限を変更する際は考慮してください。
-
-ログを継続表示し、サーバーを正常に停止するには次のコマンドを使用します。
+HTTPSで公開する場合は、TLSを終端するリバースプロキシを前段に置いてください。
+コンテナを`--publish 127.0.0.1:15347:15347/tcp`で起動し、
+サーバー引数に`-webOrigin https://game.example`を追加してください。
+ブラウザ用ページと`/xpilot`を同じオリジンへ転送すると、ブラウザはWSSで接続します。
+プロキシの設定例は[サーバー公開設定](doc/BROWSER.md#https-and-wss)にあります。
+`-webTrustedProxy`を使う場合の指定値は、コンテナから実際に見えるプロキシのIPアドレスです。
 
 ```bash
 podman logs --follow xpilot-infinity-server
-podman stop xpilot-infinity-server
+podman stop --time 60 xpilot-infinity-server
 ```
 
-`podman stop` はイメージに設定された停止シグナル `SIGTERM` を送信するため、
-サーバーは終了前に永続化する出力を書き出せます。
+`podman stop`ではSIGTERMを受けて保存処理を行います。
 
-rootless systemd で任意に管理する場合は、付属の Quadlet ファイルをユーザーの
-ジェネレーターディレクトリへコピーします。
+#### rootless systemdで管理する
+
+付属のQuadletは15347/TCPだけを公開し、名前付きボリュームにランキングを保存します。
+`Image=`の既定値は`docker.io/kekyo/xpilot-infinity:latest`です。
+ローカルビルドを使う場合は、コピーしたファイルの`Image=`をそのタグへ変更してください。
 
 ```bash
 quadlet_dir="${XDG_CONFIG_HOME:-$HOME/.config}/containers/systemd"
 mkdir -p "$quadlet_dir"
 cp containers/xpilot-infinity-server.container "$quadlet_dir/"
 cp containers/xpilot-infinity-server-data.volume "$quadlet_dir/"
+# For local builds, set Image= in the copied .container file.
 systemctl --user daemon-reload
 systemctl --user start xpilot-infinity-server.service
 ```
 
-Quadlet は `latest` イメージ、同じセキュリティ強化済みの TCP 設定、および永続的な
-名前付きボリュームを使用します。その `[Install]` セクションにより、以降の
-ユーザー systemd セッションで起動します。生成された Quadlet サービスは
-`systemctl enable` で有効化しません。対話的ログインなしでブート時に起動するには、
-管理者がそのアカウントの linger を追加で有効にできます。状態は
-`systemctl --user status xpilot-infinity-server.service` と
-`journalctl --user -u xpilot-infinity-server.service` で確認できます。
+手動起動したコンテナと公開ポートが重複する場合は、先に手動のコンテナを停止します。
+状態とログは`systemctl --user status xpilot-infinity-server.service`と
+`journalctl --user -u xpilot-infinity-server.service`で確認できます。
+TCPやUDPも公開する場合は、前述の表に対応する`PublishPort=`を`[Container]`へ追加してください。
+シークレットを登録済みなら`Secret=`を追加し、`Exec=`に`-passwordFileName`を指定できます。
 
-サービスの起動前にシークレットが存在している必要があるため、Quadlet は既定で
-シークレットを参照しません。シークレットを作成した後、`Secret=` 行を
-`[Container]` セクションに追加し、前述の手動 Podman の例と同様に
-`-passwordFileName` を `Exec=` へ追加してください。サービスを再起動する前に、
-検証済みの新しいイメージを明示的にプルしてください。レジストリからの自動更新は有効に
-なっていません。
+`[Install]`の指定により、その後のユーザーsystemdセッションでも起動します。
+生成されたサービスに`systemctl enable`を実行する必要はありません。
+ログインなしで起動する設定は[Quadletの公式説明](https://docs.podman.io/en/v4.9.3/markdown/podman-systemd.unit.5.html)を参照してください。
+イメージの自動更新は無効です。更新時は対象のイメージをプルしてからサービスを再起動します。
+
+#### イメージを自分でビルドする
+
+Podmanと、Node.js 24.19.0以降の24系または26.4.0以降、npmを用意してください。
+ビルドには[ブラウザ版のビルド環境](xpilot-browser/README.md)も必要です。
+異なるCPU向けのイメージをビルド・検証するには、QEMU/binfmtによる実行環境を用意します。
+必要な場合はホストOSの`qemu-user-static`などをインストールしてください。
+
+成果物のバージョンとコミットIDは、Gitの情報から`screw-up`で取得します。
+ビルドスクリプトが`npx --yes screw-up format -f`を実行するため、`screw-up`の事前インストールは不要です。
+`./build_container_image.sh --print-version`でバージョンだけを確認できます。
+
+```bash
+image=localhost/xpilot-infinity:local
+./build_container_image.sh --tag "$image"
+```
+
+生成したローカルイメージを使う場合は、上の起動例の`image`をこのタグに変更してください。
+
+既定のビルドでは、amd64とarm64を含むmanifestと、各CPUの検証用タグ
+`${image}-amd64`、`${image}-arm64`を作成します。
+サーバーとブラウザは一度だけビルドし、同じバージョン・コミットの成果物を両CPUで使用します。
+完成タグの更新には、各CPUの起動、WebSocket接続、ブラウザ配信、データ保存の検証が必要です。
+一方のビルドや検証が失敗すると、完成タグの更新と公開を中止します。
+
+単一CPUだけをビルドする場合は`--platform linux/amd64`または`--platform linux/arm64`を指定します。
+`--jobs 1`でイメージを順番にビルドできます。
+`--skip-app-build`は、サーバーとブラウザの生成済み成果物を再利用する指定です。
+両方のバージョンとコミットが今回のビルド指定に一致する場合だけ利用できます。
+ソースを変更した場合は、この指定を外して再ビルドしてください。
+
+`./build_container_image_all.sh`も両CPUを対象とします。
+既定ではローカルへのビルドのみで、`--push`を指定すると検証後にバージョンタグと`latest`を公開します。
+公開先の既定値は`docker.io/kekyo/xpilot-infinity`です。
+`--registry-image`で自分の公開先を指定し、あらかじめ`podman login`を実行してください。
+バージョン、コミット、Node.jsベースイメージは、`--version`、`--revision`、`--node-image`で指定できます。
+そのほかのオプションは`./build_container_image.sh --help`で確認できます。
 
 ---
 

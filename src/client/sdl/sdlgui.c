@@ -5879,7 +5879,7 @@ void Paint_messages(void)
 	}
 
 	/* kps ugly hack */
-	if (newbie && msg->txt) {
+	if (newbie) {
 	    const char *help = "[*Newbie help*]";
 	    size_t sz = strlen(msg->txt);
 	    size_t hsz = strlen(help);

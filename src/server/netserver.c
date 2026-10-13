@@ -133,6 +133,7 @@ static int Suspend_connection(connection_t *connp, const char *reason);
 static connection_t	*Conn = NULL;
 typedef struct {
     record_session_t *session;
+    server_endpoint_t endpoint;
     record_session_id_t resume_claim_id;
 } connection_io_t;
 static connection_io_t *Conn_io = NULL;
@@ -521,6 +522,24 @@ void Destroy_connection(connection_t *connp, const char *reason)
     memset(connp, 0, sizeof(*connp));
 }
 
+void Cleanup_net_server(void)
+{
+    /* A successful contact exchange can leave a socket waiting for login
+     * without any player object. An embedded host cannot rely on process exit
+     * to release these connections. */
+    if (Conn != NULL && Conn_io != NULL) {
+        for (int i = 0; i < max_connections; i++) {
+            if (Conn[i].state != CONN_FREE)
+                Destroy_connection(&Conn[i], "server exiting");
+        }
+    }
+    XFREE(Conn);
+    XFREE(Conn_io);
+    XFREE(Setup);
+    XFREE(Oldsetup);
+    max_connections = 0;
+}
+
 int Check_connection(char *user, char *nick, char *dpy, char *addr)
 {
     int i;
@@ -541,7 +560,8 @@ int Check_connection(char *user, char *nick, char *dpy, char *addr)
     return -1;
 }
 
-static void Create_client_socket(sock_t *sock, int *port)
+static void Create_client_socket(sock_t *sock, int *port,
+                                 game_transport_t transport)
 {
     int i;
 
@@ -555,20 +575,20 @@ static void Create_client_socket(sock_t *sock, int *port)
 
     if (!options.clientPortStart || !options.clientPortEnd ||
 	(options.clientPortStart > options.clientPortEnd)) {
-        int status = gameTransport == GAME_TRANSPORT_TCP
+        int status = transport == GAME_TRANSPORT_TCP
 	    ? sock_open_tcp_listener(sock, serverAddr, 0, 1)
 	    : sock_open_udp(sock, serverAddr, 0);
 
 	if (status == SOCK_IS_ERROR) {
 	    error("Cannot create %s gameplay socket (%d)",
-		  Game_transport_name(gameTransport), sock->error.error);
+		  Game_transport_name(transport), sock->error.error);
 	    sock->fd = SOCK_FD_INVALID;
 	    return;
         }
     }
     else {
         for (i = options.clientPortStart; i <= options.clientPortEnd; i++) {
-	    int status = gameTransport == GAME_TRANSPORT_TCP
+	    int status = transport == GAME_TRANSPORT_TCP
 		? sock_open_tcp_listener(sock, serverAddr, i, 1)
 		: sock_open_udp(sock, serverAddr, i);
 
@@ -712,11 +732,12 @@ static int Suspend_connection(connection_t *connp, const char *reason)
 
 int Net_server_claim_session_resume(
     const session_token_t *token, const char *address,
-    record_session_id_t claim_id, int *connection_index)
+    const server_endpoint_t *endpoint, record_session_id_t claim_id,
+    int *connection_index)
 {
     int i;
 
-    if (token == NULL || address == NULL
+    if (token == NULL || address == NULL || endpoint == NULL
 	|| claim_id == RECORD_SESSION_ID_INVALID
 	|| connection_index == NULL)
 	return E_INVAL;
@@ -726,7 +747,8 @@ int Net_server_claim_session_resume(
 
 	if (connp->state != CONN_RECONNECT || io->session == NULL
 	    || !Game_transport_protocol_supports_reconnect(connp->version)
-	    || strcmp(connp->addr, address) != 0
+	    || !Server_endpoint_can_resume(&io->endpoint, endpoint)
+            || strcmp(connp->addr, address) != 0
 	    || !Session_token_equal(token, &connp->resume_token))
 	    continue;
 	if (io->resume_claim_id != RECORD_SESSION_ID_INVALID)
@@ -911,8 +933,13 @@ int Setup_connection(char *user, char *nick, char *dpy, int team,
     int handler_slot;
     int *recorded_handler_slot = NULL;
     bool supports_reconnect;
+    game_transport_t transport;
     sock_t sock;
     connection_t *connp;
+
+    if (!Game_transport_from_protocol_version(version, &transport)
+        || Game_transport_protocol_uses_session(version))
+        return -1;
 
     if (rrecord) {
 	*playback_ei++ = main_loops;
@@ -969,7 +996,7 @@ int Setup_connection(char *user, char *nick, char *dpy, int team,
     connp = &Conn[free_conn_index];
 
     if (!playback) {
-	Create_client_socket(&sock, &my_port);
+	Create_client_socket(&sock, &my_port, transport);
 	if (rrecord) {
 	    recorded_handler_slot = playback_ei++;
 	    *recorded_handler_slot = SOCK_IS_ERROR;
@@ -977,7 +1004,7 @@ int Setup_connection(char *user, char *nick, char *dpy, int team,
 	}
     } else {
 	sock_init(&sock);
-	if (gameTransport == GAME_TRANSPORT_TCP)
+	if (transport == GAME_TRANSPORT_TCP)
 	    sock.flags |= SOCK_FLAG_TCP | SOCK_FLAG_CONNECT;
 	else
 	    sock.flags |= SOCK_FLAG_UDP;
@@ -987,7 +1014,7 @@ int Setup_connection(char *user, char *nick, char *dpy, int team,
     if (sock.fd == SOCK_FD_INVALID)
  	return -1;
 
-    transport_state = gameTransport == GAME_TRANSPORT_TCP
+    transport_state = transport == GAME_TRANSPORT_TCP
 	? SOCKBUF_FRAMED : SOCKBUF_DGRAM;
     Sockbuf_init(&connp->w, &sock, SERVER_SEND_SIZE,
 		 SOCKBUF_WRITE | transport_state);
@@ -1067,7 +1094,8 @@ int Setup_connection(char *user, char *nick, char *dpy, int team,
     return my_port;
 }
 
-int Setup_session_connection(record_session_t *session, char *user,
+int Setup_session_connection(record_session_t *session,
+                             const server_endpoint_t *endpoint, char *user,
 			     char *nick, char *dpy, int team,
 			     char *addr, char *host, unsigned version,
 			     int peer_port)
@@ -1077,7 +1105,10 @@ int Setup_session_connection(record_session_t *session, char *user,
     int free_conn_index = max_connections;
     int i;
 
-    if (session == NULL || user == NULL || nick == NULL || dpy == NULL
+    if (session == NULL || endpoint == NULL
+        || !Server_endpoint_uses_session(endpoint)
+        || version != Server_endpoint_protocol_version(endpoint, is_polygon_map)
+        || user == NULL || nick == NULL || dpy == NULL
 	|| addr == NULL || host == NULL
 	|| !Game_transport_protocol_uses_session(version)) {
 	Record_session_destroy(session);
@@ -1115,6 +1146,7 @@ int Setup_session_connection(record_session_t *session, char *user,
     io = &Conn_io[free_conn_index];
     connp->ind = free_conn_index;
     io->session = session;
+    io->endpoint = *endpoint;
     Sockbuf_init(&connp->w, NULL, SERVER_SEND_SIZE,
 		 SOCKBUF_WRITE | SOCKBUF_LOCK);
     Sockbuf_init(&connp->r, NULL, SERVER_RECV_SIZE,
@@ -1122,7 +1154,7 @@ int Setup_session_connection(record_session_t *session, char *user,
     Sockbuf_init(&connp->c, NULL, MAX_SOCKBUF_SIZE,
 		 SOCKBUF_WRITE | SOCKBUF_READ | SOCKBUF_LOCK);
 
-    connp->my_port = options.contactPort;
+    connp->my_port = endpoint->port;
     connp->his_port = peer_port;
     connp->user = xp_strdup(user);
     connp->nick = xp_strdup(nick);
@@ -1134,7 +1166,7 @@ int Setup_session_connection(record_session_t *session, char *user,
     connp->version = version;
     Feature_init(connp);
     connp->start = main_loops;
-    connp->magic = (unsigned)(options.contactPort + team + main_loops
+    connp->magic = (unsigned)(endpoint->port + team + main_loops
 			      + free_conn_index);
     connp->id = NO_ID;
     connp->last_key_change = 0;
@@ -1177,7 +1209,7 @@ int Setup_session_connection(record_session_t *session, char *user,
     }
 
     xpprintf("%s Gameplay session established on contact port %d.\n",
-	     showtime(), options.contactPort);
+	     showtime(), endpoint->port);
     xpprintf("%s Welcome %s=%s@%s|%s (%s/%d) (version %04x)\n",
 	     showtime(), nick, user, host, dpy, addr, peer_port, version);
     if (Packet_printf(&connp->c, "%c%u", PKT_MAGIC, connp->magic) <= 0
@@ -1754,7 +1786,12 @@ static int Handle_login(connection_t *connp, char *errmsg, size_t errsize)
     if (options.greeting)
 	Set_player_message_f(pl, "%s [*Server greeting*]", options.greeting);
 
-    if (connp->version < MY_VERSION) {
+    game_transport_t transport;
+    Game_transport_from_protocol_version(connp->version, &transport);
+    unsigned current_version = Connection_uses_session(connp)
+        ? Game_transport_session_protocol_version(transport, is_polygon_map)
+        : Game_transport_protocol_version(transport, is_polygon_map);
+    if (connp->version < current_version) {
 	Set_player_message_f(pl, "Server runs %s version %s. %s",
 			     PACKAGE_NAME, VERSION, sender);
 
@@ -3725,9 +3762,18 @@ static int Receive_audio_request(connection_t *connp)
     return 1;
 }
 
-int Check_max_clients_per_IP(char *host_addr)
+bool Net_server_name_in_use(const char *nick)
 {
-    int i, clients_per_ip = 0;
+    for (int i = 0; i < max_connections; i++) {
+        if (Conn[i].state != CONN_FREE && !strcasecmp(Conn[i].nick, nick))
+            return true;
+    }
+    return false;
+}
+
+int Check_max_clients_per_IP(const char *host_addr, int reserved)
+{
+    int i, clients_per_ip = reserved;
     connection_t *connp;
 
     if (options.maxClientsPerIP <= 0)

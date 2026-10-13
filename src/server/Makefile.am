@@ -19,11 +19,12 @@ xpilot_infinity_server_SOURCES = \
 	robot.c robot.h robotdef.c rules.c \
 	saudio.c saudio.h sched.c sched.h score.c score.h \
 	server.c server.h serverconst.h session_acceptor.c session_acceptor.h \
+	server_endpoint.c server_endpoint.h \
 	ship.c shot.c \
 	showtime.c srecord.c srecord.h suibotdef.c \
 	tag.c target.c target.h teamcup.h teamcup.c tuner.c tuner.h \
 	treasure.c update.c \
-	walls.c walls.h wormhole.c wormhole.h \
+	walls.c walls.h wormhole.c wormhole.h web_front.c web_front.h \
 	windows_service.c windows_service.h xp2map.c xpmap.c xpserver.h
 
 xpilot_infinity_server_LDADD =  $(top_builddir)/src/common/libxpcommon.a @X_EXTRA_LIBS@ @W32_LIBS@

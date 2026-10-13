@@ -98,7 +98,7 @@ TESTS = test-framed-stream test-websocket-transport \
 	run-build-metadata.sh run-build-wrapper.sh \
 	run-build-package.sh run-package-tools.sh run-package-cmake.sh \
 	run-package-windows.sh \
-	run-windows-archive.sh run-macos-info-plist.sh \
+	run-windows-archive.sh \
 	run-source-encoding.sh \
 	run-c23-server-build.sh run-vendored-zlib.sh \
 	run-container-publish.sh run-container-image.sh run-quadlet.sh run-e2e.sh
@@ -110,7 +110,85 @@ if COND_X11_CLIENT
 check_PROGRAMS += test-x11-text
 TESTS += run-x11-text.sh
 endif
+if COND_XP_MAPEDIT
+check_PROGRAMS += test-mapedit-input
+TESTS += test-mapedit-input
 endif
+endif
+
+check_PROGRAMS += test-server-endpoint test-server-admission test-web-front \
+	test-messages test-robot-intercept test-talkmacro-input
+if !COND_WINDOWS
+TESTS += test-server-endpoint run-multiple-protocols.sh test-web-front \
+	test-messages test-robot-intercept test-talkmacro-input
+endif
+
+test_messages_SOURCES = test_messages.c $(top_srcdir)/src/client/messages.c \
+	$(top_srcdir)/src/client/clientcommand.c
+test_messages_CFLAGS = $(AM_CFLAGS) -ffunction-sections -fdata-sections
+test_messages_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections
+test_messages_LDADD = $(top_builddir)/src/common/libxpcommon.a @W32_LIBS@
+
+test_robot_intercept_SOURCES = test_robot_intercept.c \
+	$(top_srcdir)/src/server/suibotdef.c
+test_robot_intercept_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/src/server
+test_robot_intercept_CFLAGS = $(AM_CFLAGS) -ffunction-sections -fdata-sections
+test_robot_intercept_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections
+test_robot_intercept_LDADD = -lm
+
+if COND_WINDOWS
+# PE unwind references retain uncalled game routines during section GC.
+# Let GCC remove them before linking these focused C test drivers.
+test_messages_CFLAGS += -flto
+test_robot_intercept_CFLAGS += -flto
+endif
+
+if !COND_WINDOWS
+check_PROGRAMS += test-mapdata-input test-srecord-input
+TESTS += test-mapdata-input test-srecord-input
+endif
+
+test_mapdata_input_SOURCES = test_mapdata_input.c
+test_mapdata_input_CFLAGS = $(AM_CFLAGS) -ffunction-sections -fdata-sections
+test_mapdata_input_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections
+test_mapdata_input_LDADD = $(top_builddir)/src/common/libxpcommon.a
+
+test_srecord_input_SOURCES = test_srecord_input.c
+test_srecord_input_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/src/server
+test_srecord_input_CFLAGS = $(AM_CFLAGS) -ffunction-sections -fdata-sections
+test_srecord_input_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections
+test_srecord_input_LDADD = $(top_builddir)/src/common/libxpcommon.a
+
+test_talkmacro_input_SOURCES = test_talkmacro_input.c \
+	$(top_srcdir)/src/client/talkmacros.c
+test_talkmacro_input_CFLAGS = $(AM_CFLAGS) -ffunction-sections -fdata-sections
+test_talkmacro_input_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections -Wl,--wrap=fread
+test_talkmacro_input_LDADD = $(top_builddir)/src/common/libxpcommon.a
+if COND_WINDOWS
+test_talkmacro_input_CFLAGS += -flto
+test_talkmacro_input_LDADD += @W32_LIBS@
+endif
+
+test_mapedit_input_SOURCES = test_mapedit_input.c \
+	$(top_srcdir)/src/mapedit/file.c $(top_srcdir)/src/mapedit/T_Form.c
+test_mapedit_input_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/src/mapedit
+test_mapedit_input_CFLAGS = $(AM_CFLAGS) -ffunction-sections -fdata-sections \
+	-Werror=discarded-qualifiers
+test_mapedit_input_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections
+test_mapedit_input_LDADD = $(top_builddir)/src/common/libxpcommon.a
+
+test_web_front_SOURCES = test_web_front.c $(top_srcdir)/src/server/web_front.c
+test_web_front_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/src/server
+test_web_front_LDADD = $(top_builddir)/src/common/libxpcommon.a @W32_LIBS@
+
+test_server_endpoint_SOURCES = test_server_endpoint.c \
+	$(top_srcdir)/src/server/server_endpoint.c
+test_server_endpoint_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/src/server
+test_server_endpoint_LDADD = $(top_builddir)/src/common/libxpcommon.a
+
+test_server_admission_SOURCES = test_server_admission.c
+test_server_admission_LDADD = $(top_builddir)/src/client/libxpclient.a \
+	$(top_builddir)/src/common/libxpcommon.a @W32_LIBS@
 
 test_game_transport_SOURCES = test_game_transport.c
 test_game_transport_LDADD = $(top_builddir)/src/common/libxpcommon.a
@@ -432,7 +510,7 @@ test_sdlgui_hud_primitives_SOURCES = test_sdlgui_hud_primitives.c \
 test_sdlgui_hud_primitives_CPPFLAGS = $(AM_CPPFLAGS) \
 	-DXPILOT_SDLGUI_TEST_HOOKS
 test_sdlgui_hud_primitives_CFLAGS = $(AM_CFLAGS) \
-	-ffunction-sections -fdata-sections
+	-ffunction-sections -fdata-sections -Werror=address
 test_sdlgui_hud_primitives_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections
 test_sdlgui_hud_primitives_LDADD = $(XP_SDL3_LIBS)
 
@@ -592,6 +670,10 @@ test_audio_device_LDADD = $(top_builddir)/src/client/libxpclient.a \
 TEST_EXTENSIONS = .sh
 SH_LOG_COMPILER = $(SHELL)
 AM_TESTS_ENVIRONMENT = \
+	XPILOT_SERVER_BINARY='$(abs_top_builddir)/src/server/xpilot-infinity-server'; \
+	export XPILOT_SERVER_BINARY; \
+	XPILOT_SERVER_ADMISSION_PROBE='$(abs_builddir)/test-server-admission'; \
+	export XPILOT_SERVER_ADMISSION_PROBE; \
 	XPILOT_TEST_PREFIX='$(prefix)'; export XPILOT_TEST_PREFIX; \
 	XPILOT_TEST_BINDIR='$(bindir)'; export XPILOT_TEST_BINDIR; \
 	XPILOT_TEST_PKGDATADIR='$(pkgdatadir)'; export XPILOT_TEST_PKGDATADIR; \
@@ -635,8 +717,6 @@ AM_TESTS_ENVIRONMENT = \
 	export XPILOT_WINDOWS_ICON; \
 	XPILOT_WINDOWS_PACKAGER='$(abs_top_srcdir)/config/package-windows.sh'; \
 	export XPILOT_WINDOWS_PACKAGER; \
-	XPILOT_MACOS_INFO_PLIST='$(abs_top_srcdir)/contrib/macosx/English.lproj/InfoPlist.strings'; \
-	export XPILOT_MACOS_INFO_PLIST; \
 	XPILOT_SOURCE_ENCODING_ROOT='$(abs_top_srcdir)'; \
 	export XPILOT_SOURCE_ENCODING_ROOT; \
 	XPILOT_C23_CC='$(CC)'; export XPILOT_C23_CC; \
@@ -646,7 +726,7 @@ AM_TESTS_ENVIRONMENT = \
 	export XPILOT_VENDOR_ZLIB_SOURCE;
 
 EXTRA_DIST = run-build-metadata.sh run-build-wrapper.sh \
-	run-e2e.sh run-full-suite.sh \
+	run-e2e.sh run-full-suite.sh run-multiple-protocols.sh \
 	tcp-reconnect-proxy.mjs session-reconnect-proxy.mjs \
 	run-gl-core-resources.sh \
 	run-renderer-gl-core.sh run-sdl-core-boundary.sh \
@@ -654,16 +734,17 @@ EXTRA_DIST = run-build-metadata.sh run-build-wrapper.sh \
 	run-vendored-zlib.sh \
 	run-wine-suite.sh run-build-package.sh run-package-tools.sh \
 	run-package-cmake.sh run-package-windows.sh \
-	run-windows-archive.sh run-macos-info-plist.sh \
+	run-windows-archive.sh \
 	run-container-publish.sh run-container-image.sh run-quadlet.sh \
 	run-source-encoding.sh test-source-encoding.mjs \
-	test-windows-archive.mjs test-macos-info-plist.mjs test_helpers.h
+	test-windows-archive.mjs test_helpers.h
 
 run-sdl-core-boundary.log: \
 	$(top_builddir)/src/client/sdl/xpilot-infinity-sdl
 
 .PHONY: e2e-install
 run-e2e.log: e2e-install
+run-multiple-protocols.log: e2e-install
 e2e-install:
 	@case '$(prefix)' in \
 		/tmp/*|/var/tmp/*) $(MAKE) -C '$(abs_top_builddir)' install ;; \

@@ -374,7 +374,7 @@ void Paint_score_start(void)
 
 void Paint_score_entry(int entry_num, other_t* other, bool is_team)
 {
-    static char		raceStr[8], teamStr[4], lifeStr[8], label[MSG_LEN];
+    static char		raceStr[16], teamStr[4], lifeStr[8], label[MSG_LEN];
     static int		lineSpacing = -1, firstLine;
     int			thisLine, color;
     char		scoreStr[16];
@@ -518,7 +518,7 @@ static void Paint_clock(bool redraw)
 			hour,
 			border = 3;
     struct tm		*m;
-    char		buf[16];
+    char		buf[32];
     static unsigned	width;
     unsigned		height = scoreListFont->ascent + scoreListFont->descent
 				+ 3;

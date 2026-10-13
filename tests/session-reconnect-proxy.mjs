@@ -6,12 +6,14 @@
  * the caller creates the trigger file, the first stream is severed and new
  * connections are rejected briefly before forwarding resumes. For TCP
  * sessions it also submits one deliberately corrupted resumption token.
+ * An optional WebSocket port checks that a valid TCP token cannot migrate
+ * to another listener, using the same observed source address.
  */
 
 import fs from "node:fs";
 import net from "node:net";
 
-const [actualHost, proxyHost, portText, triggerFile, stateFile, transport] =
+const [actualHost, proxyHost, portText, triggerFile, stateFile, transport, wsPort] =
   process.argv.slice(2);
 const port = Number(portText);
 
@@ -147,6 +149,66 @@ const probeInvalidResume = () => {
   probe.setTimeout(1500);
 };
 
+const probeWrongProtocolResume = () => {
+  if (resumeToken === null) {
+    recordState("wrong-protocol-missing-token");
+    return;
+  }
+  const probe = trackSocket(net.createConnection({
+    host: actualHost,
+    port: Number(wsPort),
+    localAddress: proxyHost,
+  }));
+  let buffered = Buffer.alloc(0);
+  let upgraded = false;
+  probe.on("connect", () => probe.write(
+    `GET /xpilot HTTP/1.1\r\nHost: ${actualHost}:${wsPort}\r\n` +
+    "Upgrade: websocket\r\nConnection: Upgrade\r\n" +
+    "Sec-WebSocket-Version: 13\r\n" +
+    "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n" +
+    "Sec-WebSocket-Protocol: xpilot-infinity-v1\r\n\r\n",
+  ));
+  probe.on("data", (chunk) => {
+    buffered = Buffer.concat([buffered, chunk]);
+    if (!upgraded) {
+      const headerEnd = buffered.indexOf("\r\n\r\n");
+      if (headerEnd < 0) return;
+      if (!buffered.toString("ascii", 0, headerEnd).startsWith("HTTP/1.1 101")) {
+        recordState("wrong-protocol-upgrade-failed");
+        probe.destroy();
+        return;
+      }
+      buffered = buffered.subarray(headerEnd + 4);
+      upgraded = true;
+      const payload = Buffer.alloc(21);
+      payload.writeUInt16BE(0xf4ed, 0);
+      payload[2] = 2;
+      payload[3] = 1;
+      payload[4] = 3;
+      resumeToken.copy(payload, 5);
+      const mask = Buffer.from([11, 22, 33, 44]);
+      const frame = Buffer.alloc(27);
+      frame[0] = 0x82;
+      frame[1] = 0x80 | payload.length;
+      mask.copy(frame, 2);
+      for (let i = 0; i < payload.length; i++)
+        frame[i + 6] = payload[i] ^ mask[i % 4];
+      probe.write(frame);
+    }
+    if (buffered.length < 2 || buffered.length < 2 + buffered[1]) return;
+    const reply = buffered.subarray(2);
+    recordState(buffered[0] === 0x82 && reply.length >= 6 &&
+      reply.readUInt16BE(0) === 0xf4ed && reply[2] === 2 &&
+      reply[3] === 4 && reply[4] === 7
+      ? "wrong-protocol-rejected" : "wrong-protocol-bad-reply");
+    probe.destroy();
+  });
+  probe.setTimeout(1500, () => {
+    recordState("wrong-protocol-timeout");
+    probe.destroy();
+  });
+};
+
 const relaySession = (client) => {
   trackSocket(client);
 
@@ -188,7 +250,10 @@ const triggerTimer = setInterval(() => {
   for (const socket of sockets) socket.destroy();
   recordState("dropped");
   if (transport === "tcp")
-    invalidProbeTimer = setTimeout(probeInvalidResume, 100);
+    invalidProbeTimer = setTimeout(() => {
+      probeInvalidResume();
+      if (wsPort !== undefined) probeWrongProtocolResume();
+    }, 100);
 }, 25);
 
 const stop = () => {

@@ -101,7 +101,6 @@ typedef struct {
 /* recursive descent parser for messages */
 static bool Msg_match_fmt(const char *msg, const char *fmt, msgnames_t *mn)
 {
-    char *fp;
     int i;
     size_t len;
 
@@ -109,7 +108,7 @@ static bool Msg_match_fmt(const char *msg, const char *fmt, msgnames_t *mn)
     DP(printf("Msg_match_fmt - msg = '%s'\n", msg));
 
     /* check that msg and fmt match to % */
-    fp = strstr(fmt, "%");
+    const char *fp = strstr(fmt, "%");
     if (fp == NULL) {
 	/* NOTE: if msg contains stuff beyond fmt, don't care */
 	if (strncmp(msg, fmt, strlen(fmt)) == 0)
@@ -617,7 +616,7 @@ static msg_bms_t Msg_do_bms(const char *message)
 static bool Msg_is_from_our_team(const char *message, const char **msg2)
 {
     other_t *other;
-    static char buf[MAX_CHARS + 8];
+    static char buf[MSG_LEN];
     size_t bufstrlen, len;
     int i;
 
@@ -637,7 +636,7 @@ static bool Msg_is_from_our_team(const char *message, const char **msg2)
 	    continue;
 	if (!strcmp(&message[len - bufstrlen], buf)) {
 	    *msg2 = buf;
-	    strlcpy(buf, message, len - bufstrlen);
+	    strlcpy(buf, message, MIN(sizeof(buf), len - bufstrlen));
 	    return true;
 	}
 
@@ -648,7 +647,7 @@ static bool Msg_is_from_our_team(const char *message, const char **msg2)
 	    continue;
 	if (!strcmp(&message[len - bufstrlen], buf)) {
 	    *msg2 = buf;
-	    strlcpy(buf, message, len - bufstrlen);
+	    strlcpy(buf, message, MIN(sizeof(buf), len - bufstrlen));
 	    return true;
 	}
     }

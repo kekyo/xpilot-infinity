@@ -305,12 +305,83 @@ void install_timer_tick(void (*func)(void), int freq)
  */
 unsigned long skip_to = 0;
 
+static void dispatch_frame(void)
+{
+    /* RECORDING STUFF */
+    if (playback) {
+	while (*playback_sched) {
+	    if (*playback_sched == 127) {
+		playback_sched++;
+		Get_recording_data();
+	    }
+	    else {
+		struct io_handler *ioh;
+		ioh = &record_handlers[*playback_sched++ - 1];
+		(*(ioh->func))(ioh->fd, ioh->arg);
+	    }
+	}
+	playback_sched++;
+    }
+    else if (record)
+	*playback_sched++ = 0;
+    /* RECORDING STUFF END */
+
+    if (timer_handler)
+	(*timer_handler)();
+}
+
+static void dispatch_input(fd_set *readmask, int n)
+{
+    int i;
+    for (i = NUM_INPUT_HANDLERS - 1; i >= 0; i--) {
+	struct io_handler *ioh = &input_handlers[i];
+
+	if (!ioh->active || !FD_ISSET(ioh->fd, readmask))
+	    continue;
+
+	/* RECORDING STUFF */
+	record = playback = 0;
+	if (rrecord && i > 0) {
+	    *playback_sched++ = i + 1;
+	    record = 1;
+	}
+	/* RECORDING STUFF END */
+
+	(*(ioh->func))(ioh->fd, ioh->arg);
+
+	/* RECORDING STUFF */
+	record = rrecord;
+	playback = rplayback;
+	/* RECORDING STUFF END */
+
+	if (--n == 0)
+	    break;
+    }
+}
+
+#ifdef __EMSCRIPTEN__
+int sched_pump(int frame)
+{
+    playback = rplayback;
+    record = rrecord;
+    Handle_recording_buffers();
+    fd_set readmask = input_mask;
+    struct timeval timeout = {0, 0};
+    int ready = playback ? 0 : sched_select_wait(&readmask, &timeout);
+    if (ready == SOCK_IS_ERROR && !sched_select_interrupted())
+        sched_select_error();
+    if (ready > 0) dispatch_input(&readmask, ready);
+    if (frame) dispatch_frame();
+    return ready > 0 ? ready : 0;
+}
+#endif
+
 /*
  * I/O + timer dispatcher.
  */
 void sched(void)
 {
-    int i, n;
+    int n;
     double t_now, t_wait;
     struct timeval tv, wait_tv;
 
@@ -362,27 +433,7 @@ void sched(void)
 	    if (n == SOCK_IS_ERROR && !sched_select_interrupted())
 		sched_select_error();
 
-	    /* RECORDING STUFF */
-	    if (playback) {
-		while (*playback_sched) {
-		    if (*playback_sched == 127) {
-			playback_sched++;
-			Get_recording_data();
-		    }
-		    else {
-			struct io_handler *ioh;
-			ioh = &record_handlers[*playback_sched++ - 1];
-			(*(ioh->func))(ioh->fd, ioh->arg);
-		    }
-		}
-		playback_sched++;
-	    }
-	    else if (record)
-		*playback_sched++ = 0;
-	    /* RECORDING STUFF END */
-
-	    if (timer_handler)
-		(*timer_handler)();
+	    dispatch_frame();
 
 #if 1
 	    /* stable 50 fps as deity (2.6.x kernel) */
@@ -392,30 +443,7 @@ void sched(void)
 #endif
 	}
 	else {
-	    for (i = NUM_INPUT_HANDLERS - 1; i >= 0; i--) {
-		struct io_handler *ioh = &input_handlers[i];
-
-		if (!ioh->active || !FD_ISSET(ioh->fd, &readmask))
-		    continue;
-
-		/* RECORDING STUFF */
-		record = playback = 0;
-		if (rrecord && i > 0) {
-		    *playback_sched++ = i + 1;
-		    record = 1;
-		}
-		/* RECORDING STUFF END */
-
-		(*(ioh->func))(ioh->fd, ioh->arg);
-
-		/* RECORDING STUFF */
-		record = rrecord;
-		playback = rplayback;
-		/* RECORDING STUFF END */
-
-		if (--n == 0)
-		    break;
-	    }
+	    dispatch_input(&readmask, n);
 	}
     }
 }

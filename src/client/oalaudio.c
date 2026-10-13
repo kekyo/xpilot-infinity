@@ -28,9 +28,6 @@
 #if defined(_WINDOWS)
 #include <al.h>
 #include <alut.h>
-#elif defined(MACOSX_FRAMEWORKS)
-#include <OpenAL/al.h>
-#include <OpenAL/alut.h>
 #else
 #include <AL/al.h>
 #include <AL/alut.h>

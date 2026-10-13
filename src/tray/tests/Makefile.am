@@ -51,6 +51,7 @@ test_sni_CPPFLAGS = $(AM_CPPFLAGS) -DXPILOT_TEST_ICON=\"$(abs_top_srcdir)/images
 test_sni_LDADD = ../libxptray.a $(TRAY_LIBS)
 TESTS = test-controller test-menu test-service-config test-sni test-catalog test-settings-file test-utf8-files test-editor test-xembed
 TESTS += test-sni-hosts
+TESTS += test-templates.sh
 
 .PHONY: integration-check
 XPILOT_CONTACT_TARGET_PROBE = $(abs_top_builddir)/tests/test-contact-target-probe
@@ -69,4 +70,5 @@ endif
 EXTRA_DIST = run-systemd.sh run-systemd-inside.sh xpilot-tray-test.service Containerfile test-strict-map.sh test-settings-helper.sh test-settings-editor.sh test-default-editor.sh
 EXTRA_DIST += run-test.sh record-xembed.sh
 EXTRA_DIST += test-installed-settings.ps1
+EXTRA_DIST += test-templates.sh
 CLEANFILES = test-xembed.mkv

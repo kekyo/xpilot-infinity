@@ -69,6 +69,10 @@ extern struct options {
     char	*mapName;
     char	*mapAuthor;
     int 	contactPort;
+    char        *listen;        /**< Explicit protocol:port listener list. */
+    char        *webRoot;       /**< Optional static directory on WebSocket listeners. */
+    char        *webOrigin;     /**< Exact public browser origin, or http://Host. */
+    char        *webTrustedProxy; /**< Numeric proxy allowed to supply X-Real-IP. */
     char	*contactTransport;
     char	*gameTransport;
     char	*serverHost;

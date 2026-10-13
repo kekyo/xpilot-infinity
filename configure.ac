@@ -25,9 +25,11 @@ case "$host" in
 		;;
 esac
 
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([subdir-objects])
+AC_ARG_VAR([ARFLAGS], [flags for creating static archives])
+AS_IF([test -z "$ARFLAGS"], [ARFLAGS=cr])
 AM_MAINTAINER_MODE
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS([config.h])
 
 dnl  Copyright & stuff.
 XP_AUTHORS="Bjørn Stabell, Ken Ronny Schouten, Bert Gijsbers, Dick Balaska, Uoti Urpala, Juha Lindström, Kristian Söderblom and Erik Andersson"
@@ -45,39 +47,39 @@ AC_SUBST([XP_DATADIR],"$prefix/share/xpilot-infinity")
 dnl  Checks for options.
 dnl  We should have some general macro for these.
 AC_ARG_ENABLE(dbe,
-	AC_HELP_STRING([--enable-dbe],
+	AS_HELP_STRING([--enable-dbe],
 			[support for X Doublebuffer Extension in client]),
 [if test x$enable_dbe = xyes; then
 	AC_DEFINE([DBE], 1, [support for X Doublebuffer Extension in client])
 fi])
 
 AC_ARG_ENABLE(mbx,
-	AC_HELP_STRING([--enable-mbx],
+	AS_HELP_STRING([--enable-mbx],
 			[support for X Multibuffer Extension in client]),
 [if test x$enable_mbx = xyes; then
 	AC_DEFINE([MBX], 1, [support for X Multibuffer Extension in client])
 fi])
 
 AC_ARG_ENABLE(plockserver,
-	AC_HELP_STRING([--enable-plockserver],
+	AS_HELP_STRING([--enable-plockserver],
 			[lock the xpilot-infinity server into memory]),
 [if test x$enable_plockserver = xyes; then
 	AC_DEFINE([PLOCKSERVER], 1, [lock the xpilot-infinity server into memory])
 fi])
 
 AC_ARG_ENABLE(development,
-	AC_HELP_STRING([--enable-development],
+	AS_HELP_STRING([--enable-development],
 			[enable development code]),
 [if test x$enable_development = xyes; then
 	AC_DEFINE([DEVELOPMENT], 1, [enable development code])
 fi])
 
 AC_ARG_ENABLE(select_sched,
-	AC_HELP_STRING([--enable-select-sched],
+	AS_HELP_STRING([--enable-select-sched],
 		[enable new server scheduling most useful on Linux 2.6]))
 
 AC_ARG_ENABLE(replay,
-	AC_HELP_STRING([--disable-replay],
+	AS_HELP_STRING([--disable-replay],
 			[disable building of replay program]),
 [], [enable_replay=yes])
 if test x$enable_replay = xyes; then
@@ -85,7 +87,7 @@ if test x$enable_replay = xyes; then
 fi
 
 AC_ARG_ENABLE(xp_mapedit,
-	AC_HELP_STRING([--disable-xp-mapedit],
+	AS_HELP_STRING([--disable-xp-mapedit],
 			[disable building of xp-mapedit program]),
 [], [enable_xp_mapedit=yes])
 if test x$enable_xp_mapedit = xyes; then
@@ -93,7 +95,7 @@ if test x$enable_xp_mapedit = xyes; then
 fi
 
 AC_ARG_ENABLE(x11_client,
-	AC_HELP_STRING([--disable-x11-client],
+	AS_HELP_STRING([--disable-x11-client],
 			[disable X11 client]),
 [], [enable_x11_client=yes])
 if test x$enable_x11_client = xyes; then
@@ -102,7 +104,7 @@ if test x$enable_x11_client = xyes; then
 fi
 
 AC_ARG_ENABLE(sdl_client,
-	AC_HELP_STRING([--disable-sdl-client],
+	AS_HELP_STRING([--disable-sdl-client],
 			[disable SDL/OpenGL client]),
 [], [enable_sdl_client=yes])
 if test x$enable_sdl_client = xyes; then
@@ -111,7 +113,7 @@ if test x$enable_sdl_client = xyes; then
 fi
 
 AC_ARG_ENABLE(mingw_vendored_deps,
-	AC_HELP_STRING([--disable-mingw-vendored-deps],
+	AS_HELP_STRING([--disable-mingw-vendored-deps],
 			[use externally prepared dependencies for MinGW]),
 [], [
 	if test x$windows_target = xyes; then
@@ -133,7 +135,7 @@ if test x$windows_target != xyes \
 fi
 
 AC_ARG_WITH(sdl3,
-	AC_HELP_STRING([--with-sdl3=PROVIDER],
+	AS_HELP_STRING([--with-sdl3=PROVIDER],
 			[use system or vendored SDL3 dependencies]),
 [], [
 	if test x$enable_mingw_vendored_deps = xyes; then
@@ -151,17 +153,17 @@ case "$with_sdl3" in
 esac
 
 AC_ARG_WITH(sdl3_prefix,
-	AC_HELP_STRING([--with-sdl3-prefix=PATH],
+	AS_HELP_STRING([--with-sdl3-prefix=PATH],
 			[private SDL3 prefix built by vendor/sdl3/build.sh]),
 [], [with_sdl3_prefix=])
 
 AC_ARG_WITH(mingw_toolchain_file,
-	AC_HELP_STRING([--with-mingw-toolchain-file=PATH],
+	AS_HELP_STRING([--with-mingw-toolchain-file=PATH],
 			[CMake toolchain file for MinGW vendored dependencies]),
 [], [with_mingw_toolchain_file=])
 
 AC_ARG_WITH(mingw_deps_build_type,
-	AC_HELP_STRING([--with-mingw-deps-build-type=TYPE],
+	AS_HELP_STRING([--with-mingw-deps-build-type=TYPE],
 			[CMake build type for MinGW dependencies @<:@Release@:>@]),
 [], [with_mingw_deps_build_type=Release])
 test -n "$with_mingw_deps_build_type" \
@@ -236,7 +238,7 @@ AC_SUBST([MINGW_PACKAGE_DIR])
 AC_SUBST([MINGW_WINE_PREFIX])
 
 AC_ARG_ENABLE(sound,
-	AC_HELP_STRING([--disable-sound],
+	AS_HELP_STRING([--disable-sound],
 			[disable OpenAL sound]),
 [], [enable_sound=yes])
 case "$enable_sound" in
@@ -350,12 +352,12 @@ if test x$need_x = xyes; then
 	AC_PATH_XTRA
 
 	AC_MSG_CHECKING(for xf86misc extensions)
-	AC_COMPILE_IFELSE([
+	AC_COMPILE_IFELSE([AC_LANG_SOURCE([
 	 #include <X11/X.h>
 	 #include <X11/Xlib.h>
 	 #include <X11/extensions/xf86misc.h>
 	 int main(int argc, char** argv) { return 0; }
-	],[
+	])],[
 	have_xf86misc=yes
 	],[
 	have_xf86misc=no])
@@ -548,7 +550,11 @@ AM_CONDITIONAL([COND_SOUND], [test x$have_sound = xyes])
 
 dnl  Checks for header files.
 dnl AC_HEADER_STDC
-AC_HEADER_TIME
+AC_CHECK_HEADERS_ONCE([sys/time.h])
+AS_IF([test "$ac_cv_header_sys_time_h" = yes], [
+	AC_DEFINE([TIME_WITH_SYS_TIME], [1],
+		[Define to 1 if both sys/time.h and time.h are available.])
+])
 dnl AC_HEADER_STDBOOL
 AC_CHECK_HEADERS([ \
 	arpa/inet.h \
@@ -600,7 +606,6 @@ AC_C_CONST
 AC_C_INLINE
 AC_C_VOLATILE
 AC_TYPE_MODE_T
-AC_TYPE_SIGNAL
 AC_TYPE_SIZE_T
 AC_STRUCT_TM
 
@@ -610,19 +615,19 @@ if test x$windows_target = xyes; then
 	AC_MSG_RESULT([provided by Winsock2])
 else
 	AC_MSG_CHECKING(for socklen_t)
-	AC_TRY_COMPILE([
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
 		#include <sys/types.h>
 		#include <sys/socket.h>
 		socklen_t x;
-	], [],
+	], [])],
 	[
 		AC_MSG_RESULT(yes)
 	], [
-		AC_TRY_COMPILE([
+		AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
 			#include <sys/types.h>
 			#include <sys/socket.h>
 			int accept(int, struct sockaddr *, size_t *);
-		], [], [
+		], [])], [
 			AC_MSG_RESULT(size_t)
 			AC_DEFINE(socklen_t, size_t, [socklen_t size])
 		], [
@@ -641,7 +646,6 @@ dnl AC_FUNC_REALLOC
 
 AC_FUNC_MEMCMP
 AC_FUNC_SELECT_ARGTYPES
-AC_FUNC_SETVBUF_REVERSED
 AC_FUNC_STAT
 AC_FUNC_STRFTIME
 AC_FUNC_STRTOD

@@ -47,7 +47,7 @@
 /** Gameplay reconnection grace period shared by client and server. */
 #define GAME_RECONNECT_GRACE_SECONDS 30
 
-/** Gameplay network transport selected at process startup. */
+/** Network transport selected for an endpoint or client connection. */
 typedef enum {
     /** Preserve packet boundaries with UDP datagrams. */
     GAME_TRANSPORT_UDP = 0,
@@ -57,15 +57,7 @@ typedef enum {
     GAME_TRANSPORT_WEBSOCKET = 2
 } game_transport_t;
 
-/* A server process has one transport pair. Clients carry transports in each
- * connection target and established connection instead of these globals. */
-#ifdef SERVER
-/** Gameplay transport selected by the current server process. */
-extern game_transport_t gameTransport;
-
-/** Contact and lobby transport selected by the current server process. */
-extern game_transport_t contactTransport;
-#endif
+/* Server endpoints and client connections each carry their transport pair. */
 
 /**
  * Parse a gameplay transport option value.

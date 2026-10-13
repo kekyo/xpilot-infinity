@@ -1,7 +1,7 @@
 
 bin_PROGRAMS = xpilot-infinity-replay
-AM_CPPFLAGS = -DCONF_DATADIR=\"$(pkgdatadir)/\"
-INCLUDES = -I$(top_builddir)/src/common -I$(top_srcdir)/src/common \
+AM_CPPFLAGS = -DCONF_DATADIR=\"$(pkgdatadir)/\" \
+	-I$(top_builddir)/src/common -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/client
 xpilot_infinity_replay_SOURCES = buttons.c buttons.h ppm_image.c ppm_image.h \
 	xp-replay.c xp-replay.h

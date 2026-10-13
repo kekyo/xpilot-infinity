@@ -102,7 +102,6 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 LIBRARIES = $(noinst_LIBRARIES)
 AR = ar
-ARFLAGS = cru
 AM_V_AR = $(am__v_AR_@AM_V@)
 am__v_AR_ = $(am__v_AR_@AM_DEFAULT_V@)
 am__v_AR_0 = @echo "  AR      " $@;
@@ -122,7 +121,8 @@ am__libxpclient_a_SOURCES_DIST = client.c client.h client_session.c \
 	talk.h talkmacros.c textinterface.c micro_delay.c \
 	micro_delay.h micro_delay_test_support.h native_text.c \
 	native_text.h native_text_internal.h text_config.c \
-	text_config.h xpclient.h caudio.c caudio.h oalaudio.c
+	text_config.h text_utf8.c xpclient.h caudio.c caudio.h \
+	oalaudio.c
 @COND_SOUND_TRUE@am__objects_1 = caudio.$(OBJEXT) oalaudio.$(OBJEXT)
 am_libxpclient_a_OBJECTS = client.$(OBJEXT) client_session.$(OBJEXT) \
 	clientcommand.$(OBJEXT) clientrank.$(OBJEXT) \
@@ -135,7 +135,7 @@ am_libxpclient_a_OBJECTS = client.$(OBJEXT) client_session.$(OBJEXT) \
 	session_connection.$(OBJEXT) session_transport.$(OBJEXT) \
 	talkmacros.$(OBJEXT) textinterface.$(OBJEXT) \
 	micro_delay.$(OBJEXT) native_text.$(OBJEXT) \
-	text_config.$(OBJEXT) $(am__objects_1)
+	text_config.$(OBJEXT) text_utf8.$(OBJEXT) $(am__objects_1)
 libxpclient_a_OBJECTS = $(am_libxpclient_a_OBJECTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -165,8 +165,8 @@ am__depfiles_remade = ./$(DEPDIR)/caudio.Po ./$(DEPDIR)/client.Po \
 	./$(DEPDIR)/paintmap.Po ./$(DEPDIR)/paintobjects.Po \
 	./$(DEPDIR)/query.Po ./$(DEPDIR)/session_connection.Po \
 	./$(DEPDIR)/session_transport.Po ./$(DEPDIR)/talkmacros.Po \
-	./$(DEPDIR)/text_config.Po ./$(DEPDIR)/textinterface.Po \
-	./$(DEPDIR)/transport_display.Po
+	./$(DEPDIR)/text_config.Po ./$(DEPDIR)/text_utf8.Po \
+	./$(DEPDIR)/textinterface.Po ./$(DEPDIR)/transport_display.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -252,6 +252,7 @@ am__relativize = \
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
+ARFLAGS = @ARFLAGS@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
@@ -425,7 +426,7 @@ libxpclient_a_SOURCES = client.c client.h client_session.c \
 	talk.h talkmacros.c textinterface.c micro_delay.c \
 	micro_delay.h micro_delay_test_support.h native_text.c \
 	native_text.h native_text_internal.h text_config.c \
-	text_config.h xpclient.h $(am__append_1)
+	text_config.h text_utf8.c xpclient.h $(am__append_1)
 @COND_SDL_CLIENT_FALSE@MAYBE_SDL =
 
 # From section Conditional subdirectories with AM_CONDITIONAL
@@ -512,6 +513,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/session_transport.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/talkmacros.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/text_config.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/text_utf8.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/textinterface.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/transport_display.Po@am__quote@ # am--include-marker
 
@@ -522,15 +524,17 @@ $(am__depfiles_remade):
 am--depfiles: $(am__depfiles_remade)
 
 .c.o:
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
+@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ $<
 
 .c.obj:
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.obj$$||'`;\
+@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ `$(CYGPATH_W) '$<'` &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
@@ -758,6 +762,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/session_transport.Po
 	-rm -f ./$(DEPDIR)/talkmacros.Po
 	-rm -f ./$(DEPDIR)/text_config.Po
+	-rm -f ./$(DEPDIR)/text_utf8.Po
 	-rm -f ./$(DEPDIR)/textinterface.Po
 	-rm -f ./$(DEPDIR)/transport_display.Po
 	-rm -f Makefile
@@ -832,6 +837,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/session_transport.Po
 	-rm -f ./$(DEPDIR)/talkmacros.Po
 	-rm -f ./$(DEPDIR)/text_config.Po
+	-rm -f ./$(DEPDIR)/text_utf8.Po
 	-rm -f ./$(DEPDIR)/textinterface.Po
 	-rm -f ./$(DEPDIR)/transport_display.Po
 	-rm -f Makefile

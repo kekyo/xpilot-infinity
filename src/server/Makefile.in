@@ -114,11 +114,12 @@ am_xpilot_infinity_server_OBJECTS = alliance.$(OBJEXT) \
 	race.$(OBJEXT) rank.$(OBJEXT) recwrap.$(OBJEXT) \
 	robot.$(OBJEXT) robotdef.$(OBJEXT) rules.$(OBJEXT) \
 	saudio.$(OBJEXT) sched.$(OBJEXT) score.$(OBJEXT) \
-	server.$(OBJEXT) session_acceptor.$(OBJEXT) ship.$(OBJEXT) \
-	shot.$(OBJEXT) showtime.$(OBJEXT) srecord.$(OBJEXT) \
-	suibotdef.$(OBJEXT) tag.$(OBJEXT) target.$(OBJEXT) \
-	teamcup.$(OBJEXT) tuner.$(OBJEXT) treasure.$(OBJEXT) \
-	update.$(OBJEXT) walls.$(OBJEXT) wormhole.$(OBJEXT) \
+	server.$(OBJEXT) session_acceptor.$(OBJEXT) \
+	server_endpoint.$(OBJEXT) ship.$(OBJEXT) shot.$(OBJEXT) \
+	showtime.$(OBJEXT) srecord.$(OBJEXT) suibotdef.$(OBJEXT) \
+	tag.$(OBJEXT) target.$(OBJEXT) teamcup.$(OBJEXT) \
+	tuner.$(OBJEXT) treasure.$(OBJEXT) update.$(OBJEXT) \
+	walls.$(OBJEXT) wormhole.$(OBJEXT) web_front.$(OBJEXT) \
 	windows_service.$(OBJEXT) xp2map.$(OBJEXT) xpmap.$(OBJEXT)
 xpilot_infinity_server_OBJECTS = $(am_xpilot_infinity_server_OBJECTS)
 xpilot_infinity_server_DEPENDENCIES =  \
@@ -157,13 +158,14 @@ am__depfiles_remade = ./$(DEPDIR)/alliance.Po ./$(DEPDIR)/asteroid.Po \
 	./$(DEPDIR)/robotdef.Po ./$(DEPDIR)/rules.Po \
 	./$(DEPDIR)/saudio.Po ./$(DEPDIR)/sched.Po \
 	./$(DEPDIR)/score.Po ./$(DEPDIR)/server.Po \
-	./$(DEPDIR)/session_acceptor.Po ./$(DEPDIR)/ship.Po \
-	./$(DEPDIR)/shot.Po ./$(DEPDIR)/showtime.Po \
-	./$(DEPDIR)/srecord.Po ./$(DEPDIR)/suibotdef.Po \
-	./$(DEPDIR)/tag.Po ./$(DEPDIR)/target.Po \
-	./$(DEPDIR)/teamcup.Po ./$(DEPDIR)/treasure.Po \
-	./$(DEPDIR)/tuner.Po ./$(DEPDIR)/update.Po \
-	./$(DEPDIR)/walls.Po ./$(DEPDIR)/windows_service.Po \
+	./$(DEPDIR)/server_endpoint.Po ./$(DEPDIR)/session_acceptor.Po \
+	./$(DEPDIR)/ship.Po ./$(DEPDIR)/shot.Po \
+	./$(DEPDIR)/showtime.Po ./$(DEPDIR)/srecord.Po \
+	./$(DEPDIR)/suibotdef.Po ./$(DEPDIR)/tag.Po \
+	./$(DEPDIR)/target.Po ./$(DEPDIR)/teamcup.Po \
+	./$(DEPDIR)/treasure.Po ./$(DEPDIR)/tuner.Po \
+	./$(DEPDIR)/update.Po ./$(DEPDIR)/walls.Po \
+	./$(DEPDIR)/web_front.Po ./$(DEPDIR)/windows_service.Po \
 	./$(DEPDIR)/wormhole.Po ./$(DEPDIR)/xp2map.Po \
 	./$(DEPDIR)/xpmap.Po
 am__mv = mv -f
@@ -209,6 +211,7 @@ DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
+ARFLAGS = @ARFLAGS@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
@@ -378,11 +381,12 @@ xpilot_infinity_server_SOURCES = \
 	robot.c robot.h robotdef.c rules.c \
 	saudio.c saudio.h sched.c sched.h score.c score.h \
 	server.c server.h serverconst.h session_acceptor.c session_acceptor.h \
+	server_endpoint.c server_endpoint.h \
 	ship.c shot.c \
 	showtime.c srecord.c srecord.h suibotdef.c \
 	tag.c target.c target.h teamcup.h teamcup.c tuner.c tuner.h \
 	treasure.c update.c \
-	walls.c walls.h wormhole.c wormhole.h \
+	walls.c walls.h wormhole.c wormhole.h web_front.c web_front.h \
 	windows_service.c windows_service.h xp2map.c xpmap.c xpserver.h
 
 xpilot_infinity_server_LDADD = $(top_builddir)/src/common/libxpcommon.a @X_EXTRA_LIBS@ @W32_LIBS@
@@ -509,6 +513,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sched.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/score.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/server.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/server_endpoint.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/session_acceptor.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ship.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/shot.Po@am__quote@ # am--include-marker
@@ -522,6 +527,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tuner.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/update.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/walls.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web_front.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/windows_service.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wormhole.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xp2map.Po@am__quote@ # am--include-marker
@@ -534,15 +540,17 @@ $(am__depfiles_remade):
 am--depfiles: $(am__depfiles_remade)
 
 .c.o:
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
+@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ $<
 
 .c.obj:
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.obj$$||'`;\
+@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ `$(CYGPATH_W) '$<'` &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
@@ -709,6 +717,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/sched.Po
 	-rm -f ./$(DEPDIR)/score.Po
 	-rm -f ./$(DEPDIR)/server.Po
+	-rm -f ./$(DEPDIR)/server_endpoint.Po
 	-rm -f ./$(DEPDIR)/session_acceptor.Po
 	-rm -f ./$(DEPDIR)/ship.Po
 	-rm -f ./$(DEPDIR)/shot.Po
@@ -722,6 +731,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/tuner.Po
 	-rm -f ./$(DEPDIR)/update.Po
 	-rm -f ./$(DEPDIR)/walls.Po
+	-rm -f ./$(DEPDIR)/web_front.Po
 	-rm -f ./$(DEPDIR)/windows_service.Po
 	-rm -f ./$(DEPDIR)/wormhole.Po
 	-rm -f ./$(DEPDIR)/xp2map.Po
@@ -807,6 +817,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/sched.Po
 	-rm -f ./$(DEPDIR)/score.Po
 	-rm -f ./$(DEPDIR)/server.Po
+	-rm -f ./$(DEPDIR)/server_endpoint.Po
 	-rm -f ./$(DEPDIR)/session_acceptor.Po
 	-rm -f ./$(DEPDIR)/ship.Po
 	-rm -f ./$(DEPDIR)/shot.Po
@@ -820,6 +831,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/tuner.Po
 	-rm -f ./$(DEPDIR)/update.Po
 	-rm -f ./$(DEPDIR)/walls.Po
+	-rm -f ./$(DEPDIR)/web_front.Po
 	-rm -f ./$(DEPDIR)/windows_service.Po
 	-rm -f ./$(DEPDIR)/wormhole.Po
 	-rm -f ./$(DEPDIR)/xp2map.Po

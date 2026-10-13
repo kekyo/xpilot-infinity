@@ -53,13 +53,11 @@ bool			is_server = true;	/* used in common code */
 static bool		NoPlayersEnteredYet = true;
 bool			game_lock = false;
 bool			mute_baseless = false;
-game_transport_t	gameTransport = GAME_TRANSPORT_UDP;
-game_transport_t	contactTransport = GAME_TRANSPORT_UDP;
 
 time_t			gameOverTime = 0;
 time_t			serverStartTime = 0;
 
-#if !defined(_WINDOWS)
+#if !defined(_WINDOWS) && !defined(__EMSCRIPTEN__)
 
 /* The terminating signal, or zero if no signal. */
 static volatile int termsig = 0;
@@ -72,11 +70,8 @@ static void Handle_signal(int sig_no)
 
 #endif /* !defined(_WINDOWS) */
 
-static int Server_run(int argc, char **argv)
+int Server_prepare(int argc, char **argv)
 {
-    int timer_tick_rate;
-    char *addr;
-
     /* world is a global now */
     world = &World;
 
@@ -119,23 +114,6 @@ static int Server_run(int argc, char **argv)
     if (!Parser(argc, argv))
 	exit(1);
 
-    if (!Game_transport_parse(options.contactTransport, &contactTransport)) {
-	warn("Invalid contactTransport '%s'; expected 'udp', 'tcp', or "
-	     "'websocket'",
-	     options.contactTransport);
-	return 1;
-    }
-    if (!Game_transport_parse(options.gameTransport, &gameTransport)) {
-	warn("Invalid gameTransport '%s'; expected 'udp', 'tcp', or "
-	     "'websocket'",
-	     options.gameTransport);
-	return 1;
-    }
-    if (!Game_transport_pair_is_supported(contactTransport, gameTransport)) {
-	warn("WebSocket must be selected for both contact/lobby and gameplay");
-	return 1;
-    }
-
     Init_recording();
     /* Lock the server into memory */
     plock_server(options.pLockServer);
@@ -156,6 +134,14 @@ static int Server_run(int argc, char **argv)
     Hitmasks_init();
 
     Rank_init_saved_scores();
+
+    return 0;
+}
+
+int Server_activate(void)
+{
+    int timer_tick_rate;
+    char *addr;
 
     /*
      * Get server's official name.
@@ -178,8 +164,10 @@ static int Server_run(int argc, char **argv)
     /* Log, if enabled. */
     Log_game("START");
 
-    if (!Contact_init())
-	End_game();
+    if (!Contact_init()) {
+        sock_cleanup();
+        return 1;
+    }
 
     Meta_init();
 
@@ -189,7 +177,7 @@ static int Server_run(int argc, char **argv)
     if (Setup_net_server() == -1)
 	End_game();
 
-#ifndef _WINDOWS
+#if !defined(_WINDOWS) && !defined(__EMSCRIPTEN__)
     if (options.NoQuit)
 	signal(SIGHUP, SIG_IGN);
     else
@@ -233,6 +221,20 @@ static int Server_run(int argc, char **argv)
 # endif
 #endif
 
+    return 0;
+}
+
+int Server_initialize(int argc, char **argv)
+{
+    int result = Server_prepare(argc, argv);
+    return result != 0 ? result : Server_activate();
+}
+
+#ifndef __EMSCRIPTEN__
+static int Server_run(int argc, char **argv)
+{
+    int result = Server_initialize(argc, argv);
+    if (result != 0) return result;
     sched();
     End_game();
 
@@ -266,6 +268,7 @@ int main(int argc, char **argv)
     return Server_run(argc, argv);
 }
 #endif
+#endif /* !__EMSCRIPTEN__ */
 
 void Main_loop(void)
 {
@@ -368,7 +371,7 @@ void End_game(void)
     player_t *pl;
     char msg[MSG_LEN];
 
-#if !defined(_WINDOWS)
+#if !defined(_WINDOWS) && !defined(__EMSCRIPTEN__)
     if (termsig != 0)
 	warn("Terminating on signal %d", termsig);
 #endif
@@ -399,6 +402,8 @@ void End_game(void)
     record = rrecord;
     playback = rplayback;
 
+    Cleanup_net_server();
+
     if (options.recordMode != 0) {
 	options.recordMode = 0;
 	Init_recording();
@@ -426,7 +431,7 @@ void End_game(void)
     Windows_service_prepare_clean_exit();
 #endif
 
-#if !defined(_WINDOWS)
+#if !defined(_WINDOWS) && !defined(__EMSCRIPTEN__)
     if (termsig != 0) {
 	signal(termsig, SIG_DFL);
 	raise(termsig);
@@ -569,7 +574,9 @@ void Server_info(char *str, size_t max_size)
 {
     int i, j, k;
     player_t *pl, **order;
-    char name[MAX_CHARS], lblstr[MAX_CHARS], msg[MSG_LEN];
+    /* Include the full name and even the fixed-point form of DBL_MAX. */
+    char name[MAX_CHARS], lblstr[MAX_CHARS + DBL_MAX_10_EXP + 32];
+    char msg[sizeof(lblstr) + sizeof(pl->username) + sizeof(pl->hostname) + 32];
 
     snprintf(str, max_size,
 	     "SERVER VERSION..: %s\n"

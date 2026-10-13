@@ -23,7 +23,6 @@ bin_PROGRAMS += xpilot-infinity-service-helper
 xpilot_infinity_service_helper_SOURCES = service_helper_win32.c
 xpilot_infinity_service_helper_LDADD = libxptray.a tray-res.o -ladvapi32 -lshell32 -luser32 -lole32 -luuid -lbcrypt
 xpilot_infinity_service_helper_LDFLAGS = -municode -mwindows
-WINDRES = @WINDRES@
 tray-res.o: $(srcdir)/tray.rc $(srcdir)/tray.manifest $(top_srcdir)/images/icon.ico
 	$(WINDRES) -I$(top_srcdir) $(srcdir)/tray.rc $@
 CLEANFILES = tray-res.o
@@ -56,7 +55,9 @@ org.xpilot.Infinity.ServerSettings1.service: $(srcdir)/data/org.xpilot.Infinity.
 CLEANFILES = org.xpilot.Infinity.ServerSettings1.service org.xpilot.Infinity.ServerSettings1.service.tmp
 applicationsdir = $(datarootdir)/applications
 applications_DATA = xpilot-infinity-tray.desktop
-xpilot-infinity-tray.desktop: $(srcdir)/data/xpilot-infinity-tray.desktop.fc Makefile
+# Serialize the two npm exec calls: older distribution npm versions can race
+# while installing their shared CLI cache (https://github.com/npm/cli/issues/8224).
+xpilot-infinity-tray.desktop: $(srcdir)/data/xpilot-infinity-tray.desktop.fc Makefile org.xpilot.Infinity.ServerSettings1.service
 	$(FUNCITY) --no-rc run -D 'bindir=$(bindir)' -D 'pkgdatadir=$(pkgdatadir)' -i $< > $@.tmp
 	mv $@.tmp $@
 CLEANFILES += xpilot-infinity-tray.desktop xpilot-infinity-tray.desktop.tmp

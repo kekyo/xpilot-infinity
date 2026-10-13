@@ -366,7 +366,10 @@ static void accessible_window(AtspiEvent *event, void *context)
     desktop_test *test = context;
     /* GTK can publish an already mapped window when first joining AT-SPI.
        Registry child registration is also a readiness event in that case. */
-    if (test->stage == (test->editor ? 2u : 0u) || (test->real_editor && test->stage == 1))
+    /* Discovery ends when the document is saved. Subsequent text/name events
+       can refer to editor nodes being replaced; stage 2 handles confirmation. */
+    if (test->stage == (test->editor ? 2u : 0u)
+        || (test->real_editor && test->stage == 1 && !test->document_saved))
         inspect_accessible_window(event->source, test);
     if (test->real_editor && test->stage == 1 && test->editor_window && !test->document_saved
         && edit_document(test->editor_window, test)) {

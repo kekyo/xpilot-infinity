@@ -63,7 +63,7 @@ if grep -En \
     fail "fixed-function, display-list, or GLU call remains in production"
 fi
 
-if grep -En 'GLU_CFLAGS|GLU_LIBS|<GL/glu\.h>|<OpenGL/glu\.h>' \
+if grep -En 'GLU_CFLAGS|GLU_LIBS|<GL/glu\.h>' \
     "$production_source"/*.c "$production_source"/*.h \
     "$production_source"/Makefile.am "$production_source"/Makefile.in \
     >"$symbols_file"; then

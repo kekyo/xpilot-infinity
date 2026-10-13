@@ -33,6 +33,7 @@
 #include "session_connection.h"
 #include "session_transport.h"
 #include "session_token.h"
+#include "client_session.h"
 
 #define TALK_RETRY	2
 #define MAX_MAP_ACK_LEN	500
@@ -92,6 +93,8 @@ static bool             gameplay_connected;
 static bool             gameplay_started;
 static bool             reconnecting;
 static record_session_t *gameplay_session;
+static client_resume_t *pending_resume;
+static bool quit_requested;
 
 
 
@@ -417,6 +420,57 @@ static void Reset_session_gameplay_buffers(void)
     rbuf = Frames[0].sbuf;
 }
 
+int Net_session_resume_begin(record_transport_t *transport)
+{
+    Client_resume_destroy(pending_resume);
+    pending_resume = NULL;
+    if (gameplay_session == NULL || !gameplay_started || !resume_token_received
+        || Record_session_replace_transport(gameplay_session, transport) < 0) {
+        Record_transport_destroy(transport);
+        return -1;
+    }
+    gameplay_connected = false;
+    pending_resume = Client_resume_create(gameplay_session, &resume_token);
+    return pending_resume ? 0 : -1;
+}
+
+int Net_session_resume_step(void)
+{
+    if (!pending_resume) return -1;
+    int result = Client_resume_step(pending_resume);
+    if (result <= 0) return result;
+    Client_resume_destroy(pending_resume);
+    pending_resume = NULL;
+    Reset_session_gameplay_buffers();
+    gameplay_connected = true;
+    last_send_anything = time(NULL);
+    last_keyboard_change++;
+    return Key_update() < 0 ? -1 : 1;
+}
+
+int Net_session_quit_step(void)
+{
+    if (!gameplay_session) return 1;
+    if (!quit_requested) {
+        /* Retain previously staged output before appending the required quit. */
+        if (Net_send_output(RECORD_DELIVERY_REQUIRED) < 0) return 1;
+        if (wbuf.len > 0) return 0;
+        if (Packet_printf(&wbuf, "%c", PKT_QUIT) <= 0) return 1;
+        quit_requested = true;
+        gameplay_connected = false;
+        gameplay_started = false;
+    }
+    if (Net_send_output(RECORD_DELIVERY_REQUIRED) < 0) return 1;
+    if (wbuf.len > 0 || Net_advance_session_output() > 0) return 0;
+    for (int budget = 0; budget < 16; budget++) {
+        int count = Net_receive_record(&rbuf);
+        if (count < 0) return 1;
+        if (count == 0) return 0;
+        if ((unsigned char)rbuf.buf[0] == PKT_QUIT) return 1;
+    }
+    return 0;
+}
+
 static bool Reconnect_fixed_session_gameplay(time_t deadline)
 {
     int source_start = clientPortStart;
@@ -508,6 +562,10 @@ static bool Reconnect_split_tcp_gameplay(time_t deadline)
 
 static int Reconnect_gameplay(const char *reason)
 {
+#ifdef __EMSCRIPTEN__
+    (void)reason;
+    return -1;
+#else
     const char *transport_label;
     bool session_transport;
     bool resumed;
@@ -542,6 +600,7 @@ static int Reconnect_gameplay(const char *reason)
     }
     xpprintf("%s gameplay connection resumed.\n", transport_label);
     return 0;
+#endif
 }
 
 /*
@@ -616,139 +675,83 @@ static int Uncompress_map(void)
  * Receive the map data and some game parameters from
  * the server.  The map data may be in compressed form.
  */
+static bool setup_header_ready;
+static size_t setup_bytes;
+static bool start_requested;
+
+int Net_setup_step(void)
+{
+    if (Setup == NULL) {
+        Setup = calloc(1, sizeof(*Setup));
+        if (Setup == NULL) return -1;
+    }
+    for (int budget = 0; budget < 16; budget++) {
+        if (Net_send_output(RECORD_DELIVERY_REQUIRED) < 0) return -1;
+        if (wbuf.len > 0) return 0;
+        if (cbuf.ptr != cbuf.buf) Sockbuf_advance(&cbuf, cbuf.ptr - cbuf.buf);
+        if (!setup_header_ready && cbuf.len > 0) {
+            int n;
+            if (oldServer) {
+                n = Packet_scanf(&cbuf, "%ld%ld%hd%hd%hd%hd%hd%s%s",
+                    &Setup->map_data_len, &Setup->mode, &Setup->lives,
+                    &Setup->x, &Setup->y, &Setup->frames_per_second,
+                    &Setup->map_order, Setup->name, Setup->author);
+                Setup->width = Setup->x * BLOCK_SZ;
+                Setup->height = Setup->y * BLOCK_SZ;
+            } else {
+                n = Packet_scanf(&cbuf, "%ld%ld%hd%hd%hd%hd%s%s%S",
+                    &Setup->map_data_len, &Setup->mode, &Setup->lives,
+                    &Setup->width, &Setup->height, &Setup->frames_per_second,
+                    Setup->name, Setup->author, Setup->data_url);
+            }
+            if (n < 0) return -1;
+            if (n > 0) {
+                /* Bound server-controlled allocations before receiving map bytes. */
+                if (Setup->map_data_len <= 0 || Setup->map_data_len > 32 * 1024 * 1024
+                    || Setup->width <= 0 || Setup->height <= 0
+                    || (oldServer && (Setup->map_data_len > Setup->x * Setup->y
+                        || (Setup->map_order != SETUP_MAP_ORDER_XY
+                            && Setup->map_order != SETUP_MAP_UNCOMPRESSED)))) return -1;
+                size_t capacity = oldServer ? (size_t)Setup->x * Setup->y
+                                           : (size_t)Setup->map_data_len;
+                setup_t *grown = realloc(Setup, sizeof(*Setup) + capacity);
+                if (grown == NULL) return -1;
+                Setup = grown;
+                setup_header_ready = true;
+                Sockbuf_advance(&cbuf, cbuf.ptr - cbuf.buf);
+            }
+        }
+        if (setup_header_ready) {
+            size_t remaining = (size_t)Setup->map_data_len - setup_bytes;
+            size_t count = (size_t)cbuf.len < remaining ? (size_t)cbuf.len : remaining;
+            memcpy(Setup->map_data + setup_bytes, cbuf.ptr, count);
+            setup_bytes += count;
+            Sockbuf_advance(&cbuf, (int)count);
+            if (setup_bytes == (size_t)Setup->map_data_len) {
+                if (oldServer && Setup->map_order != SETUP_MAP_UNCOMPRESSED
+                    && Uncompress_map() == -1) return -1;
+                return 1;
+            }
+        }
+        if (rbuf.ptr != rbuf.buf) Sockbuf_advance(&rbuf, rbuf.ptr - rbuf.buf);
+        if (rbuf.len == 0) {
+            int n = Net_receive_record(&rbuf);
+            if (n <= 0) return n;
+        }
+        if ((unsigned char)rbuf.ptr[0] != PKT_RELIABLE
+            || Receive_reliable() == -1) return -1;
+    }
+    return 0;
+}
+
 int Net_setup(void)
 {
-    int		n,
-		len,
-		done = 0,
-		retries;
-    size_t	size;
-    long	todo = sizeof(setup_t);
-    char	*ptr;
-
-    if ((Setup = (setup_t *) malloc(sizeof(setup_t))) == NULL) {
-	error("No memory for setup data");
-	return -1;
+    time_t deadline = time(NULL) + 30;
+    for (;;) {
+        int result = Net_setup_step();
+        if (result != 0) return result > 0 ? 0 : -1;
+        if (time(NULL) >= deadline || Net_wait_readable(2, 0) < 0) return -1;
     }
-    ptr = (char *) Setup;
-    while (todo > 0) {
-	if (cbuf.ptr != cbuf.buf)
-	    Sockbuf_advance(&cbuf, cbuf.ptr - cbuf.buf);
-	len = cbuf.len;
-	if (len > todo)
-	    len = todo;
-	if (len > 0) {
-	    if (done == 0) {
-		if (oldServer) {
-		    n = Packet_scanf(&cbuf,
-				     "%ld" "%ld%hd" "%hd%hd" "%hd%hd" "%s%s",
-				     &Setup->map_data_len,
-				     &Setup->mode, &Setup->lives,
-				     &Setup->x, &Setup->y,
-				     &Setup->frames_per_second,
-				     &Setup->map_order, Setup->name,
-				     Setup->author);
-		    Setup->width = Setup->x * BLOCK_SZ;
-		    Setup->height = Setup->y * BLOCK_SZ;
-		} else {
-		    n = Packet_scanf(&cbuf,
-				     "%ld" "%ld%hd" "%hd%hd" "%hd%s" "%s%S",
-				     &Setup->map_data_len,
-				     &Setup->mode, &Setup->lives,
-				     &Setup->width, &Setup->height,
-				     &Setup->frames_per_second,
-				     Setup->name, Setup->author,
-				     Setup->data_url);
-		}
-		if (n <= 0) {
-		    warn("Can't read setup info from reliable data buffer");
-		    return -1;
-		}
-
-		/*
-		 * Do some consistency checks on the server setup structure.
-		 */
-		if (Setup->map_data_len <= 0
-		    || Setup->width <= 0
-		    || Setup->height <= 0
-		    || (oldServer && Setup->map_data_len >
-			Setup->x * Setup->y)) {
-		    warn("Got bad map specs from server (%d,%d,%d)",
-			 Setup->map_data_len, Setup->width, Setup->height);
-		    return -1;
-		}
-		if (oldServer && Setup->map_order != SETUP_MAP_ORDER_XY
-		    && Setup->map_order != SETUP_MAP_UNCOMPRESSED) {
-		    warn("Unknown map order type (%d)", Setup->map_order);
-		    return -1;
-		}
-		size = sizeof(setup_t) + Setup->map_data_len;
-		if (oldServer)
-		    size = sizeof(setup_t) + Setup->x * Setup->y;
-		if ((Setup = (setup_t *) realloc(ptr, size)) == NULL) {
-		    error("No memory for setup and map");
-		    return -1;
-		}
-		ptr = (char *) Setup;
-		done = (char *) &Setup->map_data[0] - ptr;
-		todo = Setup->map_data_len;
-	    } else {
-		assert(len > 0);
-		memcpy(&ptr[done], cbuf.ptr, (size_t)len);
-		Sockbuf_advance(&cbuf, len + cbuf.ptr - cbuf.buf);
-		done += len;
-		todo -= len;
-	    }
-	}
-	if (todo > 0) {
-	    if (rbuf.ptr != rbuf.buf)
-		Sockbuf_advance(&rbuf, rbuf.ptr - rbuf.buf);
-	    if (rbuf.len > 0) {
-		if (rbuf.ptr[0] != PKT_RELIABLE) {
-		    if (rbuf.ptr[0] == PKT_QUIT) {
-			warn("Server closed connection");
-			return -1;
-		    } else {
-			warn("Not a reliable packet (%d) in setup",
-			     rbuf.ptr[0]);
-			return -1;
-		    }
-		}
-		if (Receive_reliable() == -1)
-		    return -1;
-		if (Net_send_output(RECORD_DELIVERY_REQUIRED) == -1)
-		    return -1;
-	    }
-	    if (cbuf.ptr != cbuf.buf)
-		Sockbuf_advance(&cbuf, cbuf.ptr - cbuf.buf);
-	    if (cbuf.len > 0)
-		continue;
-	    for (retries = 0;; retries++) {
-		if (retries >= 10) {
-		    warn("Can't read setup after %d retries "
-			 "(todo=%d, left=%d)",
-			 retries, todo, cbuf.len - (cbuf.ptr - cbuf.buf));
-		    return -1;
-		}
-		while (Net_wait_readable(2, 0) > 0) {
-		    Sockbuf_clear(&rbuf);
-		    if (Net_receive_record(&rbuf) == -1) {
-			error("Can't read all setup data");
-			return -1;
-		    }
-		    if (rbuf.len > 0)
-			break;
-		}
-		if (rbuf.len > 0)
-		    break;
-	    }
-	}
-    }
-    if (oldServer && Setup->map_order != SETUP_MAP_UNCOMPRESSED) {
-	if (Uncompress_map() == -1) return -1;
-    }
-
-    return 0;
 }
 
 /*
@@ -912,6 +915,10 @@ int Net_init(char *server, int port, game_transport_t transport)
     gameplay_started = false;
     reconnecting = false;
 
+    quit_requested = false;
+    setup_header_ready = false;
+    setup_bytes = 0;
+    start_requested = false;
     Receive_init();
     if (Session_connection_game_is_staged()) {
 	if (Game_transport_session_protocol_version(transport, true) == 0) {
@@ -955,6 +962,9 @@ int Net_init(char *server, int port, game_transport_t transport)
 	goto initialized;
     }
 
+ #ifdef __EMSCRIPTEN__
+    return -1;
+ #else
     transport_state = transport == GAME_TRANSPORT_TCP
 	? SOCKBUF_FRAMED : SOCKBUF_DGRAM;
     if (Open_client_socket(&sock, transport) == SOCK_IS_ERROR) {
@@ -1016,6 +1026,7 @@ int Net_init(char *server, int port, game_transport_t transport)
     /* read buffer */
     rbuf = Frames[0].sbuf;
 
+ #endif
 initialized:
     /* reliable data byte stream offset */
     reliable_offset = 0;
@@ -1208,6 +1219,8 @@ void Net_cleanup(void)
 
     gameplay_started = false;
     reconnecting = false;
+    Client_resume_destroy(pending_resume);
+    pending_resume = NULL;
     if (gameplay_connected && session_transport)
 	Flush_session_quit();
     else if (gameplay_connected && sock.fd != SOCK_FD_INVALID
@@ -1345,8 +1358,92 @@ socket_handle_t Net_fd(void)
  * we have initialized all our other stuff like the user interface
  * and we also have the map already.
  */
+int Net_start_step(void)
+{
+    if (!start_requested) {
+        if (Send_shape(shipShape) == -1 || Packet_printf(&wbuf, "%c", PKT_PLAY) <= 0
+            || Client_power() == -1
+#ifdef SOUND
+            || Send_audio_request(1) == -1
+#endif
+            || Client_fps_request() == -1) return -1;
+        start_requested = true;
+    }
+    if (Net_send_output(RECORD_DELIVERY_REQUIRED) < 0) return -1;
+    if (wbuf.len > 0) return 0;
+    if (cbuf.ptr > cbuf.buf) Sockbuf_advance(&cbuf, cbuf.ptr - cbuf.buf);
+    for (int budget = 0; cbuf.len <= 0 && budget < 16; budget++) {
+        int n = Net_receive_record(&rbuf);
+        if (n <= 0) return n;
+	    if (rbuf.ptr[0] != PKT_RELIABLE) {
+		if (rbuf.ptr[0] == PKT_QUIT) {
+		    warn("Server closed connection");
+		    return -1;
+		}
+		else if (rbuf.ptr[0] == PKT_START) {
+		    /*
+		     * Packet out of order, drop it or...
+		     * Skip the frame and check for a Reliable Data Packet.
+		     * (HACK)
+		     * In a future version we may not want a reply to
+		     * the PKT_PLAY request and accept frames immediately.
+		     */
+		    while (++rbuf.ptr < rbuf.buf + rbuf.len) {
+			if (rbuf.ptr[0] == PKT_END
+			    && rbuf.ptr + 5 < rbuf.buf + rbuf.len
+			    && rbuf.ptr[5] == PKT_RELIABLE) {
+			    rbuf.ptr += 5;
+			    break;
+			}
+		    }
+		    if (rbuf.ptr + 11 >= rbuf.buf + rbuf.len) {
+			printf("skipping unexpected frame while starting\n");
+			continue;
+		    }
+		    printf("abusing unexpected frame while starting\n");
+		} else {
+		    printf("strange packet type while starting (%d)\n",
+			rbuf.ptr[0]);
+		    /*
+		     * What the hack do we care when we wanna play.
+		     * Just drop the packet for now.
+		     */
+		    Sockbuf_clear(&rbuf);
+		    continue;
+		}
+	    }
+
+        if (Receive_reliable() == -1 || Net_send_output(RECORD_DELIVERY_REQUIRED) < 0) return -1;
+    }
+    if (cbuf.len <= 0) return 0;
+    int type, result;
+    int n = Receive_reply(&type, &result);
+    if (n == 0) return 0;
+    if (n < 0 || type != PKT_PLAY || result != PKT_SUCCESS) return -1;
+    packet_measure = NULL;
+    packetMeasurement = true;
+    Net_init_measurement();
+    Net_init_lag_measurement();
+    gameplay_started = true;
+    gameplay_connected = true;
+    last_send_anything = time(NULL);
+    errno = 0;
+    return 1;
+}
+
+static int Net_start_session(void)
+{
+    time_t deadline = time(NULL) + 30;
+    for (;;) {
+        int result = Net_start_step();
+        if (result != 0) return result > 0 ? 0 : -1;
+        if (time(NULL) >= deadline || Net_wait_readable(2, 0) < 0) return -1;
+    }
+}
+
 int Net_start(void)
 {
+    if (gameplay_session != NULL) return Net_start_session();
     int			retries,
 			type,
 			result;

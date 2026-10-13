@@ -501,7 +501,7 @@ T_Form_t **SeekForm(Window win, short add)
 /* Arguments :                                                             */
 /* Purpose : Change or add a field with the specified information.         */
 /***************************************************************************/
-void ChangeField(Window win, char *name, char *label,
+void ChangeField(Window win, const char *name, const char *label,
 		 short type, short active, short x, short y, short width,
 		 short height, short x2, short y2, handler_t handler,
 		 int *intvar, char *charvar, int charvar_length,
@@ -559,8 +559,8 @@ void ChangeField(Window win, char *name, char *label,
 /*   handler                                                               */
 /* Purpose : Add a button to form of window win.                           */
 /***************************************************************************/
-void T_FormHoldButton(Window win, char *name, short x, short y,
-		      short width, short height, char *label,
+void T_FormHoldButton(Window win, const char *name, short x, short y,
+		      short width, short height, const char *label,
 		      handler_t handler)
 {
     ChangeField(win, name, label, T_HOLD_BUTTON, ACTIVE, x, y, width,
@@ -580,8 +580,8 @@ void T_FormHoldButton(Window win, char *name, short x, short y,
 /*   handler                                                               */
 /* Purpose : Add a button to form of window win.                           */
 /***************************************************************************/
-void T_FormButton(Window win, char *name, short x, short y,
-		  short width, short height, char *label,
+void T_FormButton(Window win, const char *name, short x, short y,
+		  short width, short height, const char *label,
 		  handler_t handler)
 {
     ChangeField(win, name, label, T_BUTTON, ACTIVE, x, y, width, height, 0,
@@ -604,9 +604,9 @@ void T_FormButton(Window win, char *name, short x, short y,
 /*   null                                                                  */
 /* Purpose : Add a button to form of window win.                           */
 /***************************************************************************/
-void T_FormMultiButton(Window win, char *name, short x, short y,
+void T_FormMultiButton(Window win, const char *name, short x, short y,
 		       short width, short height, short x2, short y2,
-		       char *label, int *intvar, short null)
+		       const char *label, int *intvar, short null)
 {
     ChangeField(win, name, label, T_MULTI_BUTTON, ACTIVE, x, y, width,
 		height, x2, y2, NULL, intvar, (char *) NULL, 0, null);
@@ -625,7 +625,7 @@ void T_FormMultiButton(Window win, char *name, short x, short y,
 /*   handler                                                               */
 /* Purpose : Add a button to form of window win.                           */
 /***************************************************************************/
-void T_FormScrollArea(Window win, char *name, short type, short x, short y,
+void T_FormScrollArea(Window win, const char *name, short type, short x, short y,
 		      short width, short height, handler_t handler)
 {
     ChangeField(win, name, NULL, type, ACTIVE, x, y, width, height, 0, 0,
@@ -645,8 +645,8 @@ void T_FormScrollArea(Window win, char *name, short type, short x, short y,
 /*   justify                                                               */
 /* Purpose : Add a button to form of window win.                           */
 /***************************************************************************/
-void T_FormText(Window win, char *name, short x, short y,
-		short width, short height, char *label, short justify)
+void T_FormText(Window win, const char *name, short x, short y,
+		short width, short height, const char *label, short justify)
 {
     ChangeField(win, name, label, T_TEXT, ACTIVE, x, y, width, height,
 		justify, 0, NULL, (int *) NULL, (char *) NULL, 0, 0);
@@ -667,9 +667,9 @@ void T_FormText(Window win, char *name, short x, short y,
 /*   justify                                                               */
 /* Purpose : Add a button to form of window win.                           */
 /***************************************************************************/
-void T_FormStringEntry(Window win, char *name, short x, short y,
+void T_FormStringEntry(Window win, const char *name, short x, short y,
 		       short width, short height, short x2, short y2,
-		       char *label, char *charvar, int charvar_length,
+		       const char *label, char *charvar, int charvar_length,
 		       handler_t handler)
 {
     ChangeField(win, name, label, T_STRING_ENTRY, ACTIVE, x, y, width,
