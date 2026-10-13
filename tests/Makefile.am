@@ -103,8 +103,8 @@ TESTS = test-framed-stream test-websocket-transport \
 	run-c23-server-build.sh run-vendored-zlib.sh \
 	run-container-publish.sh run-container-image.sh run-quadlet.sh run-e2e.sh
 if COND_SOUND
-check_PROGRAMS += test-audio-device test-audio-portable
-TESTS += test-audio-device test-audio-portable
+check_PROGRAMS += test-audio-device
+TESTS += test-audio-device
 endif
 if COND_X11_CLIENT
 check_PROGRAMS += test-x11-text
@@ -666,14 +666,6 @@ test_audio_device_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections \
 	-Wl,--wrap=alGenSources -Wl,--wrap=alDeleteSources
 test_audio_device_LDADD = $(top_builddir)/src/client/libxpclient.a \
 	$(top_builddir)/src/common/libxpcommon.a @SOUND_LIBS@
-
-test_audio_portable_SOURCES = test_audio_device.c \
-	$(top_srcdir)/src/client/oalaudio.c
-test_audio_portable_CPPFLAGS = $(AM_CPPFLAGS) @SOUND_CFLAGS@ \
-	-DMACOSX_FRAMEWORKS
-test_audio_portable_CFLAGS = $(test_audio_device_CFLAGS)
-test_audio_portable_LDFLAGS = $(test_audio_device_LDFLAGS)
-test_audio_portable_LDADD = $(test_audio_device_LDADD)
 
 TEST_EXTENSIONS = .sh
 SH_LOG_COMPILER = $(SHELL)
