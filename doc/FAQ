@@ -22,8 +22,8 @@ Or by mailing the following message to mail-server@rtfm.mit.edu:
 
     send usenet/rec.games.computer.xpilot/XPilot_multi-player_Internet_game_FAQ
 
-New questions in this release: 3, 4, 8, 21, 27, 28
-Questions changed in this release: 1 - 28
+New questions in this release: 3, 7, 20, 26, 27
+Questions changed in this release: 1 - 27
 Questions changed in the previous release: 2
 
 Questions:
@@ -31,31 +31,30 @@ Questions:
 1) Does this FAQ answer all my questions about XPilot?
 2) What is this wonderful game called XPilot everybody is talking about?
 3) Does the Windows version work on ...?
-4) Will it work on my Macintosh?
-5) What is the latest version?
-6) Where can I get it as soon as possible?
-7) Where can I get precompiled XPilot executables?
-8) Is the latest development version also available?
-9) Sound?  Does it really have sound?
-10) How can I uncompress the source XPilot distribution files?
-11) Compilation fails, because the compiler generates lots of error messages?
-12) How should I start the game?
-13) The xpilots server complains that it is unable to read globe.map?
-14) Why is the client so slow?  Why is my display so jerky?
-15) Where can I get new maps?
-16) How can I distribute my own carefully crafted maps?
-17) How can I design my own maps easily?
-18) How can I design my own ship?
-19) I have a problem because this and that is not working.
-20) What is the meta server?  Where can I find other players?
-21) Why do I get "Could not establish connections with any metaserver"?
-22) What information on XPilot is available online?
-23) What is the unofficial XPilot Newbie Guide?
-24) How can I contribute bugfixes and new features to the game?
-25) Why do I never get any items (triangles) to appear in my maps?
-26) What are the Well Known Problems for the latest version?
-27) Why can't I shoot players flying at high speeds?
-28) Are there other implementations of XPilot?
+4) What is the latest version?
+5) Where can I get it as soon as possible?
+6) Where can I get precompiled XPilot executables?
+7) Is the latest development version also available?
+8) Sound?  Does it really have sound?
+9) How can I uncompress the source XPilot distribution files?
+10) Compilation fails, because the compiler generates lots of error messages?
+11) How should I start the game?
+12) The xpilots server complains that it is unable to read globe.map?
+13) Why is the client so slow?  Why is my display so jerky?
+14) Where can I get new maps?
+15) How can I distribute my own carefully crafted maps?
+16) How can I design my own maps easily?
+17) How can I design my own ship?
+18) I have a problem because this and that is not working.
+19) What is the meta server?  Where can I find other players?
+20) Why do I get "Could not establish connections with any metaserver"?
+21) What information on XPilot is available online?
+22) What is the unofficial XPilot Newbie Guide?
+23) How can I contribute bugfixes and new features to the game?
+24) Why do I never get any items (triangles) to appear in my maps?
+25) What are the Well Known Problems for the latest version?
+26) Why can't I shoot players flying at high speeds?
+27) Are there other implementations of XPilot?
 
 Answers:
 
@@ -67,7 +66,7 @@ authoritative documentation any wanna-be XPiloteer should read.
 Pay special attention to the two manual pages in the man6 directory
 and to all README files.
 
-Please see question 22 for more sources of information about XPilot.
+Please see question 21 for more sources of information about XPilot.
 
 2) What is this wonderful game called XPilot everybody is talking about?
 
@@ -143,24 +142,7 @@ here:
 The Windows version runs on all 32 bit Windows platforms, including
 95/98/ME/NT/Win2K and WinXP.
 
-4) Will it work on my Macintosh?
-
-With some effort, probably, unless you have a really old Mac.
-
-For the Mac, there are ports of Linux available for most models (except
-for the very oldest m68k models with no MMU) and XPilot will run on
-that.  Or if you run Mac OS/X, you can get XPilot working following
-the instructions at <URL:http://www.swproductions.co.uk/xpilot.html>
-
-To summarize, you need to install fink, use it to install an X server,
-install a window manager (e.g. Afterstep), compile & install XPilot
-(you need to have installed the Developer CD to do this) and drop to
-Darwin at boot time to run startx instead of running it under the Aqua
-interface which is very slow.  Then invoke xpilot by specifying the path
-to the installed binary (or add the directory xpilot is in to your PATH
-so you can just type "xpilot") in an xterm.
-
-5) What is the latest version?
+4) What is the latest version?
 
 4.5.4.  Which is XPilot release 4.5, patchlevel 4.
 
@@ -169,7 +151,7 @@ a new release is announced.  See:
 
 <URL:http://lists.sourceforge.net/lists/listinfo/xpilotgame-announce>
 
-6) Where can I get it as soon as possible?
+5) Where can I get it as soon as possible?
 
 Anonymous ftp to ftp.xpilot.org.  Use as login name anonymous or ftp and
 supply your email address as password.
@@ -180,7 +162,7 @@ Debian carries the latest version of the official XPilot source here:
 <URL:http://ftp.debian.org/debian/pool/main/x/xpilot/xpilot_4.5.4.orig.tar.gz>
 and at its mirror sites.
 
-7) Where can I get precompiled XPilot executables?
+6) Where can I get precompiled XPilot executables?
 
 Most Linux distributions carry precompiled XPilot executables.  See your
 distribution's nearest archive mirror.  ftp.xpilot.org itself also
@@ -188,7 +170,7 @@ distributes binaries for Windows and Red Hat Linux, the latest of which
 will be named XPilot4.5.4-NT##.exe and xpilot-4.5.4-##.i386.rpm respectively
 where "##" is the package revision number for each.
 
-8) Is the latest development version also available?
+7) Is the latest development version also available?
 
 We encourage new users to stick with the latest stable version, but if
 you would like to play with the latest development source, it is
@@ -196,7 +178,7 @@ available at <URL:http://xpilotgame.sf.net>.
 
 Note: this is not the same as <URL://xpilot.sf.net> which was so named
 simply because it was the first XPilot-based project hosted on
-SourceForge.  See question 28.  Only later did the official XPilot
+SourceForge.  See question 27.  Only later did the official XPilot
 project move to sf.net, and thus it had to be named xpilotgame.
 
 Instructions are given on the xpilotgame site for browsing or checking
@@ -221,7 +203,7 @@ in the development versions:
 
 <URL:http://nslug.ns.ca/mailman/listinfo/xpilot-hacks>
 
-9) Sound?  Does it really have sound?
+8) Sound?  Does it really have sound?
 
 Yes, but the consensus is that sound support is barely usable.  The
 principal objections are that latency is too great, and it is based on
@@ -230,20 +212,20 @@ hardly anyone uses anymore.  So if you read the docs, go through the
 bother of setting it up, and then are underwhelmed by the results, don't
 say we didn't warn you.
 
-10) How can I uncompress the XPilot source distribution files?
+9) How can I uncompress the XPilot source distribution files?
 
 The files are "tarballs", compressed tar archives in GNU zip (.gz)
 format.  On most systems, this should work:
 
 	gunzip xpilot-4.5.4.tar.gz
 
-11) Compilation fails, because the compiler generates lots of error messages?
+10) Compilation fails, because the compiler generates lots of error messages?
 
 This is probably due to not using an ANSI C compliant compiler.
 Consider using gcc.  Also, do not use the -ansi option together with GCC,
 because some system include files are not fully ANSI compatible.
 
-12) How should I start the game?
+11) How should I start the game?
 
 When you have managed to compile and install XPilot successfully or have
 installed binary packages for both the client and server, you will have
@@ -276,7 +258,7 @@ join any server you like simply by double clicking on the name.  XPWho
 provides the option of selecting a shipshape, and joining a specific
 team on team-enabled games.
 
-13) The xpilots server complains that it is unable to read globe.map?
+12) The xpilots server complains that it is unable to read globe.map?
 
 First read the READMEs more carefully.  They tell you that you
 need to adapt the Imakefile or Makefile and possibly the config.h
@@ -285,7 +267,7 @@ Specifically modify LIBDIR to the directory where you have your XPilot
 lib directory and MAPDIR in case you have changed your map directory.
 There are also two manual pages included which may offer you more help.
 
-14) Why is the client so slow?  Why is my display so jerky?
+13) Why is the client so slow?  Why is my display so jerky?
 
 A slowdown in frame rate is usually due to poor server performance. 
 Delayed "responsiveness" is most likely high network latency, and
@@ -428,7 +410,7 @@ game run more smoothly and evenly, and perhaps make the game more fair.
 Users joining across the Internet really appreciate a slightly lower
 frame rate (try values like: 14, 12 or 10).
 
-15) Where can I get new maps?
+14) Where can I get new maps?
 
 There is a collection of older maps at ftp.xpilot.org available
 via anonymous ftp:
@@ -438,7 +420,7 @@ via anonymous ftp:
 In the FAQ editor's opinion, designing a really good XPilot map is a
 rather difficult endeavour.  As a result, many of these old maps fall
 short, as is evidenced by virtually none of them being actually in use
-today (see question 20 regarding using the meta server to show maps
+today (see question 19 regarding using the meta server to show maps
 actively in use).
 
 Newer maps can be found on the web.  One up-to-date repository of XPilot
@@ -460,13 +442,13 @@ because it is so nicely done:
 
     <URL:http://www.flinthills.com/~edco/xpmaps/>
 
-16) How can I distribute my own carefully crafted maps?
+15) How can I distribute my own carefully crafted maps?
 
 See the previous question.  Jarno's site makes it easy to add a new
 map but it is perhaps also a good idea to post an announcement in
 rec.games.computer.xpilot explaining the ideas behind your map.
 
-17) How can I design my own maps easily?
+16) How can I design my own maps easily?
 
 On Unix, use the XMapEdit (xp-mapedit) program, which was made by Aaron
 Averill and donated to the XPilot project.  It is now maintained by the
@@ -486,7 +468,7 @@ with your standard text editor (vi, emacs).  And everybody did
 it that way before XMapEdit, but that seems hopelessly complex
 and tedious now.  Special thanks go to Aaron for making XMapEdit.
 
-18) How can I design my own ship?
+17) How can I design my own ship?
 
 On Unix, use editss.  You can get it by anonymous ftp to ftp.xpilot.org
 in the /pub/contrib directory.
@@ -504,7 +486,7 @@ There is also Jonny Svrling's Java "Ship Shaper" available from
 This is reported to work on Windows but not Unix.  It also
 seems to be no longer maintained.
 
-19) I have a problem because this and that is not working.
+18) I have a problem because this and that is not working.
 
 Make sure you use the latest "officially released" version.
 You will be most cooperative if you try to fix it yourself first.
@@ -524,7 +506,7 @@ There are some things that are generally helpful to mention, when relevant:
    procedures.
    Any problems you had during installation.
 
-20) What is the meta server?  Where can I find other players?
+19) What is the meta server?  Where can I find other players?
 
 The meta server is a server program that allows people to find other
 XPilot servers running on the Internet.  XPilot servers can report
@@ -619,14 +601,14 @@ both servers.
 The meta server is developed and maintained by Ken Ronny Schouten
 and Bert Gijsbers with email address meta@xpilot.org.
 
-21) Why do I get "Could not establish connections with any metaserver"?
+20) Why do I get "Could not establish connections with any metaserver"?
 
 The XPilot client will display this message when all attempts to contact
 the meta server fail.  There may temporarily be a network split between
 you and both the primary and backup meta servers, or (although this is
 rather unlikely) both meta servers may be down.  Try again later, or
 specify the address of a known xpilot server directly on the command
-line, bypassing the meta interface (see question 12).  If meta or meta2
+line, bypassing the meta interface (see question 11).  If meta or meta2
 is simply slow and not completely down, you can try using the telnet
 interface to obtain the name of the desired xpilot server (see the
 previous question).
@@ -640,7 +622,7 @@ and meta2.xpilot.org will be contacted.  If meta2 is slow or
 unreachable, the connection attempt will time out before you get a list
 of servers.  The solution here is to upgrade your client.
 
-22) What information about XPilot is available online?
+21) What information about XPilot is available online?
 
 The XPilot home page can be found at:
     <URL:http://www.xpilot.org/>
@@ -672,7 +654,7 @@ with your favourite web search engine for the keyword "xpilot".  Try:
 
     <URL:http://www.google.ca/search?q=xpilot>
 
-23) What is the unofficial XPilot Newbie Guide?
+22) What is the unofficial XPilot Newbie Guide?
 
 The Newbie Guide is an interactive web site that incorporates much of the
 knowledge and wisdom of experienced players into a single document.  It
@@ -688,7 +670,7 @@ here:
 Topics ranging from complete descriptions of all weapons to ship-making,
 map-making, jargon and etiquette are all covered by this guide.
 
-24) How can I contribute bugfixes and new features to the game?
+23) How can I contribute bugfixes and new features to the game?
 
 Make your contributions as context diffs against the latest version and
 mail them to xpilot-hacks@nslug.ns.ca which is an open forum where
@@ -702,7 +684,7 @@ newfile" or "diff -cr olddir newdir".  The authors very much appreciate
 fixes and improvements.  XPilot has a longstanding tradition of
 incorporating code from hackers all over the world.
 
-25) Why do I never get any items (triangles) to appear in my maps?
+24) Why do I never get any items (triangles) to appear in my maps?
 
 At startup the xpilot server looks for a configuration file to
 retrieve default values for some of the options.
@@ -716,11 +698,11 @@ This is the case if you do not get any items to appear in your maps.
 An example defaults file with reasonable default values can be
 found in the XPilot distribution as ./lib/defaults.
 
-26) What are the Well Known Problems for the latest version?
+25) What are the Well Known Problems for the latest version?
 
 None.
 
-27) Why can't I shoot players flying at high speeds?
+26) Why can't I shoot players flying at high speeds?
 
 Uoti Urpala provides this explanation:
 
@@ -739,7 +721,7 @@ world with edgeWrap = true until the ship appears to be stationary,
 i.e. is flying so fast that each frame it moves the entire height
 (or width) of the map.
 
-28) Are there other implementations of XPilot?
+27) Are there other implementations of XPilot?
 
 Yes and no.  Nothing has been released by either of these projects yet,
 but they are being actively developed, and the very daring and

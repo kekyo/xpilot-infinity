@@ -25,28 +25,19 @@ const ignoredApplicationDirectories = new Set(
 const binaryExtensions = new Set([
   '.bmp',
   '.gif',
-  '.icns',
   '.ico',
   '.png',
-  '.pmsm',
-  '.pmsp',
   '.ppm',
   '.ttf',
   '.wav',
   '.xpd',
-]);
-const nonUtf8TextPaths = new Set([
-  'contrib/macosx/English.lproj/InfoPlist.strings',
 ]);
 const decoder = new TextDecoder('utf-8', { fatal: true });
 const failures = [];
 
 const inspectFile = async (path) => {
   const relativePath = relative(sourceRoot, path);
-  if (
-    binaryExtensions.has(extname(path).toLowerCase()) ||
-    nonUtf8TextPaths.has(relativePath)
-  ) {
+  if (binaryExtensions.has(extname(path).toLowerCase())) {
     return;
   }
 

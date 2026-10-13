@@ -258,7 +258,6 @@ target_triplet = @target@
 @COND_WINDOWS_FALSE@	run-package-cmake.sh \
 @COND_WINDOWS_FALSE@	run-package-windows.sh \
 @COND_WINDOWS_FALSE@	run-windows-archive.sh \
-@COND_WINDOWS_FALSE@	run-macos-info-plist.sh \
 @COND_WINDOWS_FALSE@	run-source-encoding.sh \
 @COND_WINDOWS_FALSE@	run-c23-server-build.sh \
 @COND_WINDOWS_FALSE@	run-vendored-zlib.sh \
@@ -276,8 +275,8 @@ target_triplet = @target@
 @COND_WINDOWS_FALSE@	test-srecord-input$(EXEEXT)
 @COND_WINDOWS_TRUE@TESTS = $(am__EXEEXT_1) $(am__append_4) \
 @COND_WINDOWS_TRUE@	$(am__EXEEXT_3)
-@COND_SOUND_TRUE@@COND_WINDOWS_FALSE@am__append_1 = test-audio-device
-@COND_SOUND_TRUE@@COND_WINDOWS_FALSE@am__append_2 = test-audio-device
+@COND_SOUND_TRUE@@COND_WINDOWS_FALSE@am__append_1 = test-audio-device test-audio-portable
+@COND_SOUND_TRUE@@COND_WINDOWS_FALSE@am__append_2 = test-audio-device test-audio-portable
 @COND_WINDOWS_FALSE@@COND_X11_CLIENT_TRUE@am__append_3 = test-x11-text
 @COND_WINDOWS_FALSE@@COND_X11_CLIENT_TRUE@am__append_4 = run-x11-text.sh
 @COND_WINDOWS_FALSE@@COND_XP_MAPEDIT_TRUE@am__append_5 = test-mapedit-input
@@ -299,7 +298,8 @@ mkinstalldirs = $(SHELL) $(top_srcdir)/config/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-@COND_SOUND_TRUE@@COND_WINDOWS_FALSE@am__EXEEXT_1 = test-audio-device$(EXEEXT)
+@COND_SOUND_TRUE@@COND_WINDOWS_FALSE@am__EXEEXT_1 = test-audio-device$(EXEEXT) \
+@COND_SOUND_TRUE@@COND_WINDOWS_FALSE@	test-audio-portable$(EXEEXT)
 @COND_WINDOWS_FALSE@@COND_X11_CLIENT_TRUE@am__EXEEXT_2 = test-x11-text$(EXEEXT)
 @COND_WINDOWS_FALSE@@COND_XP_MAPEDIT_TRUE@am__EXEEXT_3 = test-mapedit-input$(EXEEXT)
 am_test_audio_device_OBJECTS =  \
@@ -310,11 +310,20 @@ test_audio_device_DEPENDENCIES =  \
 	$(top_builddir)/src/common/libxpcommon.a
 test_audio_device_LINK = $(CCLD) $(test_audio_device_CFLAGS) $(CFLAGS) \
 	$(test_audio_device_LDFLAGS) $(LDFLAGS) -o $@
+am__dirstamp = $(am__leading_dot)dirstamp
+am_test_audio_portable_OBJECTS =  \
+	test_audio_portable-test_audio_device.$(OBJEXT) \
+	$(top_builddir)/src/client/test_audio_portable-oalaudio.$(OBJEXT)
+test_audio_portable_OBJECTS = $(am_test_audio_portable_OBJECTS)
+am__DEPENDENCIES_1 = $(top_builddir)/src/client/libxpclient.a \
+	$(top_builddir)/src/common/libxpcommon.a
+test_audio_portable_DEPENDENCIES = $(am__DEPENDENCIES_1)
+test_audio_portable_LINK = $(CCLD) $(test_audio_portable_CFLAGS) \
+	$(CFLAGS) $(test_audio_portable_LDFLAGS) $(LDFLAGS) -o $@
 am_test_checknames_OBJECTS = test_checknames.$(OBJEXT)
 test_checknames_OBJECTS = $(am_test_checknames_OBJECTS)
 test_checknames_DEPENDENCIES =  \
 	$(top_builddir)/src/common/libxpcommon.a
-am__dirstamp = $(am__leading_dot)dirstamp
 am_test_connect_target_OBJECTS = test_connect_target.$(OBJEXT) \
 	$(top_builddir)/src/client/connect_target.$(OBJEXT)
 test_connect_target_OBJECTS = $(am_test_connect_target_OBJECTS)
@@ -335,8 +344,8 @@ test_framed_stream_DEPENDENCIES =  \
 am_test_game_input_OBJECTS = test_game_input.$(OBJEXT) \
 	$(top_builddir)/src/client/sdl/gameinput.$(OBJEXT)
 test_game_input_OBJECTS = $(am_test_game_input_OBJECTS)
-am__DEPENDENCIES_1 =
-test_game_input_DEPENDENCIES = $(am__DEPENDENCIES_1)
+am__DEPENDENCIES_2 =
+test_game_input_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_test_game_transport_OBJECTS = test_game_transport.$(OBJEXT)
 test_game_transport_OBJECTS = $(am_test_game_transport_OBJECTS)
 test_game_transport_DEPENDENCIES =  \
@@ -344,7 +353,7 @@ test_game_transport_DEPENDENCIES =  \
 am_test_gameloop_OBJECTS = test_gameloop.$(OBJEXT) \
 	$(top_builddir)/src/client/sdl/gameloop.$(OBJEXT)
 test_gameloop_OBJECTS = $(am_test_gameloop_OBJECTS)
-test_gameloop_DEPENDENCIES = $(am__DEPENDENCIES_1)
+test_gameloop_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_test_gfx2d_picture_OBJECTS = test_gfx2d_picture.$(OBJEXT) \
 	$(top_builddir)/src/client/gfx2d.$(OBJEXT)
 test_gfx2d_picture_OBJECTS = $(am_test_gfx2d_picture_OBJECTS)
@@ -362,8 +371,8 @@ am_test_gl_core_resources_OBJECTS =  \
 	$(top_builddir)/src/client/sdl/test_gl_core_resources-text_geometry.$(OBJEXT) \
 	$(top_builddir)/src/client/sdl/test_gl_core_resources-text_ttf_atlas.$(OBJEXT)
 test_gl_core_resources_OBJECTS = $(am_test_gl_core_resources_OBJECTS)
-test_gl_core_resources_DEPENDENCIES = $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1)
+test_gl_core_resources_DEPENDENCIES = $(am__DEPENDENCIES_2) \
+	$(am__DEPENDENCIES_2)
 test_gl_core_resources_LINK = $(CCLD) $(test_gl_core_resources_CFLAGS) \
 	$(CFLAGS) $(test_gl_core_resources_LDFLAGS) $(LDFLAGS) -o $@
 am_test_glwidgets_primitives_OBJECTS =  \
@@ -371,7 +380,7 @@ am_test_glwidgets_primitives_OBJECTS =  \
 	$(top_builddir)/src/client/sdl/test_glwidgets_primitives-glwidgets.$(OBJEXT)
 test_glwidgets_primitives_OBJECTS =  \
 	$(am_test_glwidgets_primitives_OBJECTS)
-test_glwidgets_primitives_DEPENDENCIES = $(am__DEPENDENCIES_1)
+test_glwidgets_primitives_DEPENDENCIES = $(am__DEPENDENCIES_2)
 test_glwidgets_primitives_LINK = $(CCLD) \
 	$(test_glwidgets_primitives_CFLAGS) $(CFLAGS) \
 	$(test_glwidgets_primitives_LDFLAGS) $(LDFLAGS) -o $@
@@ -379,7 +388,7 @@ am_test_glwidgets_scissor_OBJECTS =  \
 	test_glwidgets_scissor-test_glwidgets_scissor.$(OBJEXT) \
 	$(top_builddir)/src/client/sdl/test_glwidgets_scissor-glwidgets.$(OBJEXT)
 test_glwidgets_scissor_OBJECTS = $(am_test_glwidgets_scissor_OBJECTS)
-test_glwidgets_scissor_DEPENDENCIES = $(am__DEPENDENCIES_1)
+test_glwidgets_scissor_DEPENDENCIES = $(am__DEPENDENCIES_2)
 test_glwidgets_scissor_LINK = $(CCLD) $(test_glwidgets_scissor_CFLAGS) \
 	$(CFLAGS) $(test_glwidgets_scissor_LDFLAGS) $(LDFLAGS) -o $@
 am_test_image_geometry_OBJECTS = test_image_geometry.$(OBJEXT) \
@@ -391,7 +400,7 @@ am_test_images_OBJECTS = test_images-test_images.$(OBJEXT) \
 	$(top_builddir)/src/client/sdl/test_images-image_geometry.$(OBJEXT) \
 	$(top_builddir)/src/common/test_images-strdup.$(OBJEXT)
 test_images_OBJECTS = $(am_test_images_OBJECTS)
-test_images_DEPENDENCIES = $(am__DEPENDENCIES_1)
+test_images_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_test_mapdata_input_OBJECTS =  \
 	test_mapdata_input-test_mapdata_input.$(OBJEXT)
 test_mapdata_input_OBJECTS = $(am_test_mapdata_input_OBJECTS)
@@ -443,8 +452,8 @@ am_test_native_text_OBJECTS =  \
 test_native_text_OBJECTS = $(am_test_native_text_OBJECTS)
 test_native_text_DEPENDENCIES =  \
 	$(top_builddir)/src/client/libxpclient.a \
-	$(top_builddir)/src/common/libxpcommon.a $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1)
+	$(top_builddir)/src/common/libxpcommon.a $(am__DEPENDENCIES_2) \
+	$(am__DEPENDENCIES_2)
 am_test_paint_transform_OBJECTS = test_paint_transform.$(OBJEXT) \
 	$(top_builddir)/src/client/sdl/paint_transform.$(OBJEXT)
 test_paint_transform_OBJECTS = $(am_test_paint_transform_OBJECTS)
@@ -469,7 +478,7 @@ am_test_radar_renderer_OBJECTS =  \
 	test_radar_renderer-test_radar_renderer.$(OBJEXT) \
 	$(top_builddir)/src/client/sdl/test_radar_renderer-radar.$(OBJEXT)
 test_radar_renderer_OBJECTS = $(am_test_radar_renderer_OBJECTS)
-test_radar_renderer_DEPENDENCIES = $(am__DEPENDENCIES_1)
+test_radar_renderer_DEPENDENCIES = $(am__DEPENDENCIES_2)
 test_radar_renderer_LINK = $(CCLD) $(test_radar_renderer_CFLAGS) \
 	$(CFLAGS) $(test_radar_renderer_LDFLAGS) $(LDFLAGS) -o $@
 am_test_randommt_OBJECTS = test_randommt.$(OBJEXT)
@@ -500,7 +509,7 @@ am_test_renderer_gl_core_OBJECTS = test_renderer_gl_core.$(OBJEXT) \
 	$(top_builddir)/src/client/sdl/renderer_gl_core.$(OBJEXT) \
 	$(top_builddir)/src/client/sdl/text_geometry.$(OBJEXT)
 test_renderer_gl_core_OBJECTS = $(am_test_renderer_gl_core_OBJECTS)
-test_renderer_gl_core_DEPENDENCIES = $(am__DEPENDENCIES_1)
+test_renderer_gl_core_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_test_robot_intercept_OBJECTS =  \
 	test_robot_intercept-test_robot_intercept.$(OBJEXT) \
 	$(top_builddir)/src/server/test_robot_intercept-suibotdef.$(OBJEXT)
@@ -513,21 +522,21 @@ am_test_score_font_OBJECTS =  \
 	$(top_builddir)/src/client/sdl/test_score_font-score_font.$(OBJEXT)
 test_score_font_OBJECTS = $(am_test_score_font_OBJECTS)
 test_score_font_DEPENDENCIES =  \
-	$(top_builddir)/src/client/libxpclient.a $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1)
+	$(top_builddir)/src/client/libxpclient.a $(am__DEPENDENCIES_2) \
+	$(am__DEPENDENCIES_2)
 am_test_sdl_clipboard_OBJECTS = test_sdl_clipboard.$(OBJEXT) \
 	$(top_builddir)/src/client/sdl/sdlclipboard.$(OBJEXT)
 test_sdl_clipboard_OBJECTS = $(am_test_sdl_clipboard_OBJECTS)
-test_sdl_clipboard_DEPENDENCIES = $(am__DEPENDENCIES_1)
+test_sdl_clipboard_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_test_sdl_console_OBJECTS = test_sdl_console.$(OBJEXT) \
 	$(top_builddir)/src/client/sdl/SDL_console.$(OBJEXT)
 test_sdl_console_OBJECTS = $(am_test_sdl_console_OBJECTS)
-test_sdl_console_DEPENDENCIES = $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1)
+test_sdl_console_DEPENDENCIES = $(am__DEPENDENCIES_2) \
+	$(am__DEPENDENCIES_2)
 am_test_sdl_event_OBJECTS = test_sdl_event.$(OBJEXT) \
 	$(top_builddir)/src/client/sdl/sdlevent.$(OBJEXT)
 test_sdl_event_OBJECTS = $(am_test_sdl_event_OBJECTS)
-test_sdl_event_DEPENDENCIES = $(am__DEPENDENCIES_1)
+test_sdl_event_DEPENDENCIES = $(am__DEPENDENCIES_2)
 test_sdl_event_LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(test_sdl_event_LDFLAGS) $(LDFLAGS) -o $@
 am_test_sdl_game_frame_OBJECTS = test_sdl_game_frame.$(OBJEXT) \
@@ -538,15 +547,15 @@ am_test_sdl_init_core_profile_OBJECTS = test_sdl_init_core_profile-test_sdl_init
 	$(top_builddir)/src/client/sdl/test_sdl_init_core_profile-sdlinit.$(OBJEXT)
 test_sdl_init_core_profile_OBJECTS =  \
 	$(am_test_sdl_init_core_profile_OBJECTS)
-test_sdl_init_core_profile_DEPENDENCIES = $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1)
+test_sdl_init_core_profile_DEPENDENCIES = $(am__DEPENDENCIES_2) \
+	$(am__DEPENDENCIES_2)
 test_sdl_init_core_profile_LINK = $(CCLD) \
 	$(test_sdl_init_core_profile_CFLAGS) $(CFLAGS) \
 	$(test_sdl_init_core_profile_LDFLAGS) $(LDFLAGS) -o $@
 am_test_sdl_keys_OBJECTS = test_sdl_keys.$(OBJEXT) \
 	$(top_builddir)/src/client/sdl/sdlkeys.$(OBJEXT)
 test_sdl_keys_OBJECTS = $(am_test_sdl_keys_OBJECTS)
-test_sdl_keys_DEPENDENCIES = $(am__DEPENDENCIES_1)
+test_sdl_keys_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_test_sdl_meta_frame_OBJECTS = test_sdl_meta_frame.$(OBJEXT) \
 	$(top_builddir)/src/client/sdl/sdlmetaframe.$(OBJEXT)
 test_sdl_meta_frame_OBJECTS = $(am_test_sdl_meta_frame_OBJECTS)
@@ -558,14 +567,14 @@ am_test_sdl_renderer_core_context_OBJECTS =  \
 	$(top_builddir)/src/client/sdl/sdlrenderer.$(OBJEXT)
 test_sdl_renderer_core_context_OBJECTS =  \
 	$(am_test_sdl_renderer_core_context_OBJECTS)
-test_sdl_renderer_core_context_DEPENDENCIES = $(am__DEPENDENCIES_1)
+test_sdl_renderer_core_context_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_test_sdl_renderer_scissor_OBJECTS =  \
 	test_sdl_renderer_scissor-test_sdl_renderer_scissor.$(OBJEXT) \
 	$(top_builddir)/src/client/sdl/test_sdl_renderer_scissor-renderer.$(OBJEXT) \
 	$(top_builddir)/src/client/sdl/test_sdl_renderer_scissor-sdlrenderer.$(OBJEXT)
 test_sdl_renderer_scissor_OBJECTS =  \
 	$(am_test_sdl_renderer_scissor_OBJECTS)
-test_sdl_renderer_scissor_DEPENDENCIES = $(am__DEPENDENCIES_1)
+test_sdl_renderer_scissor_DEPENDENCIES = $(am__DEPENDENCIES_2)
 test_sdl_renderer_scissor_LINK = $(CCLD) \
 	$(test_sdl_renderer_scissor_CFLAGS) $(CFLAGS) \
 	$(test_sdl_renderer_scissor_LDFLAGS) $(LDFLAGS) -o $@
@@ -580,7 +589,7 @@ test_sdl_server_browser_DEPENDENCIES =  \
 am_test_sdl_surface_OBJECTS = test_sdl_surface.$(OBJEXT) \
 	$(top_builddir)/src/client/sdl/sdlcompat.$(OBJEXT)
 test_sdl_surface_OBJECTS = $(am_test_sdl_surface_OBJECTS)
-test_sdl_surface_DEPENDENCIES = $(am__DEPENDENCIES_1)
+test_sdl_surface_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_test_sdl_ui_image_OBJECTS =  \
 	test_sdl_ui_image-test_sdl_ui_image.$(OBJEXT) \
 	$(top_builddir)/src/client/sdl/test_sdl_ui_image-sdluiimage.$(OBJEXT) \
@@ -589,23 +598,23 @@ am_test_sdl_ui_image_OBJECTS =  \
 	$(top_builddir)/src/client/sdl/test_sdl_ui_image-surface_rgba8.$(OBJEXT) \
 	$(top_builddir)/src/client/sdl/test_sdl_ui_image-sdlcompat.$(OBJEXT)
 test_sdl_ui_image_OBJECTS = $(am_test_sdl_ui_image_OBJECTS)
-test_sdl_ui_image_DEPENDENCIES = $(am__DEPENDENCIES_1)
+test_sdl_ui_image_DEPENDENCIES = $(am__DEPENDENCIES_2)
 test_sdl_ui_image_LINK = $(CCLD) $(test_sdl_ui_image_CFLAGS) $(CFLAGS) \
 	$(test_sdl_ui_image_LDFLAGS) $(LDFLAGS) -o $@
 am_test_sdl_versions_OBJECTS = test_sdl_versions.$(OBJEXT)
 test_sdl_versions_OBJECTS = $(am_test_sdl_versions_OBJECTS)
-test_sdl_versions_DEPENDENCIES = $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
+test_sdl_versions_DEPENDENCIES = $(am__DEPENDENCIES_2) \
+	$(am__DEPENDENCIES_2) $(am__DEPENDENCIES_2)
 am_test_sdl_window_OBJECTS = test_sdl_window.$(OBJEXT) \
 	$(top_builddir)/src/client/sdl/sdlwindow.$(OBJEXT)
 test_sdl_window_OBJECTS = $(am_test_sdl_window_OBJECTS)
-test_sdl_window_DEPENDENCIES = $(am__DEPENDENCIES_1)
+test_sdl_window_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_test_sdlgui_appearing_OBJECTS =  \
 	test_sdlgui_appearing-test_sdlgui_appearing.$(OBJEXT) \
 	$(top_builddir)/src/client/sdl/test_sdlgui_appearing-sdlgui.$(OBJEXT) \
 	$(top_builddir)/src/client/test_sdlgui_appearing-paintobjects.$(OBJEXT)
 test_sdlgui_appearing_OBJECTS = $(am_test_sdlgui_appearing_OBJECTS)
-test_sdlgui_appearing_DEPENDENCIES = $(am__DEPENDENCIES_1)
+test_sdlgui_appearing_DEPENDENCIES = $(am__DEPENDENCIES_2)
 test_sdlgui_appearing_LINK = $(CCLD) $(test_sdlgui_appearing_CFLAGS) \
 	$(CFLAGS) $(test_sdlgui_appearing_LDFLAGS) $(LDFLAGS) -o $@
 am_test_sdlgui_asteroids_OBJECTS =  \
@@ -616,14 +625,14 @@ am_test_sdlgui_asteroids_OBJECTS =  \
 test_sdlgui_asteroids_OBJECTS = $(am_test_sdlgui_asteroids_OBJECTS)
 test_sdlgui_asteroids_DEPENDENCIES =  \
 	$(top_builddir)/src/client/sdl/libxp_libtess2.a \
-	$(am__DEPENDENCIES_1)
+	$(am__DEPENDENCIES_2)
 test_sdlgui_asteroids_LINK = $(CCLD) $(test_sdlgui_asteroids_CFLAGS) \
 	$(CFLAGS) $(test_sdlgui_asteroids_LDFLAGS) $(LDFLAGS) -o $@
 am_test_sdlgui_hud_primitives_OBJECTS = test_sdlgui_hud_primitives-test_sdlgui_hud_primitives.$(OBJEXT) \
 	$(top_builddir)/src/client/sdl/test_sdlgui_hud_primitives-sdlgui.$(OBJEXT)
 test_sdlgui_hud_primitives_OBJECTS =  \
 	$(am_test_sdlgui_hud_primitives_OBJECTS)
-test_sdlgui_hud_primitives_DEPENDENCIES = $(am__DEPENDENCIES_1)
+test_sdlgui_hud_primitives_DEPENDENCIES = $(am__DEPENDENCIES_2)
 test_sdlgui_hud_primitives_LINK = $(CCLD) \
 	$(test_sdlgui_hud_primitives_CFLAGS) $(CFLAGS) \
 	$(test_sdlgui_hud_primitives_LDFLAGS) $(LDFLAGS) -o $@
@@ -634,7 +643,7 @@ am_test_sdlgui_polygons_OBJECTS =  \
 test_sdlgui_polygons_OBJECTS = $(am_test_sdlgui_polygons_OBJECTS)
 test_sdlgui_polygons_DEPENDENCIES =  \
 	$(top_builddir)/src/client/sdl/libxp_libtess2.a \
-	$(am__DEPENDENCIES_1)
+	$(am__DEPENDENCIES_2)
 test_sdlgui_polygons_LINK = $(CCLD) $(test_sdlgui_polygons_CFLAGS) \
 	$(CFLAGS) $(test_sdlgui_polygons_LDFLAGS) $(LDFLAGS) -o $@
 am_test_sdlgui_ships_OBJECTS =  \
@@ -642,7 +651,7 @@ am_test_sdlgui_ships_OBJECTS =  \
 	$(top_builddir)/src/client/sdl/test_sdlgui_ships-sdlgui.$(OBJEXT) \
 	$(top_builddir)/src/client/test_sdlgui_ships-paintobjects.$(OBJEXT)
 test_sdlgui_ships_OBJECTS = $(am_test_sdlgui_ships_OBJECTS)
-test_sdlgui_ships_DEPENDENCIES = $(am__DEPENDENCIES_1)
+test_sdlgui_ships_DEPENDENCIES = $(am__DEPENDENCIES_2)
 test_sdlgui_ships_LINK = $(CCLD) $(test_sdlgui_ships_CFLAGS) $(CFLAGS) \
 	$(test_sdlgui_ships_LDFLAGS) $(LDFLAGS) -o $@
 am_test_sdlgui_sparks_OBJECTS =  \
@@ -650,7 +659,7 @@ am_test_sdlgui_sparks_OBJECTS =  \
 	$(top_builddir)/src/client/sdl/test_sdlgui_sparks-sdlgui.$(OBJEXT) \
 	$(top_builddir)/src/client/test_sdlgui_sparks-paintobjects.$(OBJEXT)
 test_sdlgui_sparks_OBJECTS = $(am_test_sdlgui_sparks_OBJECTS)
-test_sdlgui_sparks_DEPENDENCIES = $(am__DEPENDENCIES_1)
+test_sdlgui_sparks_DEPENDENCIES = $(am__DEPENDENCIES_2)
 test_sdlgui_sparks_LINK = $(CCLD) $(test_sdlgui_sparks_CFLAGS) \
 	$(CFLAGS) $(test_sdlgui_sparks_LDFLAGS) $(LDFLAGS) -o $@
 am_test_sdlmeta_primitives_OBJECTS =  \
@@ -658,7 +667,7 @@ am_test_sdlmeta_primitives_OBJECTS =  \
 	$(top_builddir)/src/client/sdl/test_sdlmeta_primitives-sdlmeta.$(OBJEXT)
 test_sdlmeta_primitives_OBJECTS =  \
 	$(am_test_sdlmeta_primitives_OBJECTS)
-test_sdlmeta_primitives_DEPENDENCIES = $(am__DEPENDENCIES_1)
+test_sdlmeta_primitives_DEPENDENCIES = $(am__DEPENDENCIES_2)
 test_sdlmeta_primitives_LINK = $(CCLD) \
 	$(test_sdlmeta_primitives_CFLAGS) $(CFLAGS) \
 	$(test_sdlmeta_primitives_LDFLAGS) $(LDFLAGS) -o $@
@@ -666,7 +675,7 @@ am_test_sdlpaint_stage_OBJECTS =  \
 	test_sdlpaint_stage-test_sdlpaint_stage.$(OBJEXT) \
 	$(top_builddir)/src/client/sdl/test_sdlpaint_stage-sdlpaint.$(OBJEXT)
 test_sdlpaint_stage_OBJECTS = $(am_test_sdlpaint_stage_OBJECTS)
-test_sdlpaint_stage_DEPENDENCIES = $(am__DEPENDENCIES_1)
+test_sdlpaint_stage_DEPENDENCIES = $(am__DEPENDENCIES_2)
 test_sdlpaint_stage_LINK = $(CCLD) $(test_sdlpaint_stage_CFLAGS) \
 	$(CFLAGS) $(test_sdlpaint_stage_LDFLAGS) $(LDFLAGS) -o $@
 am_test_server_admission_OBJECTS = test_server_admission.$(OBJEXT)
@@ -707,24 +716,24 @@ am_test_surface_primitives_OBJECTS =  \
 	$(top_builddir)/src/client/sdl/surface_primitives.$(OBJEXT)
 test_surface_primitives_OBJECTS =  \
 	$(am_test_surface_primitives_OBJECTS)
-test_surface_primitives_DEPENDENCIES = $(am__DEPENDENCIES_1)
+test_surface_primitives_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_test_surface_rgba8_OBJECTS = test_surface_rgba8.$(OBJEXT) \
 	$(top_builddir)/src/client/sdl/surface_rgba8.$(OBJEXT) \
 	$(top_builddir)/src/client/sdl/sdlcompat.$(OBJEXT)
 test_surface_rgba8_OBJECTS = $(am_test_surface_rgba8_OBJECTS)
-test_surface_rgba8_DEPENDENCIES = $(am__DEPENDENCIES_1)
+test_surface_rgba8_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_test_talkmacro_input_OBJECTS =  \
 	test_talkmacro_input-test_talkmacro_input.$(OBJEXT) \
 	$(top_builddir)/src/client/test_talkmacro_input-talkmacros.$(OBJEXT)
 test_talkmacro_input_OBJECTS = $(am_test_talkmacro_input_OBJECTS)
 test_talkmacro_input_DEPENDENCIES =  \
-	$(top_builddir)/src/common/libxpcommon.a $(am__DEPENDENCIES_1)
+	$(top_builddir)/src/common/libxpcommon.a $(am__DEPENDENCIES_2)
 test_talkmacro_input_LINK = $(CCLD) $(test_talkmacro_input_CFLAGS) \
 	$(CFLAGS) $(test_talkmacro_input_LDFLAGS) $(LDFLAGS) -o $@
 am_test_text_atlas_OBJECTS = test_text_atlas.$(OBJEXT) \
 	$(top_builddir)/src/client/sdl/text_atlas.$(OBJEXT)
 test_text_atlas_OBJECTS = $(am_test_text_atlas_OBJECTS)
-test_text_atlas_DEPENDENCIES = $(am__DEPENDENCIES_1)
+test_text_atlas_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_test_text_cache_adapter_OBJECTS =  \
 	test_text_cache_adapter-test_text_cache_adapter.$(OBJEXT) \
 	$(top_builddir)/src/client/sdl/test_text_cache_adapter-text.$(OBJEXT)
@@ -752,8 +761,8 @@ am_test_text_ttf_atlas_OBJECTS =  \
 	$(top_builddir)/src/client/sdl/test_text_ttf_atlas-text_atlas.$(OBJEXT) \
 	$(top_builddir)/src/client/sdl/test_text_ttf_atlas-text_geometry.$(OBJEXT)
 test_text_ttf_atlas_OBJECTS = $(am_test_text_ttf_atlas_OBJECTS)
-test_text_ttf_atlas_DEPENDENCIES = $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1)
+test_text_ttf_atlas_DEPENDENCIES = $(am__DEPENDENCIES_2) \
+	$(am__DEPENDENCIES_2)
 test_text_ttf_atlas_LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(test_text_ttf_atlas_LDFLAGS) $(LDFLAGS) -o $@
 am_test_transport_display_OBJECTS = test_transport_display.$(OBJEXT) \
@@ -781,8 +790,8 @@ am_test_x11_text_OBJECTS = test_x11_text-test_x11_text.$(OBJEXT) \
 	$(top_builddir)/src/client/x11/test_x11_text-x11_text.$(OBJEXT)
 test_x11_text_OBJECTS = $(am_test_x11_text_OBJECTS)
 test_x11_text_DEPENDENCIES = $(top_builddir)/src/client/libxpclient.a \
-	$(top_builddir)/src/common/libxpcommon.a $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1)
+	$(top_builddir)/src/common/libxpcommon.a $(am__DEPENDENCIES_2) \
+	$(am__DEPENDENCIES_2)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -801,6 +810,7 @@ am__maybe_remake_depfiles = depfiles
 am__depfiles_remade =  \
 	$(top_builddir)/src/client/$(DEPDIR)/connect_target.Po \
 	$(top_builddir)/src/client/$(DEPDIR)/gfx2d.Po \
+	$(top_builddir)/src/client/$(DEPDIR)/test_audio_portable-oalaudio.Po \
 	$(top_builddir)/src/client/$(DEPDIR)/test_messages-clientcommand.Po \
 	$(top_builddir)/src/client/$(DEPDIR)/test_messages-messages.Po \
 	$(top_builddir)/src/client/$(DEPDIR)/test_meta_environment-connect_target.Po \
@@ -887,6 +897,7 @@ am__depfiles_remade =  \
 	$(top_builddir)/src/server/$(DEPDIR)/test_session_flow-session_acceptor.Po \
 	$(top_builddir)/src/server/$(DEPDIR)/test_web_front-web_front.Po \
 	./$(DEPDIR)/test_audio_device-test_audio_device.Po \
+	./$(DEPDIR)/test_audio_portable-test_audio_device.Po \
 	./$(DEPDIR)/test_checknames.Po \
 	./$(DEPDIR)/test_connect_target.Po \
 	./$(DEPDIR)/test_contact_target_probe.Po \
@@ -976,8 +987,8 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 =
-SOURCES = $(test_audio_device_SOURCES) $(test_checknames_SOURCES) \
-	$(test_connect_target_SOURCES) \
+SOURCES = $(test_audio_device_SOURCES) $(test_audio_portable_SOURCES) \
+	$(test_checknames_SOURCES) $(test_connect_target_SOURCES) \
 	$(test_contact_target_probe_SOURCES) \
 	$(test_framed_stream_SOURCES) $(test_game_input_SOURCES) \
 	$(test_game_transport_SOURCES) $(test_gameloop_SOURCES) \
@@ -1028,7 +1039,8 @@ SOURCES = $(test_audio_device_SOURCES) $(test_checknames_SOURCES) \
 	$(test_unicode_text_renderer_SOURCES) \
 	$(test_web_front_SOURCES) $(test_websocket_transport_SOURCES) \
 	$(test_x11_text_SOURCES)
-DIST_SOURCES = $(test_audio_device_SOURCES) $(test_checknames_SOURCES) \
+DIST_SOURCES = $(test_audio_device_SOURCES) \
+	$(test_audio_portable_SOURCES) $(test_checknames_SOURCES) \
 	$(test_connect_target_SOURCES) \
 	$(test_contact_target_probe_SOURCES) \
 	$(test_framed_stream_SOURCES) $(test_game_input_SOURCES) \
@@ -2058,6 +2070,15 @@ test_audio_device_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections \
 test_audio_device_LDADD = $(top_builddir)/src/client/libxpclient.a \
 	$(top_builddir)/src/common/libxpcommon.a @SOUND_LIBS@
 
+test_audio_portable_SOURCES = test_audio_device.c \
+	$(top_srcdir)/src/client/oalaudio.c
+
+test_audio_portable_CPPFLAGS = $(AM_CPPFLAGS) @SOUND_CFLAGS@ \
+	-DMACOSX_FRAMEWORKS
+
+test_audio_portable_CFLAGS = $(test_audio_device_CFLAGS)
+test_audio_portable_LDFLAGS = $(test_audio_device_LDFLAGS)
+test_audio_portable_LDADD = $(test_audio_device_LDADD)
 TEST_EXTENSIONS = .sh
 SH_LOG_COMPILER = $(SHELL)
 AM_TESTS_ENVIRONMENT = \
@@ -2108,8 +2129,6 @@ AM_TESTS_ENVIRONMENT = \
 	export XPILOT_WINDOWS_ICON; \
 	XPILOT_WINDOWS_PACKAGER='$(abs_top_srcdir)/config/package-windows.sh'; \
 	export XPILOT_WINDOWS_PACKAGER; \
-	XPILOT_MACOS_INFO_PLIST='$(abs_top_srcdir)/contrib/macosx/English.lproj/InfoPlist.strings'; \
-	export XPILOT_MACOS_INFO_PLIST; \
 	XPILOT_SOURCE_ENCODING_ROOT='$(abs_top_srcdir)'; \
 	export XPILOT_SOURCE_ENCODING_ROOT; \
 	XPILOT_C23_CC='$(CC)'; export XPILOT_C23_CC; \
@@ -2127,10 +2146,10 @@ EXTRA_DIST = run-build-metadata.sh run-build-wrapper.sh \
 	run-vendored-zlib.sh \
 	run-wine-suite.sh run-build-package.sh run-package-tools.sh \
 	run-package-cmake.sh run-package-windows.sh \
-	run-windows-archive.sh run-macos-info-plist.sh \
+	run-windows-archive.sh \
 	run-container-publish.sh run-container-image.sh run-quadlet.sh \
 	run-source-encoding.sh test-source-encoding.mjs \
-	test-windows-archive.mjs test-macos-info-plist.mjs test_helpers.h
+	test-windows-archive.mjs test_helpers.h
 
 all: all-am
 
@@ -2172,16 +2191,23 @@ clean-checkPROGRAMS:
 test-audio-device$(EXEEXT): $(test_audio_device_OBJECTS) $(test_audio_device_DEPENDENCIES) $(EXTRA_test_audio_device_DEPENDENCIES)
 	@rm -f test-audio-device$(EXEEXT)
 	$(AM_V_CCLD)$(test_audio_device_LINK) $(test_audio_device_OBJECTS) $(test_audio_device_LDADD) $(LIBS)
-
-test-checknames$(EXEEXT): $(test_checknames_OBJECTS) $(test_checknames_DEPENDENCIES) $(EXTRA_test_checknames_DEPENDENCIES)
-	@rm -f test-checknames$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(test_checknames_OBJECTS) $(test_checknames_LDADD) $(LIBS)
 $(top_builddir)/src/client/$(am__dirstamp):
 	@$(MKDIR_P) $(top_builddir)/src/client
 	@: > $(top_builddir)/src/client/$(am__dirstamp)
 $(top_builddir)/src/client/$(DEPDIR)/$(am__dirstamp):
 	@$(MKDIR_P) $(top_builddir)/src/client/$(DEPDIR)
 	@: > $(top_builddir)/src/client/$(DEPDIR)/$(am__dirstamp)
+$(top_builddir)/src/client/test_audio_portable-oalaudio.$(OBJEXT):  \
+	$(top_builddir)/src/client/$(am__dirstamp) \
+	$(top_builddir)/src/client/$(DEPDIR)/$(am__dirstamp)
+
+test-audio-portable$(EXEEXT): $(test_audio_portable_OBJECTS) $(test_audio_portable_DEPENDENCIES) $(EXTRA_test_audio_portable_DEPENDENCIES)
+	@rm -f test-audio-portable$(EXEEXT)
+	$(AM_V_CCLD)$(test_audio_portable_LINK) $(test_audio_portable_OBJECTS) $(test_audio_portable_LDADD) $(LIBS)
+
+test-checknames$(EXEEXT): $(test_checknames_OBJECTS) $(test_checknames_DEPENDENCIES) $(EXTRA_test_checknames_DEPENDENCIES)
+	@rm -f test-checknames$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_checknames_OBJECTS) $(test_checknames_LDADD) $(LIBS)
 $(top_builddir)/src/client/connect_target.$(OBJEXT):  \
 	$(top_builddir)/src/client/$(am__dirstamp) \
 	$(top_builddir)/src/client/$(DEPDIR)/$(am__dirstamp)
@@ -2787,6 +2813,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@$(top_builddir)/src/client/$(DEPDIR)/connect_target.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@$(top_builddir)/src/client/$(DEPDIR)/gfx2d.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@$(top_builddir)/src/client/$(DEPDIR)/test_audio_portable-oalaudio.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@$(top_builddir)/src/client/$(DEPDIR)/test_messages-clientcommand.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@$(top_builddir)/src/client/$(DEPDIR)/test_messages-messages.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@$(top_builddir)/src/client/$(DEPDIR)/test_meta_environment-connect_target.Po@am__quote@ # am--include-marker
@@ -2873,6 +2900,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@$(top_builddir)/src/server/$(DEPDIR)/test_session_flow-session_acceptor.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@$(top_builddir)/src/server/$(DEPDIR)/test_web_front-web_front.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_audio_device-test_audio_device.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_audio_portable-test_audio_device.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_checknames.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_connect_target.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_contact_target_probe.Po@am__quote@ # am--include-marker
@@ -2983,6 +3011,34 @@ test_audio_device-test_audio_device.obj: test_audio_device.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='test_audio_device.c' object='test_audio_device-test_audio_device.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test_audio_device_CFLAGS) $(CFLAGS) -c -o test_audio_device-test_audio_device.obj `if test -f 'test_audio_device.c'; then $(CYGPATH_W) 'test_audio_device.c'; else $(CYGPATH_W) '$(srcdir)/test_audio_device.c'; fi`
+
+test_audio_portable-test_audio_device.o: test_audio_device.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_audio_portable_CPPFLAGS) $(CPPFLAGS) $(test_audio_portable_CFLAGS) $(CFLAGS) -MT test_audio_portable-test_audio_device.o -MD -MP -MF $(DEPDIR)/test_audio_portable-test_audio_device.Tpo -c -o test_audio_portable-test_audio_device.o `test -f 'test_audio_device.c' || echo '$(srcdir)/'`test_audio_device.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_audio_portable-test_audio_device.Tpo $(DEPDIR)/test_audio_portable-test_audio_device.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='test_audio_device.c' object='test_audio_portable-test_audio_device.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_audio_portable_CPPFLAGS) $(CPPFLAGS) $(test_audio_portable_CFLAGS) $(CFLAGS) -c -o test_audio_portable-test_audio_device.o `test -f 'test_audio_device.c' || echo '$(srcdir)/'`test_audio_device.c
+
+test_audio_portable-test_audio_device.obj: test_audio_device.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_audio_portable_CPPFLAGS) $(CPPFLAGS) $(test_audio_portable_CFLAGS) $(CFLAGS) -MT test_audio_portable-test_audio_device.obj -MD -MP -MF $(DEPDIR)/test_audio_portable-test_audio_device.Tpo -c -o test_audio_portable-test_audio_device.obj `if test -f 'test_audio_device.c'; then $(CYGPATH_W) 'test_audio_device.c'; else $(CYGPATH_W) '$(srcdir)/test_audio_device.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/test_audio_portable-test_audio_device.Tpo $(DEPDIR)/test_audio_portable-test_audio_device.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='test_audio_device.c' object='test_audio_portable-test_audio_device.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_audio_portable_CPPFLAGS) $(CPPFLAGS) $(test_audio_portable_CFLAGS) $(CFLAGS) -c -o test_audio_portable-test_audio_device.obj `if test -f 'test_audio_device.c'; then $(CYGPATH_W) 'test_audio_device.c'; else $(CYGPATH_W) '$(srcdir)/test_audio_device.c'; fi`
+
+$(top_builddir)/src/client/test_audio_portable-oalaudio.o: $(top_builddir)/src/client/oalaudio.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_audio_portable_CPPFLAGS) $(CPPFLAGS) $(test_audio_portable_CFLAGS) $(CFLAGS) -MT $(top_builddir)/src/client/test_audio_portable-oalaudio.o -MD -MP -MF $(top_builddir)/src/client/$(DEPDIR)/test_audio_portable-oalaudio.Tpo -c -o $(top_builddir)/src/client/test_audio_portable-oalaudio.o `test -f '$(top_builddir)/src/client/oalaudio.c' || echo '$(srcdir)/'`$(top_builddir)/src/client/oalaudio.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(top_builddir)/src/client/$(DEPDIR)/test_audio_portable-oalaudio.Tpo $(top_builddir)/src/client/$(DEPDIR)/test_audio_portable-oalaudio.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$(top_builddir)/src/client/oalaudio.c' object='$(top_builddir)/src/client/test_audio_portable-oalaudio.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_audio_portable_CPPFLAGS) $(CPPFLAGS) $(test_audio_portable_CFLAGS) $(CFLAGS) -c -o $(top_builddir)/src/client/test_audio_portable-oalaudio.o `test -f '$(top_builddir)/src/client/oalaudio.c' || echo '$(srcdir)/'`$(top_builddir)/src/client/oalaudio.c
+
+$(top_builddir)/src/client/test_audio_portable-oalaudio.obj: $(top_builddir)/src/client/oalaudio.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_audio_portable_CPPFLAGS) $(CPPFLAGS) $(test_audio_portable_CFLAGS) $(CFLAGS) -MT $(top_builddir)/src/client/test_audio_portable-oalaudio.obj -MD -MP -MF $(top_builddir)/src/client/$(DEPDIR)/test_audio_portable-oalaudio.Tpo -c -o $(top_builddir)/src/client/test_audio_portable-oalaudio.obj `if test -f '$(top_builddir)/src/client/oalaudio.c'; then $(CYGPATH_W) '$(top_builddir)/src/client/oalaudio.c'; else $(CYGPATH_W) '$(srcdir)/$(top_builddir)/src/client/oalaudio.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(top_builddir)/src/client/$(DEPDIR)/test_audio_portable-oalaudio.Tpo $(top_builddir)/src/client/$(DEPDIR)/test_audio_portable-oalaudio.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$(top_builddir)/src/client/oalaudio.c' object='$(top_builddir)/src/client/test_audio_portable-oalaudio.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_audio_portable_CPPFLAGS) $(CPPFLAGS) $(test_audio_portable_CFLAGS) $(CFLAGS) -c -o $(top_builddir)/src/client/test_audio_portable-oalaudio.obj `if test -f '$(top_builddir)/src/client/oalaudio.c'; then $(CYGPATH_W) '$(top_builddir)/src/client/oalaudio.c'; else $(CYGPATH_W) '$(srcdir)/$(top_builddir)/src/client/oalaudio.c'; fi`
 
 test_gl_core_resources-test_gl_core_resources.o: test_gl_core_resources.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_gl_core_resources_CPPFLAGS) $(CPPFLAGS) $(test_gl_core_resources_CFLAGS) $(CFLAGS) -MT test_gl_core_resources-test_gl_core_resources.o -MD -MP -MF $(DEPDIR)/test_gl_core_resources-test_gl_core_resources.Tpo -c -o test_gl_core_resources-test_gl_core_resources.o `test -f 'test_gl_core_resources.c' || echo '$(srcdir)/'`test_gl_core_resources.c
@@ -4920,6 +4976,13 @@ test-audio-device.log: test-audio-device$(EXEEXT)
 	--log-file $$b.log --trs-file $$b.trs \
 	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
 	"$$tst" $(AM_TESTS_FD_REDIRECT)
+test-audio-portable.log: test-audio-portable$(EXEEXT)
+	@p='test-audio-portable$(EXEEXT)'; \
+	b='test-audio-portable'; \
+	$(am__check_pre) $(LOG_DRIVER) --test-name "$$f" \
+	--log-file $$b.log --trs-file $$b.trs \
+	$(am__common_driver_flags) $(AM_LOG_DRIVER_FLAGS) $(LOG_DRIVER_FLAGS) -- $(LOG_COMPILE) \
+	"$$tst" $(AM_TESTS_FD_REDIRECT)
 test-mapedit-input.log: test-mapedit-input$(EXEEXT)
 	@p='test-mapedit-input$(EXEEXT)'; \
 	b='test-mapedit-input'; \
@@ -5083,6 +5146,7 @@ clean-am: clean-checkPROGRAMS clean-generic mostlyclean-am
 distclean: distclean-am
 		-rm -f $(top_builddir)/src/client/$(DEPDIR)/connect_target.Po
 	-rm -f $(top_builddir)/src/client/$(DEPDIR)/gfx2d.Po
+	-rm -f $(top_builddir)/src/client/$(DEPDIR)/test_audio_portable-oalaudio.Po
 	-rm -f $(top_builddir)/src/client/$(DEPDIR)/test_messages-clientcommand.Po
 	-rm -f $(top_builddir)/src/client/$(DEPDIR)/test_messages-messages.Po
 	-rm -f $(top_builddir)/src/client/$(DEPDIR)/test_meta_environment-connect_target.Po
@@ -5169,6 +5233,7 @@ distclean: distclean-am
 	-rm -f $(top_builddir)/src/server/$(DEPDIR)/test_session_flow-session_acceptor.Po
 	-rm -f $(top_builddir)/src/server/$(DEPDIR)/test_web_front-web_front.Po
 	-rm -f ./$(DEPDIR)/test_audio_device-test_audio_device.Po
+	-rm -f ./$(DEPDIR)/test_audio_portable-test_audio_device.Po
 	-rm -f ./$(DEPDIR)/test_checknames.Po
 	-rm -f ./$(DEPDIR)/test_connect_target.Po
 	-rm -f ./$(DEPDIR)/test_contact_target_probe.Po
@@ -5290,6 +5355,7 @@ installcheck-am:
 maintainer-clean: maintainer-clean-am
 		-rm -f $(top_builddir)/src/client/$(DEPDIR)/connect_target.Po
 	-rm -f $(top_builddir)/src/client/$(DEPDIR)/gfx2d.Po
+	-rm -f $(top_builddir)/src/client/$(DEPDIR)/test_audio_portable-oalaudio.Po
 	-rm -f $(top_builddir)/src/client/$(DEPDIR)/test_messages-clientcommand.Po
 	-rm -f $(top_builddir)/src/client/$(DEPDIR)/test_messages-messages.Po
 	-rm -f $(top_builddir)/src/client/$(DEPDIR)/test_meta_environment-connect_target.Po
@@ -5376,6 +5442,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f $(top_builddir)/src/server/$(DEPDIR)/test_session_flow-session_acceptor.Po
 	-rm -f $(top_builddir)/src/server/$(DEPDIR)/test_web_front-web_front.Po
 	-rm -f ./$(DEPDIR)/test_audio_device-test_audio_device.Po
+	-rm -f ./$(DEPDIR)/test_audio_portable-test_audio_device.Po
 	-rm -f ./$(DEPDIR)/test_checknames.Po
 	-rm -f ./$(DEPDIR)/test_connect_target.Po
 	-rm -f ./$(DEPDIR)/test_contact_target_probe.Po

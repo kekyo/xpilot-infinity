@@ -98,13 +98,13 @@ TESTS = test-framed-stream test-websocket-transport \
 	run-build-metadata.sh run-build-wrapper.sh \
 	run-build-package.sh run-package-tools.sh run-package-cmake.sh \
 	run-package-windows.sh \
-	run-windows-archive.sh run-macos-info-plist.sh \
+	run-windows-archive.sh \
 	run-source-encoding.sh \
 	run-c23-server-build.sh run-vendored-zlib.sh \
 	run-container-publish.sh run-container-image.sh run-quadlet.sh run-e2e.sh
 if COND_SOUND
-check_PROGRAMS += test-audio-device
-TESTS += test-audio-device
+check_PROGRAMS += test-audio-device test-audio-portable
+TESTS += test-audio-device test-audio-portable
 endif
 if COND_X11_CLIENT
 check_PROGRAMS += test-x11-text
@@ -667,6 +667,14 @@ test_audio_device_LDFLAGS = $(AM_LDFLAGS) -Wl,--gc-sections \
 test_audio_device_LDADD = $(top_builddir)/src/client/libxpclient.a \
 	$(top_builddir)/src/common/libxpcommon.a @SOUND_LIBS@
 
+test_audio_portable_SOURCES = test_audio_device.c \
+	$(top_srcdir)/src/client/oalaudio.c
+test_audio_portable_CPPFLAGS = $(AM_CPPFLAGS) @SOUND_CFLAGS@ \
+	-DMACOSX_FRAMEWORKS
+test_audio_portable_CFLAGS = $(test_audio_device_CFLAGS)
+test_audio_portable_LDFLAGS = $(test_audio_device_LDFLAGS)
+test_audio_portable_LDADD = $(test_audio_device_LDADD)
+
 TEST_EXTENSIONS = .sh
 SH_LOG_COMPILER = $(SHELL)
 AM_TESTS_ENVIRONMENT = \
@@ -717,8 +725,6 @@ AM_TESTS_ENVIRONMENT = \
 	export XPILOT_WINDOWS_ICON; \
 	XPILOT_WINDOWS_PACKAGER='$(abs_top_srcdir)/config/package-windows.sh'; \
 	export XPILOT_WINDOWS_PACKAGER; \
-	XPILOT_MACOS_INFO_PLIST='$(abs_top_srcdir)/contrib/macosx/English.lproj/InfoPlist.strings'; \
-	export XPILOT_MACOS_INFO_PLIST; \
 	XPILOT_SOURCE_ENCODING_ROOT='$(abs_top_srcdir)'; \
 	export XPILOT_SOURCE_ENCODING_ROOT; \
 	XPILOT_C23_CC='$(CC)'; export XPILOT_C23_CC; \
@@ -736,10 +742,10 @@ EXTRA_DIST = run-build-metadata.sh run-build-wrapper.sh \
 	run-vendored-zlib.sh \
 	run-wine-suite.sh run-build-package.sh run-package-tools.sh \
 	run-package-cmake.sh run-package-windows.sh \
-	run-windows-archive.sh run-macos-info-plist.sh \
+	run-windows-archive.sh \
 	run-container-publish.sh run-container-image.sh run-quadlet.sh \
 	run-source-encoding.sh test-source-encoding.mjs \
-	test-windows-archive.mjs test-macos-info-plist.mjs test_helpers.h
+	test-windows-archive.mjs test_helpers.h
 
 run-sdl-core-boundary.log: \
 	$(top_builddir)/src/client/sdl/xpilot-infinity-sdl
