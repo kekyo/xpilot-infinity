@@ -98,6 +98,22 @@ saved data belong in `--data-dir`, which defaults to `~/.xpilot-infinity`.
 
 For instructions on how to join, basic operations, and how to start your own server, see [Play in a Browser](docs/en/browser.md).
 
+### Play with a Docker container
+
+Use Docker or Podman to start an image containing the server and browser
+client. Linux amd64 and arm64 are supported.
+
+```sh
+docker run --rm -p 15347:15347/tcp docker.io/kekyo/xpilot-infinity:latest
+```
+
+Open `http://localhost:15347/`, enter a name, and choose `Join game`.
+Stop the server with Ctrl+C. For Podman, replace `docker` with `podman`.
+
+This example publishes only browser hosting and WebSocket gameplay.
+For saved data, TCP/UDP access, and building your own image, see
+[Running the server with Podman](#running-the-server-with-podman) below.
+
 ### Windows installation
 
 Windows releases provide both an NSIS installer and a ZIP archive for each
@@ -426,16 +442,14 @@ It supports Linux amd64 and arm64 and runs as UID/GID `10001:10001`.
 UDP, TCP, and WebSocket are all enabled inside the container. Choose which
 transports to publish through the port mappings at startup.
 
-#### Build and join in a browser
+#### Run in the background and save data
 
-Install Podman, Node.js 24.x (24.19.0+) or 26.4.0+, and npm, together with the
-[browser build prerequisites](xpilot-browser/README.md).
-Building and verifying a foreign CPU image also requires registered QEMU/binfmt
-support, such as the host OS's `qemu-user-static` package.
+The detailed examples below use Podman. If the quick-start container is still
+running, stop it with Ctrl+C before switching. A named volume preserves rankings
+when you recreate the container.
 
 ```bash
-image=localhost/xpilot-infinity-server:local
-./build_container_image.sh --tag "$image"
+image=docker.io/kekyo/xpilot-infinity:latest
 podman volume create xpilot-infinity-server-data
 podman run --detach \
   --name xpilot-infinity-server \
@@ -446,34 +460,11 @@ podman run --detach \
   "$image" -map ndh.xp2 -rankFileName rankings.xml
 ```
 
-Open `http://localhost:15347/`, enter a name, and choose `Join game`.
-Players on another PC replace `localhost` with the server's hostname.
-See the [browser controls](xpilot-browser/README.md).
-
 This example publishes browser hosting and WebSocket gameplay. Both use
 15347/TCP, so static files need no separate port. For local access only, use
 `--publish 127.0.0.1:15347:15347/tcp`.
 The default map is `ndh.xp2`, and public metaserver reporting is disabled.
-
-By default, the build creates an amd64/arm64 manifest and individual verification
-tags `${image}-amd64` and `${image}-arm64`. The server and browser are built once,
-with the same version and commit used for both CPU images. Both images must pass
-startup, WebSocket, browser hosting, and persistence checks before the final tag
-is updated. A build or verification failure prevents that update and publishing.
-
-To build one CPU only, pass `--platform linux/amd64` or `--platform linux/arm64`.
-Use `--jobs 1` for sequential image builds. `--skip-app-build` reuses existing
-server and browser artifacts only if their versions and commits match the
-requested build identity. Omit it after changing application sources.
-
-`./build_container_image_all.sh` also targets both CPUs. Builds remain local
-unless `--push` is supplied; that option publishes both the version and `latest`
-tags after verification. The default repository is
-`docker.io/kekyo/xpilot-infinity-server`. Set your own repository with
-`--registry-image` and authenticate with `podman login` beforehand.
-Use `--version`, `--revision`, and `--node-image` to override the product version,
-source commit, and Node.js base image. Run `./build_container_image.sh --help`
-for all options.
+Players on another PC replace `localhost` in the browser URL with the server's hostname.
 
 #### Choose the published transports
 
@@ -558,7 +549,7 @@ podman stop --time 60 xpilot-infinity-server
 #### Manage with rootless systemd
 
 The supplied Quadlet publishes only 15347/TCP and saves rankings in a named
-volume. Its default `Image=` is `docker.io/kekyo/xpilot-infinity-server:latest`.
+volume. Its default `Image=` is `docker.io/kekyo/xpilot-infinity:latest`.
 For a local build, change `Image=` in the copied file to your local tag.
 
 ```bash
@@ -566,7 +557,7 @@ quadlet_dir="${XDG_CONFIG_HOME:-$HOME/.config}/containers/systemd"
 mkdir -p "$quadlet_dir"
 cp containers/xpilot-infinity-server.container "$quadlet_dir/"
 cp containers/xpilot-infinity-server-data.volume "$quadlet_dir/"
-# Set Image= in the copied .container file before starting it.
+# For local builds, set Image= in the copied .container file.
 systemctl --user daemon-reload
 systemctl --user start xpilot-infinity-server.service
 ```
@@ -583,6 +574,41 @@ there is no need to run `systemctl enable` on the generated service.
 See the [Quadlet documentation](https://docs.podman.io/en/v4.9.3/markdown/podman-systemd.unit.5.html)
 for startup without an interactive login. Automatic image updates are disabled;
 pull the replacement image before restarting the service.
+
+#### Build your own image
+
+Install Podman, Node.js 24.x (24.19.0+) or 26.4.0+, and npm, together with the
+[browser build prerequisites](xpilot-browser/README.md).
+Building and verifying a foreign CPU image also requires registered QEMU/binfmt
+support, such as the host OS's `qemu-user-static` package.
+
+```bash
+image=localhost/xpilot-infinity:local
+./build_container_image.sh --tag "$image"
+```
+
+To use the resulting local image, set `image` to this tag in the startup examples
+above.
+
+By default, the build creates an amd64/arm64 manifest and individual verification
+tags `${image}-amd64` and `${image}-arm64`. The server and browser are built once,
+with the same version and commit used for both CPU images. Both images must pass
+startup, WebSocket, browser hosting, and persistence checks before the final tag
+is updated. A build or verification failure prevents that update and publishing.
+
+To build one CPU only, pass `--platform linux/amd64` or `--platform linux/arm64`.
+Use `--jobs 1` for sequential image builds. `--skip-app-build` reuses existing
+server and browser artifacts only if their versions and commits match the
+requested build identity. Omit it after changing application sources.
+
+`./build_container_image_all.sh` also targets both CPUs. Builds remain local
+unless `--push` is supplied; that option publishes both the version and `latest`
+tags after verification. The default repository is
+`docker.io/kekyo/xpilot-infinity`. Set your own repository with
+`--registry-image` and authenticate with `podman login` beforehand.
+Use `--version`, `--revision`, and `--node-image` to override the product version,
+source commit, and Node.js base image. Run `./build_container_image.sh --help`
+for all options.
 
 ---
 

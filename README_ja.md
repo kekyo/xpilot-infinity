@@ -97,6 +97,21 @@ npx xpilot-infinity
 
 参加手順、基本操作、自分でサーバーを起動する方法は [ブラウザでプレイする](docs/ja/browser.md) を参照してください。
 
+### Dockerコンテナでのプレイ
+
+DockerまたはPodmanで、サーバーとブラウザクライアントを同梱したイメージを起動できます。
+対応CPUはLinuxのamd64とarm64です。
+
+```sh
+docker run --rm -p 15347:15347/tcp docker.io/kekyo/xpilot-infinity:latest
+```
+
+`http://localhost:15347/`を開き、名前を入力して`Join game`を押します。終了するにはCtrl+Cを押してください。
+Podmanを使う場合は、コマンドの`docker`を`podman`に置き換えます。
+
+この例では、ブラウザ配信とWebSocketのポートだけを公開します。
+データの保存、TCP／UDPの公開、イメージのビルドについては、後半の[Podmanでサーバーを実行する](#podman-でサーバーを実行する)を参照してください。
+
 ### Windows へのインストール
 
 Windows リリースでは、各アーキテクチャ向けに NSIS インストーラーと ZIP
@@ -426,16 +441,13 @@ X11 では XEmbed のトレイにも対応します。利用できるホスト�
 コンテナ内ではUDP・TCP・WebSocketをすべて有効にしています。
 外部へ公開する通信方式は、起動時のポートマッピングで選べます。
 
-#### ビルドしてブラウザで参加する
+#### バックグラウンドで起動してデータを保存する
 
-Podmanと、Node.js 24.19.0以降の24系または26.4.0以降、npmを用意してください。
-ビルドには[ブラウザ版のビルド環境](xpilot-browser/README.md)も必要です。
-異なるCPU向けのイメージをビルド・検証するには、QEMU/binfmtによる実行環境を用意します。
-必要な場合はホストOSの`qemu-user-static`などをインストールしてください。
+以下はPodmanでの詳しい起動例です。前半の起動例が動作中の場合は、Ctrl+Cで終了してから切り替えてください。
+名前付きボリュームを使うと、コンテナを作り直してもランキングを保存できます。
 
 ```bash
-image=localhost/xpilot-infinity-server:local
-./build_container_image.sh --tag "$image"
+image=docker.io/kekyo/xpilot-infinity:latest
 podman volume create xpilot-infinity-server-data
 podman run --detach \
   --name xpilot-infinity-server \
@@ -446,33 +458,11 @@ podman run --detach \
   "$image" -map ndh.xp2 -rankFileName rankings.xml
 ```
 
-`http://localhost:15347/`を開き、名前を入力して`Join game`を押します。
-別のPCから参加する場合は、`localhost`をサーバーのホスト名に置き換えてください。
-[ブラウザでの基本操作](docs/ja/browser.md)も参照できます。
-
 この例ではブラウザの配信とWebSocketゲーム通信だけを公開します。
 HTTPとWebSocketは同じ15347/TCPを使うため、静的ファイル用の別ポートは不要です。
 自分のPCからだけ接続する場合は`--publish 127.0.0.1:15347:15347/tcp`に変更します。
 既定のマップは`ndh.xp2`で、公開メタサーバーへの報告は無効です。
-
-既定のビルドでは、amd64とarm64を含むmanifestと、各CPUの検証用タグ
-`${image}-amd64`、`${image}-arm64`を作成します。
-サーバーとブラウザは一度だけビルドし、同じバージョン・コミットの成果物を両CPUで使用します。
-完成タグの更新には、各CPUの起動、WebSocket接続、ブラウザ配信、データ保存の検証が必要です。
-一方のビルドや検証が失敗すると、完成タグの更新と公開を中止します。
-
-単一CPUだけをビルドする場合は`--platform linux/amd64`または`--platform linux/arm64`を指定します。
-`--jobs 1`でイメージを順番にビルドできます。
-`--skip-app-build`は、サーバーとブラウザの生成済み成果物を再利用する指定です。
-両方のバージョンとコミットが今回のビルド指定に一致する場合だけ利用できます。
-ソースを変更した場合は、この指定を外して再ビルドしてください。
-
-`./build_container_image_all.sh`も両CPUを対象とします。
-既定ではローカルへのビルドのみで、`--push`を指定すると検証後にバージョンタグと`latest`を公開します。
-公開先の既定値は`docker.io/kekyo/xpilot-infinity-server`です。
-`--registry-image`で自分の公開先を指定し、あらかじめ`podman login`を実行してください。
-バージョン、コミット、Node.jsベースイメージは、`--version`、`--revision`、`--node-image`で指定できます。
-そのほかのオプションは`./build_container_image.sh --help`で確認できます。
+別のPCから参加する場合は、ブラウザのURLの`localhost`をサーバーのホスト名に置き換えてください。
 
 #### 公開する通信方式を選ぶ
 
@@ -557,7 +547,7 @@ podman stop --time 60 xpilot-infinity-server
 #### rootless systemdで管理する
 
 付属のQuadletは15347/TCPだけを公開し、名前付きボリュームにランキングを保存します。
-`Image=`の既定値は`docker.io/kekyo/xpilot-infinity-server:latest`です。
+`Image=`の既定値は`docker.io/kekyo/xpilot-infinity:latest`です。
 ローカルビルドを使う場合は、コピーしたファイルの`Image=`をそのタグへ変更してください。
 
 ```bash
@@ -565,7 +555,7 @@ quadlet_dir="${XDG_CONFIG_HOME:-$HOME/.config}/containers/systemd"
 mkdir -p "$quadlet_dir"
 cp containers/xpilot-infinity-server.container "$quadlet_dir/"
 cp containers/xpilot-infinity-server-data.volume "$quadlet_dir/"
-# Set Image= in the copied .container file before starting it.
+# For local builds, set Image= in the copied .container file.
 systemctl --user daemon-reload
 systemctl --user start xpilot-infinity-server.service
 ```
@@ -580,6 +570,39 @@ TCPやUDPも公開する場合は、前述の表に対応する`PublishPort=`を
 生成されたサービスに`systemctl enable`を実行する必要はありません。
 ログインなしで起動する設定は[Quadletの公式説明](https://docs.podman.io/en/v4.9.3/markdown/podman-systemd.unit.5.html)を参照してください。
 イメージの自動更新は無効です。更新時は対象のイメージをプルしてからサービスを再起動します。
+
+#### イメージを自分でビルドする
+
+Podmanと、Node.js 24.19.0以降の24系または26.4.0以降、npmを用意してください。
+ビルドには[ブラウザ版のビルド環境](xpilot-browser/README.md)も必要です。
+異なるCPU向けのイメージをビルド・検証するには、QEMU/binfmtによる実行環境を用意します。
+必要な場合はホストOSの`qemu-user-static`などをインストールしてください。
+
+```bash
+image=localhost/xpilot-infinity:local
+./build_container_image.sh --tag "$image"
+```
+
+生成したローカルイメージを使う場合は、上の起動例の`image`をこのタグに変更してください。
+
+既定のビルドでは、amd64とarm64を含むmanifestと、各CPUの検証用タグ
+`${image}-amd64`、`${image}-arm64`を作成します。
+サーバーとブラウザは一度だけビルドし、同じバージョン・コミットの成果物を両CPUで使用します。
+完成タグの更新には、各CPUの起動、WebSocket接続、ブラウザ配信、データ保存の検証が必要です。
+一方のビルドや検証が失敗すると、完成タグの更新と公開を中止します。
+
+単一CPUだけをビルドする場合は`--platform linux/amd64`または`--platform linux/arm64`を指定します。
+`--jobs 1`でイメージを順番にビルドできます。
+`--skip-app-build`は、サーバーとブラウザの生成済み成果物を再利用する指定です。
+両方のバージョンとコミットが今回のビルド指定に一致する場合だけ利用できます。
+ソースを変更した場合は、この指定を外して再ビルドしてください。
+
+`./build_container_image_all.sh`も両CPUを対象とします。
+既定ではローカルへのビルドのみで、`--push`を指定すると検証後にバージョンタグと`latest`を公開します。
+公開先の既定値は`docker.io/kekyo/xpilot-infinity`です。
+`--registry-image`で自分の公開先を指定し、あらかじめ`podman login`を実行してください。
+バージョン、コミット、Node.jsベースイメージは、`--version`、`--revision`、`--node-image`で指定できます。
+そのほかのオプションは`./build_container_image.sh --help`で確認できます。
 
 ---
 

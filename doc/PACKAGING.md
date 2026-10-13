@@ -80,7 +80,7 @@ the [Japanese guide](../README_ja.md#podman-でサーバーを実行する).
 Build a local Linux amd64/arm64 manifest with Podman:
 
 ```sh
-image=localhost/xpilot-infinity-server:local
+image=localhost/xpilot-infinity:local
 ./build_container_image.sh --tag "$image"
 podman manifest inspect "$image"
 ```
@@ -108,10 +108,10 @@ and its images under both the version and `latest` tags:
 ```sh
 podman login docker.io
 ./build_container_image_all.sh --push \
-  --registry-image docker.io/YOUR_NAMESPACE/xpilot-infinity-server
+  --registry-image docker.io/YOUR_NAMESPACE/xpilot-infinity
 ```
 
-The default repository is `docker.io/kekyo/xpilot-infinity-server`. Replace it in
+The default repository is `docker.io/kekyo/xpilot-infinity`. Replace it in
 the command and in
 [`containers/xpilot-infinity-server.container`](../containers/xpilot-infinity-server.container)
 when publishing to another namespace. The builder does not log in to a registry.
