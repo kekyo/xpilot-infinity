@@ -21,6 +21,15 @@ export default defineConfig(async (): Promise<UserConfig> => {
         common: {
           options: ['-O3', '-msimd128'],
           linkOptions: ['-O3', '-msimd128'],
+          wasmOpt: {
+            enable: true,
+            options: [
+              '-O3',
+              '--enable-nontrapping-float-to-int',
+              '--enable-bulk-memory',
+              '--enable-simd',
+            ],
+          },
         },
         targets: {
           'xpilot-server': {
@@ -57,6 +66,8 @@ export default defineConfig(async (): Promise<UserConfig> => {
               resolve(prefix, 'lib/libz.a'),
               '-lm',
             ],
+            // SUPPORT_LONGJMP=wasm emits WebAssembly exception instructions.
+            wasmOpt: { options: ['--enable-exception-handling'] },
             linkDirectives: {
               MODULARIZE: 1,
               EXPORT_ES6: 1,

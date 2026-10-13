@@ -27,6 +27,15 @@ export default defineConfig(async () => {
         common: {
           options: ['-O3', '-msimd128'],
           linkOptions: ['-O3', '-msimd128'],
+          wasmOpt: {
+            enable: true,
+            options: [
+              '-O3',
+              '--enable-nontrapping-float-to-int',
+              '--enable-bulk-memory',
+              '--enable-simd',
+            ],
+          },
         },
         targets: {
           'xpilot-game': {
