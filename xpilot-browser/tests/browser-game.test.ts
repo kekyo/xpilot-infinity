@@ -224,8 +224,9 @@ test('plays the native game in WebAssembly', async () => {
     );
     expect(dimensions.width).toBe(Math.round(dimensions.css * 2));
     expect(dimensions.logical).toBe(Math.round(dimensions.css));
+    expect(await evaluate('() => document.activeElement.id')).toBe('game');
     const steering = await evaluate(
-      'async () => { const c=document.querySelector("#game"); c.focus(); const h=c.dataset.heading; c.dispatchEvent(new KeyboardEvent("keydown",{key:"a",code:"KeyA",keyCode:65,bubbles:true})); while(c.dataset.heading===h) await new Promise(requestAnimationFrame); c.dispatchEvent(new KeyboardEvent("keyup",{key:"a",code:"KeyA",keyCode:65,bubbles:true})); return c.dataset.heading !== h; }'
+      'async () => { const c=document.querySelector("#game"), target=document.activeElement; const h=c.dataset.heading; target.dispatchEvent(new KeyboardEvent("keydown",{key:"a",code:"KeyA",bubbles:true})); while(c.dataset.heading===h) await new Promise(requestAnimationFrame); target.dispatchEvent(new KeyboardEvent("keyup",{key:"a",code:"KeyA",bubbles:true})); return c.dataset.heading !== h; }'
     );
     expect(steering).toBe(true);
     const moved = await evaluate(

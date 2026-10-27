@@ -64,7 +64,12 @@ void Pointer_control_newbie_message(void)
     else
 	snprintf(msg, sizeof(msg),
 		 "Mouse steering disabled. "
-		 "Click background with left mouse button to enable it.");
+#ifdef __EMSCRIPTEN__
+		 "Select Mouse steering to enable it."
+#else
+		 "Click background with left mouse button to enable it."
+#endif
+		 );
 
     Add_newbie_message(msg);
 }
