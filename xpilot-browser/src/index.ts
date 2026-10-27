@@ -27,6 +27,7 @@ const connect = document.querySelector<HTMLButtonElement>('#connect')!;
 const disconnect = document.querySelector<HTMLButtonElement>('#disconnect')!;
 const nickname = document.querySelector<HTMLInputElement>('#nickname')!;
 const mute = document.querySelector<HTMLInputElement>('#mute')!;
+const chat = document.querySelector<HTMLInputElement>('#chat')!;
 const settingsStatus = document.querySelector<HTMLOutputElement>('#settings')!;
 const audioStatus = document.querySelector<HTMLOutputElement>('#audio')!;
 let preferences: BrowserSettings = {
@@ -50,6 +51,16 @@ let retryTimer = 0;
 let retryPending = false;
 let animation = 0;
 let generation = 0;
+
+const focusGame = () => {
+  // Admission and settings can finish while the player is already typing.
+  if (
+    connection.dataset.state === 'playing' &&
+    document.hasFocus() &&
+    document.activeElement !== chat
+  )
+    canvas.focus({ preventScroll: true });
+};
 
 const resize = () => {
   if (!runtime || contextLost) return;
@@ -183,6 +194,7 @@ const advance = () => {
         phase = 'game';
         connection.dataset.state = 'playing';
         connection.textContent = 'Playing';
+        focusGame();
       } else if (result < 0 || performance.now() >= attemptUntil) {
         runtime.xpilotSocket?.dispose();
         retryPending = true;
@@ -232,9 +244,10 @@ const advance = () => {
         } else stop('Game ended. Join to play again.', 'disconnected');
         return;
       }
-      if (result > 0) {
+      if (result > 0 && connection.dataset.state !== 'playing') {
         connection.textContent = 'Playing';
         connection.dataset.state = 'playing';
+        focusGame();
       }
       canvas.dataset.frame = String(runtime._xp_game_frame());
       canvas.dataset.shipX = String(runtime._xp_game_position(0));
@@ -328,7 +341,6 @@ const join = async () => {
     connection.textContent = 'Connecting…';
     connection.dataset.state = 'connecting';
     disconnect.disabled = false;
-    canvas.focus();
     animation = requestAnimationFrame(tick);
   } catch (error) {
     stop(String(error), 'error');
@@ -353,13 +365,12 @@ const leave = () => {
 disconnect.addEventListener('click', leave);
 document.querySelector('#chat-form')!.addEventListener('submit', (event) => {
   event.preventDefault();
-  const input = document.querySelector<HTMLInputElement>('#chat')!;
-  if (runtime && connection.dataset.state === 'playing' && input.value) {
-    withGameString(runtime, input.value, (pointer) =>
+  if (runtime && connection.dataset.state === 'playing' && chat.value) {
+    withGameString(runtime, chat.value, (pointer) =>
       runtime!._xp_game_chat(pointer)
     );
-    input.value = '';
-    canvas.focus();
+    chat.value = '';
+    canvas.focus({ preventScroll: true });
   }
 });
 const releaseInput = () => {
@@ -368,6 +379,19 @@ const releaseInput = () => {
   updateAudio();
 };
 canvas.addEventListener('blur', releaseInput);
+document.addEventListener('click', (event) => {
+  // Clicking page content does not trigger the window's focus event.
+  // Keep controls and their labels under their own focus handling.
+  if (
+    event.defaultPrevented ||
+    !(event.target instanceof Element) ||
+    event.target.closest(
+      'input, textarea, select, button, a[href], label, [contenteditable], [tabindex]'
+    )
+  )
+    return;
+  focusGame();
+});
 window.addEventListener('blur', () => {
   windowFocused = false;
   releaseInput();
@@ -376,6 +400,7 @@ window.addEventListener('blur', () => {
 window.addEventListener('focus', () => {
   windowFocused = true;
   audio?.mute(mute.checked || document.hidden);
+  focusGame();
 });
 document.addEventListener('visibilitychange', () => {
   releaseInput();
@@ -408,12 +433,14 @@ canvas.addEventListener('webglcontextrestored', () => {
 });
 nickname.addEventListener('change', persist);
 mute.addEventListener('change', async () => {
+  focusGame();
   audio?.mute(mute.checked || document.hidden);
   if (!mute.checked) await audio?.unlock();
   updateAudio();
   await persist();
 });
 document.querySelector('#save')!.addEventListener('click', async () => {
+  focusGame();
   if (runtime) {
     if (runtime._xp_game_save_settings() !== 0)
       settingsStatus.textContent = 'Unable to save game settings';

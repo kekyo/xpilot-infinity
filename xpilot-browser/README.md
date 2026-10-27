@@ -2,7 +2,7 @@
 
 Open a server's web address in a desktop browser with WebGL 2, a keyboard and a mouse. Enter a name and select Join game. The client joins the server that supplied the page; it does not use the metaserver or discover other servers.
 
-Click the game to focus its controls. The default keys are A/S to turn, Shift to thrust, Enter to fire and Space for shields. Chat accepts Unicode text, using XPilot's bundled fonts first and the browser's fonts for missing characters. Glyphs may look different across devices.
+Keyboard control starts when you join and returns after sending chat or using Mute or Save game settings. Click the game to resume keyboard control while editing chat or after focusing another part of the page. This does not lock the pointer; use Mouse steering for mouse control. The default keys are A/S to turn, Shift to thrust, Enter to fire and Space for shields. Chat accepts Unicode text, using XPilot's bundled fonts first and the browser's fonts for missing characters. Glyphs may look different across devices.
 
 Mute controls effects. Sound starts after a user gesture. Mouse steering requests pointer lock; Escape releases it. Full screen requests the browser's full-screen mode. Losing focus releases held controls and stops effects. A short connection interruption is retried with the existing session; Leave game departs normally and allows another join.
 

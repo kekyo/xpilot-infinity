@@ -7,7 +7,7 @@ You can join a game without installing a client.
 
 1. Open the URL provided by the server operator. If you start the npm server on your own PC as described below, use `http://localhost:15347/`.
 2. When `Ready to join` appears, enter your player name in `Name` and select `Join game`.
-3. When `Playing` appears, click the game to focus its controls.
+3. When `Playing` appears, start playing with the keyboard.
 4. Select `Leave game` to leave. Select `Join game` again to rejoin.
 
 The browser connects to the server that supplied the page. It does not show a metaserver list or search for other servers.
@@ -23,7 +23,7 @@ The default keys are:
 | Fire | Enter |
 | Shield | Space |
 
-To chat, type in the `Chat` field below the game and select `Send`. Click the game afterward to resume flying.
+To chat, type in the `Chat` field below the game and select `Send`. Keyboard control returns to the game after sending.
 
 - `Full screen`: Show the game in full screen. Press Esc to exit.
 - `Mouse steering`: Steer with the mouse. Press Esc to release the pointer.
@@ -31,7 +31,9 @@ To chat, type in the `Chat` field below the game and select `Send`. Click the ga
 - `Save game settings`: Save changes made in the game's configuration.
 
 Your player name and mute preference are saved automatically. Settings are stored in your browser for each site and restored when you return.
-If the keys do not respond, click the game to focus it.
+Keyboard control also returns to the game after using `Mute` or `Save game settings`.
+If the keys do not respond, or you want to resume flying before sending a chat message, click the game to focus it.
+Clicking the game does not lock the pointer. Select `Mouse steering` to steer with the mouse.
 
 ## Start a server on your PC
 

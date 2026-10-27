@@ -23,6 +23,7 @@
   "scripts": {
     "build": "npm --prefix ../xpilot-browser run build && npm run build:runtime",
     "build:runtime": "node --no-experimental-webstorage node_modules/vite/bin/vite.js build",
+    "dev": "npm run build && node dist/cli.mjs",
     "test": "npm run build && vitest run",
     "pack": "npm run build && npm run pack:built",
     "pack:built": "node pack.ts",
