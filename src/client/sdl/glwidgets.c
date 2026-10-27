@@ -3665,9 +3665,12 @@ static void button_MainWidget( Uint8 button, Uint8 state , Uint16 x , Uint16 y, 
     if (!data) return;
 
     if (state == true) {
+#ifndef __EMSCRIPTEN__
+	/* Browser clicks restore keyboard focus; mouse steering is explicit. */
 	if (button == 1) {
 	    Key_press(KEY_POINTER_CONTROL);
 	}
+#endif
 	if (button == 2) {
     	    if (Console_isVisible()) {
 	    	scraptarget = NULL;
