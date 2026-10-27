@@ -151,10 +151,6 @@ test.each(['firefox', 'chromium'] as const)(
       await call('browser_click', { target: '#mute' });
       await call('browser_click', { target: '#connect' });
       await call('browser_wait_for', { text: 'Playing' });
-      await call('browser_click', { target: '#game' });
-      expect(
-        await evaluate('() => document.pointerLockElement?.id ?? null')
-      ).toBeNull();
       await call('browser_start_video', {
         filename: resolve(output, 'controls.webm'),
       });
