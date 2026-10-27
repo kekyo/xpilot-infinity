@@ -178,7 +178,7 @@ export default defineConfig(async () => {
     server: {
       proxy: {
         '/xpilot': {
-          target: process.env.XPILOT_SERVER_URL ?? 'ws://127.0.0.1:15345',
+          target: process.env.XPILOT_SERVER_URL ?? 'ws://127.0.0.1:15347',
           ws: true,
         },
       },
