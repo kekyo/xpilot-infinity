@@ -175,11 +175,20 @@ test.each(['firefox', 'chromium'] as const)(
       recording = true;
       await checkKeyboard();
 
-      for (const target of ['#save', '#mute', '#mute']) {
+      for (const target of [
+        'h1',
+        '#connection',
+        'main > p',
+        '#save',
+        '#mute',
+        '#mute',
+      ]) {
         await call('browser_click', { target });
         await checkKeyboard();
       }
 
+      await call('browser_click', { target: '#chat-form label' });
+      expect(await evaluate('() => document.activeElement.id')).toBe('chat');
       await call('browser_type', { target: '#chat', text: 'as', slowly: true });
       expect(
         await evaluate(`async () => {
@@ -189,7 +198,7 @@ test.each(['firefox', 'chromium'] as const)(
           return { focus: document.activeElement.id, text: document.querySelector('#chat').value, held: Number(canvas.dataset.held) };
         }`)
       ).toEqual({ focus: 'chat', text: 'as', held: 0 });
-      await call('browser_click', { target: '#game' });
+      await call('browser_click', { target: 'h1' });
       await checkKeyboard();
       await call('browser_click', { target: '#chat-form button' });
       await checkKeyboard();

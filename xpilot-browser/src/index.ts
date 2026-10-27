@@ -379,6 +379,19 @@ const releaseInput = () => {
   updateAudio();
 };
 canvas.addEventListener('blur', releaseInput);
+document.addEventListener('click', (event) => {
+  // Clicking page content does not trigger the window's focus event.
+  // Keep controls and their labels under their own focus handling.
+  if (
+    event.defaultPrevented ||
+    !(event.target instanceof Element) ||
+    event.target.closest(
+      'input, textarea, select, button, a[href], label, [contenteditable], [tabindex]'
+    )
+  )
+    return;
+  focusGame();
+});
 window.addEventListener('blur', () => {
   windowFocused = false;
   releaseInput();
